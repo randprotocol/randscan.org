@@ -1,5 +1,9 @@
 # RandScan
 
+[![coverage](https://codecov.io/gh/randprotocol/randscan/graph/badge.svg)](https://codecov.io/gh/randprotocol/randscan)
+
+Line coverage of the Rust workspace, measured by the `coverage` job in `.github/workflows/ci.yml` (cargo-llvm-cov) on every push to `main` and published to Codecov.
+
 Block explorer for the Rand Protocol RAND chain (the network served by
 [`rand-node`](../fullnode)). Live at https://randscan.org.
 

@@ -130,3 +130,53 @@ jobs:
           tags: randscan-frontend:test
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  # Line coverage of the Rust workspace, measured with cargo-llvm-cov (LLVM source-based coverage)
+  # and uploaded to Codecov, which draws the badge in README.md. Its own job rather than a step of
+  # `rust`: that job stops at `cargo fmt --check`, and coverage should not wait on formatting. The
+  # same PostgreSQL service and DATABASE_URL as `rust`, because the SQLx tests need them. The upload
+  # needs `CODECOV_TOKEN` (an organisation secret on randprotocol, or this repository's); without it
+  # the upload step fails. Every `uses:` here is pinned by commit sha, tag in the trailing comment.
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: randscan
+          POSTGRES_PASSWORD: randscan
+          POSTGRES_DB: randscan
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: dtolnay/rust-toolchain@89b12181fb390509a0842a86cc55eeb8eb928c1d # stable (branch head, 2026-10-05)
+      # llvm-tools for the toolchain the checkout pins (rust-toolchain.toml, where there is one),
+      # not for the action's: rustup resolves the toolchain from the working directory.
+      - name: llvm-tools for the pinned toolchain
+        working-directory: .
+        run: rustup component add llvm-tools-preview
+      - uses: taiki-e/install-action@e407f7bafb71fd004bc5c2da3032e5470cbb6ef0 # v2.87.24
+        with:
+          tool: cargo-llvm-cov
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - name: Coverage
+        run: cargo llvm-cov --workspace --lcov --output-path lcov.info
+        env:
+          DATABASE_URL: postgres://randscan:randscan@localhost:5432/randscan
+      - uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          files: lcov.info
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true

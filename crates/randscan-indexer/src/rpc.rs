@@ -1595,7 +1595,10 @@ mod tests {
         assert_eq!(s.base_fees_burned.as_deref(), Some("100000"));
         assert_eq!(s.burned, "100000");
         let wire = serde_json::to_value(&s).unwrap();
-        assert_eq!(wire["base_fees_burned"], "100000", "GET /api/v1/supply serves it as the node did: {wire}");
+        assert_eq!(
+            wire["base_fees_burned"], "100000",
+            "GET /api/v1/supply serves it as the node did: {wire}"
+        );
         // A number on the wire is still read as its decimal text.
         let s: randscan_core::Supply = serde_json::from_value({
             let mut v = wire.clone();
@@ -1620,17 +1623,31 @@ mod tests {
             ))
             .unwrap()
         };
-        let l = limits(r#","fee_rules":{"burn_base":true,"subsidy_net_of_fees":false,"burn_floor":true,"a_flag_from_the_future":true}"#);
+        let l = limits(
+            r#","fee_rules":{"burn_base":true,"subsidy_net_of_fees":false,"burn_floor":true,"a_flag_from_the_future":true}"#,
+        );
         let rules = l.fee_rules.clone().expect("fee_rules kept");
         assert!(rules.burn_base && rules.burn_floor && !rules.subsidy_net_of_fees);
-        let back: randscan_core::ChainLimits = serde_json::from_value(serde_json::to_value(&l).unwrap()).unwrap();
-        assert_eq!(back, l, "the limits round-trip through the stats row's JSONB");
-        assert_eq!(serde_json::to_value(&l).unwrap()["fee_rules"]["burn_base"], true);
+        let back: randscan_core::ChainLimits =
+            serde_json::from_value(serde_json::to_value(&l).unwrap()).unwrap();
+        assert_eq!(
+            back, l,
+            "the limits round-trip through the stats row's JSONB"
+        );
+        assert_eq!(
+            serde_json::to_value(&l).unwrap()["fee_rules"]["burn_base"],
+            true
+        );
         // `null` (a chain without a `fees` section) and absent (a node predating the field).
         assert_eq!(limits(r#","fee_rules":null"#).fee_rules, None);
         assert_eq!(limits("").fee_rules, None);
         // A group a later node trims to the flags it sets still parses.
-        assert_eq!(limits(r#","fee_rules":{"burn_base":true}"#).fee_rules.map(|r| (r.burn_base, r.burn_floor)), Some((true, false)));
+        assert_eq!(
+            limits(r#","fee_rules":{"burn_base":true}"#)
+                .fee_rules
+                .map(|r| (r.burn_base, r.burn_floor)),
+            Some((true, false))
+        );
     }
 
     #[test]

@@ -786,7 +786,7 @@ async fn invoke_round_trip(live: &LiveApp, client: &reqwest::Client, node: &Node
 /// The REST contract two sites read with no tests of their own, checked against what this real
 /// node made of the chain above. Every message names the consumer file:
 ///
-/// - zusd.money `src/components/BalanceSheet.astro`: `GET /bridge` (`enabled`, `mint_paused`),
+/// - zusd.money `src/lib/balance-sheet.mjs` (rendered by `BalanceSheet.astro`): `GET /bridge` (`enabled`, `mint_paused`),
 ///   `GET /bridge/assets` (`index`, `chain`, `symbol`, `locked`), `GET /tokens/{index}`
 ///   (`total_supply`);
 /// - randprotocol.org `src/components/BridgeReserves.astro`: the same three, plus each row's
@@ -806,7 +806,7 @@ async fn consumer_contract(
     mint_cm: &Value,
     token_index: Option<i64>,
 ) {
-    const ZUSD: &str = "zusd.money src/components/BalanceSheet.astro";
+    const ZUSD: &str = "zusd.money src/lib/balance-sheet.mjs (via BalanceSheet.astro)";
     const RESERVES: &str = "randprotocol.org src/components/BridgeReserves.astro";
     const BALANCE: &str = "randprotocol.org src/scripts/balance.js";
     let get = |path: String| async move { call(&live.app, json_req("GET", &path, None, None)).await };
@@ -896,13 +896,15 @@ async fn consumer_contract(
         notes.iter().any(|n| n["envelope"].is_object() && n["tx_hash"].is_string()),
         "{BALANCE}: at least one leaf carries an envelope to open: {page}"
     );
-    // Paging: a short page points at the next leaf, and that page starts there.
-    let (status, _, first) = get("/api/v1/envelopes?from_leaf=0&limit=2".into()).await;
-    assert_eq!(status, 200, "{BALANCE}: {first}");
-    assert_eq!(first["next_leaf"], 2, "{BALANCE} follows page.next_leaf: {first}");
-    let (_, _, second) = get("/api/v1/envelopes?from_leaf=2&limit=2".into()).await;
-    assert_eq!(second["notes"][0]["leaf_index"], 2, "{BALANCE}: the next page starts at next_leaf: {second}");
-    assert_eq!(second["total_leaves"], leaves, "{BALANCE} reports progress against total_leaves: {second}");
+    // Paging: a short page points at the next leaf, and that page starts there (needs a third leaf).
+    if leaves > 2 {
+        let (status, _, first) = get("/api/v1/envelopes?from_leaf=0&limit=2".into()).await;
+        assert_eq!(status, 200, "{BALANCE}: {first}");
+        assert_eq!(first["next_leaf"], 2, "{BALANCE} follows page.next_leaf: {first}");
+        let (_, _, second) = get("/api/v1/envelopes?from_leaf=2&limit=2".into()).await;
+        assert_eq!(second["notes"][0]["leaf_index"], 2, "{BALANCE}: the next page starts at next_leaf: {second}");
+        assert_eq!(second["total_leaves"], leaves, "{BALANCE} reports progress against total_leaves: {second}");
+    }
 
     // --- /stats --------------------------------------------------------------------------------
     let node_limits = rpc(client, &node.url, "rand_getLimits", json!([])).await;
@@ -913,7 +915,18 @@ async fn consumer_contract(
         assert!(is_units(&stats["gas_prices"]["gas_price"]) && is_units(&stats["gas_prices"]["byte_price"]), "a gas-section chain's tip prices: {stats}");
     }
     match node_limits.get("fee_rules") {
-        Some(rules) => assert_eq!(stats["limits"]["fee_rules"], *rules, "limits.fee_rules passes through as the node serves it: {stats}"),
+        // Only the flags the explorer models (`FeeRules`) are compared, so a flag a later node
+        // adds beside them does not fail the gate; a `null` group must stay `null`.
+        Some(Value::Null) => assert!(stats["limits"]["fee_rules"].is_null(), "limits.fee_rules is null as the node serves it: {stats}"),
+        Some(rules) => {
+            for flag in ["burn_base", "subsidy_net_of_fees", "burn_floor"] {
+                assert_eq!(
+                    stats["limits"]["fee_rules"][flag],
+                    *rules.get(flag).unwrap_or(&json!(false)),
+                    "limits.fee_rules.{flag} passes through as the node serves it: {stats}"
+                );
+            }
+        }
         None => {
             eprintln!("note: this rand-node predates rand_getLimits.fee_rules (fee feedback); only its absence is tolerated");
             assert!(stats["limits"]["fee_rules"].is_null(), "{stats}");
@@ -924,7 +937,8 @@ async fn consumer_contract(
     // Every amount the explorer serves is a decimal string and equals the node's own figure; the
     // node may serve more than the explorer models (`registration_fees_burned`, `faucet_epoch`,
     // …) and that must not stop the refresh. Wait on a supply at least as new as the head above.
-    // Both sides are read until they describe the same height (the node commits every 500 ms).
+    // Both sides are read until they describe the same height (the node commits every
+    // `RAND_BLOCK_INTERVAL_MS`: 500 ms by default, 1000 ms in CI).
     let start = std::time::Instant::now();
     let (supply, node_supply) = loop {
         let (status, _, ours) = get("/api/v1/supply".into()).await;

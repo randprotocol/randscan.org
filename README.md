@@ -57,7 +57,7 @@ or later, with `rand` beside it or `RAND_CLI` set).
 ### Integration test against a real node
 
 `tests/real_node.rs` is also the contract test for the two sites that read this API with no tests
-of their own: zusd.money's `BalanceSheet.astro` and randprotocol.org's `BridgeReserves.astro`
+of their own: zusd.money's `src/lib/balance-sheet.mjs` (rendered by `BalanceSheet.astro`) and randprotocol.org's `BridgeReserves.astro`
 (`/bridge` → `enabled`, `mint_paused`; `/bridge/assets` → `index`, `chain`, `symbol`, `locked`;
 `/tokens/{index}` → `total_supply`) and randprotocol.org's `balance.js`
 (`/envelopes?from_leaf=&limit=` → `notes`, `total_leaves`, `next_leaf`, and per leaf `leaf_index`,

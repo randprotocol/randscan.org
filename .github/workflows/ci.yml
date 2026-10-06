@@ -66,6 +66,74 @@ jobs:
         env:
           DATABASE_URL: postgres://randscan:randscan@localhost:5432/randscan
 
+  # The explorer against a real `rand-node`: tests/real_node.rs spawns the latest fullnode
+  # release (node + `rand` wallet) on a one-validator chain, makes a faucet mint, a proved
+  # transfer, a deploy and a confidential call (and an RPL-2 invoke where the build has it), and
+  # compares the explorer's every public number with the node's — including the REST contract
+  # zusd.money and randprotocol.org read (/bridge, /bridge/assets, /tokens/:index, /envelopes,
+  # /stats, /supply). It gates: the test skips a sub-check the released binary has no flag for
+  # (with a printed reason), never the whole run. The wallet proves under the chain's `test` FRI
+  # profile in its own release binary, so the test itself builds in the default profile.
+  real-node:
+    name: Real node
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: randscan
+          POSTGRES_PASSWORD: randscan
+          POSTGRES_DB: randscan
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-real-node-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Download the latest fullnode release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/fullnode"
+          gh release download --repo randprotocol/fullnode --pattern rand-node --pattern rand --dir "$RUNNER_TEMP/fullnode"
+          chmod +x "$RUNNER_TEMP/fullnode/rand-node" "$RUNNER_TEMP/fullnode/rand"
+          "$RUNNER_TEMP/fullnode/rand-node" --version
+          echo "RAND_NODE_BIN=$RUNNER_TEMP/fullnode/rand-node" >> "$GITHUB_ENV"
+          echo "RAND_CLI=$RUNNER_TEMP/fullnode/rand" >> "$GITHUB_ENV"
+
+      - name: Explorer against the real node
+        run: cargo test -p randscan-api --test real_node -- --nocapture
+        env:
+          DATABASE_URL: postgres://randscan:randscan@localhost:5432/randscan
+          RANDSCAN_REQUIRE_REAL_NODE: "1"
+          # 1 s blocks: the anchor window is four minutes at 256 blocks (more under the
+          # genesis' 1 024-block proof window), room for a shared runner's proving.
+          RAND_BLOCK_INTERVAL_MS: "1000"
+
   # Next.js frontend build
   frontend:
     name: Frontend Build

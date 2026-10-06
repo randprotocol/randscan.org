@@ -114,12 +114,16 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
-      - name: Download the latest fullnode release
+      - name: Download the fullnode release
         env:
           GH_TOKEN: ${{ github.token }}
+          # A tag (e.g. v0.7.1) pins the run to that release; empty means the latest.
+          FULLNODE_TAG: ""
         run: |
           mkdir -p "$RUNNER_TEMP/fullnode"
-          gh release download --repo randprotocol/fullnode --pattern rand-node --pattern rand --dir "$RUNNER_TEMP/fullnode"
+          gh release download $FULLNODE_TAG --repo randprotocol/fullnode \
+            --pattern rand-node --pattern rand --pattern SHA256SUMS --dir "$RUNNER_TEMP/fullnode"
+          (cd "$RUNNER_TEMP/fullnode" && sha256sum -c --ignore-missing SHA256SUMS)
           chmod +x "$RUNNER_TEMP/fullnode/rand-node" "$RUNNER_TEMP/fullnode/rand"
           "$RUNNER_TEMP/fullnode/rand-node" --version
           echo "RAND_NODE_BIN=$RUNNER_TEMP/fullnode/rand-node" >> "$GITHUB_ENV"

@@ -1573,6 +1573,66 @@ mod tests {
         assert_eq!(back, l);
     }
 
+    /// Fee feedback (fullnode `feat/fee-feedback`, not yet released; its `docs/rpc.md`):
+    /// `rand_getSupply` gains `base_fees_burned` and `rand_getLimits` gains `fee_rules`. A reply
+    /// carrying them — and fields this build has never modelled, beside them — must still parse,
+    /// keep the new values, and round-trip through the stats row's JSONB as this crate writes it;
+    /// a reply from a node predating them reads as `None`.
+    #[test]
+    fn the_fee_feedback_supply_and_limits_are_tolerated_and_kept() {
+        let s: randscan_core::Supply = serde_json::from_str(
+            r#"{ "height": 812, "genesis_deposited": "1000000000000", "genesis_staked": "1000000000000",
+                 "faucet_minted": "50000000000", "withdraw_deposited": "0", "fees_paid": "1900000",
+                 "burned": "100000", "registration_fees_burned": "0", "base_fees_burned": "100000",
+                 "faucet_epoch": "0", "faucet_minted_in_epoch": "50000000000", "subsidised": "0",
+                 "vesting_issued": "0", "vesting_released": "0", "vesting_in_register": "0", "vesting_locked": "0",
+                 "program_rand_out": "0", "program_rand_held": "0",
+                 "pool_value": "1049998000000", "register_total": "1000001900000",
+                 "total_supply": "2049999900000", "invariant_holds": true,
+                 "a_counter_from_the_future": "7" }"#,
+        )
+        .unwrap();
+        assert_eq!(s.base_fees_burned.as_deref(), Some("100000"));
+        assert_eq!(s.burned, "100000");
+        let wire = serde_json::to_value(&s).unwrap();
+        assert_eq!(wire["base_fees_burned"], "100000", "GET /api/v1/supply serves it as the node did: {wire}");
+        // A number on the wire is still read as its decimal text.
+        let s: randscan_core::Supply = serde_json::from_value({
+            let mut v = wire.clone();
+            v["base_fees_burned"] = serde_json::json!(5);
+            v
+        })
+        .unwrap();
+        assert_eq!(s.base_fees_burned.as_deref(), Some("5"));
+        // A node predating the field (v0.7.1).
+        let mut old = wire;
+        old.as_object_mut().unwrap().remove("base_fees_burned");
+        let s: randscan_core::Supply = serde_json::from_value(old).unwrap();
+        assert_eq!(s.base_fees_burned, None);
+
+        let limits = |fee_rules: &str| -> randscan_core::ChainLimits {
+            serde_json::from_str(&format!(
+                r#"{{"adjust_bps":1250,"binding_domain":1,"bundle_gas_limit":20479,"byte_price":"800","envelope_bytes":1860,
+                    "gas_metering":"circuit","gas_price":"100","hardening_v6":true,"hc_auth":"1e4e","max_block_bytes":20971520,
+                    "max_call_envelope_bytes":65536,"max_program_public_words":32768,"max_program_words":65535,
+                    "max_proof_bytes":4194304,"program_state":null,"proof_window_blocks":1024,"slashing":null,"testnet":true
+                    {fee_rules}}}"#
+            ))
+            .unwrap()
+        };
+        let l = limits(r#","fee_rules":{"burn_base":true,"subsidy_net_of_fees":false,"burn_floor":true,"a_flag_from_the_future":true}"#);
+        let rules = l.fee_rules.clone().expect("fee_rules kept");
+        assert!(rules.burn_base && rules.burn_floor && !rules.subsidy_net_of_fees);
+        let back: randscan_core::ChainLimits = serde_json::from_value(serde_json::to_value(&l).unwrap()).unwrap();
+        assert_eq!(back, l, "the limits round-trip through the stats row's JSONB");
+        assert_eq!(serde_json::to_value(&l).unwrap()["fee_rules"]["burn_base"], true);
+        // `null` (a chain without a `fees` section) and absent (a node predating the field).
+        assert_eq!(limits(r#","fee_rules":null"#).fee_rules, None);
+        assert_eq!(limits("").fee_rules, None);
+        // A group a later node trims to the flags it sets still parses.
+        assert_eq!(limits(r#","fee_rules":{"burn_base":true}"#).fee_rules.map(|r| (r.burn_base, r.burn_floor)), Some((true, false)));
+    }
+
     #[test]
     fn a_rotation_attestation_has_no_deposit() {
         let json = r#"{"kind":"bridge_attest","attestation_len":700,"recipient":"rand1x","asset":null,"asset_index":null,"amount":null,"time":3,"r":"00","commitment":null}"#;

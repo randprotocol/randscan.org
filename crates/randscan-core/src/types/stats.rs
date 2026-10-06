@@ -153,6 +153,27 @@ pub struct ChainLimits {
     /// where the genesis leaves both at 256.
     #[serde(default)]
     pub proof_window_blocks: Option<u64>,
+    /// Fee feedback (fullnode `feat/fee-feedback`, unreleased; `docs/fees.md` §1.3): the genesis
+    /// `fees` section's flags. `None` on a chain without the section (or none of its flags set)
+    /// and on a node predating the field. Informational: no fee a wallet pays changes.
+    #[serde(default)]
+    pub fee_rules: Option<FeeRules>,
+}
+
+/// The `fee_rules` group of `rand_getLimits` (fee feedback). Each flag reads `false` when absent,
+/// so a node that adds a flag later is still read.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FeeRules {
+    /// A bundle's `BUNDLE_BASE` is destroyed instead of paid to the proposer.
+    #[serde(default)]
+    pub burn_base: bool,
+    /// The aggregation subsidy carries only the minted part, the schedule's shortfall over the
+    /// proving share.
+    #[serde(default)]
+    pub subsidy_net_of_fees: bool,
+    /// The whole settled floor is burned (only ever beside `burn_base`).
+    #[serde(default)]
+    pub burn_floor: bool,
 }
 
 /// The `slashing` group of `rand_getLimits` (audit v6, STAKE-1).
@@ -217,4 +238,9 @@ pub struct Supply {
     pub program_rand_out: Option<String>,
     #[serde(default, deserialize_with = "crate::amount::amount_opt")]
     pub program_rand_held: Option<String>,
+    /// Fee feedback (fullnode `feat/fee-feedback`, unreleased): every bundle base (under
+    /// `fees.burn_floor`, every settled floor) burned under the genesis `fees.burn_base`, inside
+    /// `burned`. `"0"` on a chain without the flag, `None` on a node predating the field.
+    #[serde(default, deserialize_with = "crate::amount::amount_opt")]
+    pub base_fees_burned: Option<String>,
 }

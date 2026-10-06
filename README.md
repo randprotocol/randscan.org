@@ -54,6 +54,40 @@ deploy and a confidential call) and compares every public number. Both need `DAT
 the real-node test also needs `RAND_NODE_BIN` (a build of the fullnode's `shielded-s3` branch
 or later, with `rand` beside it or `RAND_CLI` set).
 
+### Integration test against a real node
+
+`tests/real_node.rs` is also the contract test for the two sites that read this API with no tests
+of their own: zusd.money's `BalanceSheet.astro` and randprotocol.org's `BridgeReserves.astro`
+(`/bridge` → `enabled`, `mint_paused`; `/bridge/assets` → `index`, `chain`, `symbol`, `locked`;
+`/tokens/{index}` → `total_supply`) and randprotocol.org's `balance.js`
+(`/envelopes?from_leaf=&limit=` → `notes`, `total_leaves`, `next_leaf`, and per leaf `leaf_index`,
+`cm`, `height`, `tx_hash`, `envelope`, `public`). On a chain without a bridge it pins what those
+pages must handle (`enabled: false`, `[]`, a 404 for an unknown token); it also checks that
+`/stats` carries `limits` and `gas_prices`, that every `/supply` amount is the node's decimal
+string, and that the node's newer fields (`rand_getLimits.fee_rules`,
+`rand_getSupply.base_fees_burned`) pass through when served and are not required when not.
+
+```bash
+gh release download --repo randprotocol/fullnode --pattern rand-node --pattern rand --dir /tmp/fullnode
+chmod +x /tmp/fullnode/rand-node /tmp/fullnode/rand
+DATABASE_URL=postgres://randscan:randscan@localhost:5432/randscan_it \
+RAND_NODE_BIN=/tmp/fullnode/rand-node RAND_CLI=/tmp/fullnode/rand \
+  cargo test -p randscan-api --test real_node -- --nocapture
+```
+
+| Variable | Meaning |
+|---|---|
+| `DATABASE_URL` | a PostgreSQL database the test may re-index (use a scratch one: the chain tables are truncated on a chain switch) |
+| `RAND_NODE_BIN` | the `rand-node` binary to spawn |
+| `RAND_CLI` | the `rand` wallet; defaults to `rand` beside `RAND_NODE_BIN` |
+| `RAND_BLOCK_INTERVAL_MS` | block interval, default `500`; raise to `1000`–`1500` on a slow prover |
+| `RANDSCAN_REQUIRE_REAL_NODE` | fail instead of skipping when either of the first two is unset |
+
+The wallet proves locally under the chain's `test` FRI profile; a run takes a few minutes. A
+check the given build has no flag for (an RPL-2 invoke on a pre-v0.6.8 node, `fee_rules` on a
+node before fee feedback) is skipped with a printed reason. CI's `real-node` job runs this against
+the latest fullnode release on every push and pull request, and gates on it.
+
 ### Environment
 
 | Variable | Default | Description |

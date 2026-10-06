@@ -315,7 +315,10 @@ impl MockChain {
                     "height": self.head()["height"], "genesis_deposited": "1000000000000", "genesis_staked": "100000000000000",
                     "faucet_minted": "100000000000", "withdraw_deposited": "0", "fees_paid": "3000000", "burned": "0",
                     "pool_value": "1099997000000", "register_total": "100000003000000", "total_supply": "101100000000000",
-                    "invariant_holds": true
+                    "invariant_holds": true,
+                    // Fee feedback (fullnode `feat/fee-feedback`): `"0"` on a chain without
+                    // `fees.burn_base`. Kept so this mock stays a superset of the live shape.
+                    "base_fees_burned": "0"
                 });
                 // RPL-2 (a v0.6.8 node): what invokes paid out of vaults and what vaults hold;
                 // "0" on a chain without the section.
@@ -450,7 +453,9 @@ impl MockChain {
                     "max_block_bytes": 20971520, "max_call_envelope_bytes": 65536, "max_program_public_words": 32768,
                     "envelope_bytes": 1860, "hardening_v6": true, "hc_auth": h("hc_auth"),
                     "gas_price": "100", "byte_price": "800", "gas_metering": "circuit",
-                    "bundle_gas_limit": 20479, "adjust_bps": 1250 });
+                    "bundle_gas_limit": 20479, "adjust_bps": 1250,
+                    // Fee feedback: `null` on a chain without a `fees` section.
+                    "fee_rules": null });
                 // RPL-2 (a v0.6.8 node): the `program_state` group, `null` without the section.
                 l["program_state"] = if self.program_state {
                     json!({ "cell_fee": "10000000", "max_reads": 8, "max_writes": 8, "max_payouts": 4 })

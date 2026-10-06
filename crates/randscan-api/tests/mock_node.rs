@@ -453,7 +453,9 @@ async fn indexes_every_shielded_kind_and_survives_hard_forks() {
         "program_state": { "cell_fee": "10000000", "max_reads": 8, "max_writes": 8, "max_payouts": 4 },
         // Audit v6's fields, absent from this mock's (chain-18-shaped) reply: their defaults.
         "max_gas_price": null, "max_byte_price": null, "byte_load": null, "admission_by_vote": false,
-        "testnet": false, "slashing": null, "binding_domain": null, "proof_window_blocks": null }));
+        "testnet": false, "slashing": null, "binding_domain": null, "proof_window_blocks": null,
+        // Fee feedback: the mock serves `null`, a chain without a `fees` section.
+        "fee_rules": null }));
     // Off `rand_status`, refreshed every commit: the auth guest, and the tip's live prices (one
     // 12.5% step above the genesis prices the limits report — a dynamic chain moves them).
     assert_eq!(stats["hc_auth"], h("hc_auth"));
@@ -491,6 +493,7 @@ async fn indexes_every_shielded_kind_and_survives_hard_forks() {
     let (_, _, supply) = call_api(&live.app, "/api/v1/supply").await;
     assert_eq!(supply["invariant_holds"], true);
     assert_eq!((&supply["program_rand_out"], &supply["program_rand_held"]), (&json!("300"), &json!("700")), "RPL-2 vault counters: {supply}");
+    assert_eq!(supply["base_fees_burned"], "0", "fee feedback's burn counter passes through: {supply}");
     let (_, _, bridge) = call_api(&live.app, "/api/v1/bridge").await;
     assert_eq!(bridge["enabled"], true);
     assert_eq!(bridge["assets"][0]["index"], 1);

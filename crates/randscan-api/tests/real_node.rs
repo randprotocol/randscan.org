@@ -4,7 +4,7 @@
 //! number: the bundle's nullifiers and commitments, the mint's note, the tree, the register.
 //!
 //! Needs `DATABASE_URL` and `RAND_NODE_BIN` (path to a built `rand-node`); skips when either
-//! is unset. The wallet CLI (`rand`) must sit next to the node binary or be named by
+//! is unset, unless `RANDSCAN_REQUIRE_REAL_NODE` is set (CI), which makes that a failure. The wallet CLI (`rand`) must sit next to the node binary or be named by
 //! `RAND_CLI`; it proves the bundle locally under the chain's `test` FRI profile. With the
 //! wallet the test also deploys a guest, proves and submits one confidential call, and checks
 //! the explorer's receipt (tier, outputs, `h_in`) against the node's — the proof is made under
@@ -37,8 +37,16 @@ impl Drop for Node {
     }
 }
 
+/// Since fullnode v0.7 a release `rand-node` (and the wallet) refuses a genesis under the `test`
+/// FRI profile unless told it is a harness; an older build ignores the variable.
+const ALLOW_TEST_FRI: (&str, &str) = ("RAND_ALLOW_TEST_FRI_PROFILE", "1");
+
 fn run(bin: &PathBuf, args: &[&str]) -> String {
-    let out = Command::new(bin).args(args).output().expect("run binary");
+    let out = Command::new(bin)
+        .args(args)
+        .env(ALLOW_TEST_FRI.0, ALLOW_TEST_FRI.1)
+        .output()
+        .expect("run binary");
     assert!(
         out.status.success(),
         "{:?} failed: {}",
@@ -156,6 +164,16 @@ async fn start_node(bin: &PathBuf, cli: &PathBuf) -> (Node, String, String) {
             .map(str::to_string),
         );
     }
+    // Audit v6 BIND-1 (fullnode v0.7): a wallet signs nothing for a chain id outside 14–19
+    // unless the genesis binds its hash (`--binding-domain 1`, how every chain from 20 is cut);
+    // and the chain-20 proof window (issue #118), which gives a slow CI prover four times the
+    // anchor's 256 blocks. An older build has neither flag and keeps the plain genesis.
+    if help.contains("--binding-domain") {
+        args.extend(["--binding-domain", "1"].into_iter().map(str::to_string));
+    }
+    if help.contains("--proof-window-blocks") {
+        args.extend(["--proof-window-blocks", "1024"].into_iter().map(str::to_string));
+    }
     // RPL-2 (fullnode v0.6.8, `feat/rpl2`): a build that knows the `program_state` section gets
     // one, with the token registry it stands on, so the explorer meets an `invoke`, a program's
     // cells and its vault — the shape of the chain the feature is cut on, not chain 19's.
@@ -211,6 +229,7 @@ async fn start_node(bin: &PathBuf, cli: &PathBuf) -> (Node, String, String) {
             "2000",
         ])
         .env("RUST_LOG", "warn")
+        .env(ALLOW_TEST_FRI.0, ALLOW_TEST_FRI.1)
         .stdout(Stdio::null())
         .stderr(Stdio::inherit())
         .spawn()
@@ -242,11 +261,16 @@ async fn start_node(bin: &PathBuf, cli: &PathBuf) -> (Node, String, String) {
 
 #[tokio::test]
 async fn explorer_agrees_with_a_real_shielded_node() {
+    // CI's `real-node` job sets RANDSCAN_REQUIRE_REAL_NODE so a lost variable fails the job
+    // instead of passing it as a skip.
+    let required = std::env::var_os("RANDSCAN_REQUIRE_REAL_NODE").is_some();
     let Ok(bin) = std::env::var("RAND_NODE_BIN") else {
+        assert!(!required, "RANDSCAN_REQUIRE_REAL_NODE is set but RAND_NODE_BIN is not");
         eprintln!("skipping: RAND_NODE_BIN unset");
         return;
     };
     if std::env::var("DATABASE_URL").is_err() {
+        assert!(!required, "RANDSCAN_REQUIRE_REAL_NODE is set but DATABASE_URL is not");
         eprintln!("skipping: DATABASE_URL unset");
         return;
     }
@@ -628,9 +652,13 @@ async fn explorer_agrees_with_a_real_shielded_node() {
     .await;
     assert_eq!(notes["pagination"]["total"], tree["next_index"]);
 
-    if node.rpl2 {
-        invoke_round_trip(&live, &client, &node, &cli, wallet, &wallet2_addr).await;
-    }
+    let token_index = if node.rpl2 {
+        Some(invoke_round_trip(&live, &client, &node, &cli, wallet, &wallet2_addr).await)
+    } else {
+        eprintln!("skipping the RPL-2 invoke round trip: this rand-node has no --program-state-cell-fee (pre-v0.6.8)");
+        None
+    };
+    consumer_contract(&live, &client, &node, &mint_hash, &mint["cm"], token_index).await;
     drop(node);
 }
 
@@ -640,7 +668,7 @@ async fn explorer_agrees_with_a_real_shielded_node() {
 /// the program token — three proofs. Then the explorer's view against the node's: the invoke
 /// with its transition, a call's receipt, both payout leaves linked to it, the program's cells
 /// and vault, the limits' `program_state` group and the supply's vault counters.
-async fn invoke_round_trip(live: &LiveApp, client: &reqwest::Client, node: &Node, cli: &PathBuf, wallet: &str, payee: &str) {
+async fn invoke_round_trip(live: &LiveApp, client: &reqwest::Client, node: &Node, cli: &PathBuf, wallet: &str, payee: &str) -> i64 {
     let dir = node.dir.path();
     let counter_json = dir.join("counter.json");
     run(cli, &["program", "build", "--guest", "rpl2_counter", "--out", counter_json.to_str().unwrap()]);
@@ -752,4 +780,183 @@ async fn invoke_round_trip(live: &LiveApp, client: &reqwest::Client, node: &Node
     assert_eq!(supply["program_rand_out"], units(&node_supply["program_rand_out"]));
     assert_eq!(supply["program_rand_out"], "200000000");
     assert_eq!(supply["invariant_holds"], true, "{supply}");
+    share_index
+}
+
+/// The REST contract two sites read with no tests of their own, checked against what this real
+/// node made of the chain above. Every message names the consumer file:
+///
+/// - zusd.money `src/components/BalanceSheet.astro`: `GET /bridge` (`enabled`, `mint_paused`),
+///   `GET /bridge/assets` (`index`, `chain`, `symbol`, `locked`), `GET /tokens/{index}`
+///   (`total_supply`);
+/// - randprotocol.org `src/components/BridgeReserves.astro`: the same three, plus each row's
+///   `minted_today` / `mint_cap_per_day`;
+/// - randprotocol.org `src/scripts/balance.js`: `GET /envelopes?from_leaf=&limit=` (`notes`,
+///   `total_leaves`, `next_leaf`; per note `leaf_index`, `cm`, `height`, `tx_hash`, `envelope`,
+///   `public`).
+///
+/// Also the stats and supply objects, which carry fields the node grows: `limits.fee_rules` and
+/// `base_fees_burned` (fullnode `feat/fee-feedback`, unreleased) pass through when the node serves
+/// them and are not required when it does not.
+async fn consumer_contract(
+    live: &LiveApp,
+    client: &reqwest::Client,
+    node: &Node,
+    mint_hash: &str,
+    mint_cm: &Value,
+    token_index: Option<i64>,
+) {
+    const ZUSD: &str = "zusd.money src/components/BalanceSheet.astro";
+    const RESERVES: &str = "randprotocol.org src/components/BridgeReserves.astro";
+    const BALANCE: &str = "randprotocol.org src/scripts/balance.js";
+    let get = |path: String| async move { call(&live.app, json_req("GET", &path, None, None)).await };
+    let is_units = |v: &Value| v.as_str().is_some_and(|s| !s.is_empty() && s.bytes().all(|b| b.is_ascii_digit()));
+
+    // Settle on the node's head first, so the bridge/token/supply caches have been refreshed.
+    let head = rpc(client, &node.url, "rand_getHead", json!([])).await["height"].as_i64().unwrap();
+    live.wait_for("/api/v1/health", WAIT, |h| h["indexer"]["current_height"].as_i64().unwrap_or(-1) >= head).await;
+
+    // --- /bridge ---------------------------------------------------------------------------
+    let node_bridge = rpc(client, &node.url, "rand_getBridgeState", json!([])).await;
+    let (status, _, bridge) = get("/api/v1/bridge".into()).await;
+    assert_eq!(status, 200, "{ZUSD} and {RESERVES} fetch /bridge: {bridge}");
+    assert!(bridge["enabled"].is_boolean(), "{ZUSD} reads bridge.enabled as a boolean: {bridge}");
+    assert!(bridge["mint_paused"].is_boolean(), "{ZUSD} reads bridge.mint_paused as a boolean: {bridge}");
+    let enabled = node_bridge["enabled"].as_bool().unwrap_or(false);
+    assert_eq!(bridge["enabled"], enabled, "{ZUSD}: /bridge.enabled must be the node's: node {node_bridge}");
+    if !enabled {
+        assert_eq!(bridge["mint_paused"], false, "{ZUSD}: a chain without a bridge reports no pause: {bridge}");
+    }
+
+    // --- /bridge/assets ----------------------------------------------------------------------
+    let (status, _, assets) = get("/api/v1/bridge/assets".into()).await;
+    assert_eq!(status, 200, "{ZUSD} and {RESERVES} fetch /bridge/assets: {assets}");
+    let rows = assets.as_array().unwrap_or_else(|| panic!("{ZUSD} iterates /bridge/assets as an array: {assets}"));
+    if !enabled {
+        assert!(rows.is_empty(), "{ZUSD}: a chain without a bridge lists no backings ([]): {assets}");
+    }
+    for a in rows {
+        assert!(a["index"].is_i64(), "{ZUSD} groups by row.index: {a}");
+        assert!(a["chain"].is_i64(), "{ZUSD} keys rows by row.chain: {a}");
+        assert!(a["symbol"].is_string() || a["symbol"].is_null(), "{ZUSD} filters on row.symbol (string or null): {a}");
+        if a["symbol"].is_string() {
+            // Only symbol'd rows are summed, with BigInt(row.locked): null there would throw.
+            assert!(is_units(&a["locked"]), "{ZUSD} sums BigInt(row.locked): {a}");
+            assert!(is_units(&a["minted_today"]) && is_units(&a["mint_cap_per_day"]), "{RESERVES} renders minted_today / mint_cap_per_day: {a}");
+        }
+    }
+
+    // --- /tokens/{index} ---------------------------------------------------------------------
+    // The sites ask for each index the bridge rows name and treat a non-2xx as "unknown"; an
+    // index nobody registered must be a 404, never a 200 with a made-up supply.
+    let (status, _, missing) = get("/api/v1/tokens/987654".into()).await;
+    assert_eq!(status, 404, "{ZUSD} rejects a non-ok /tokens/{{index}}: {missing}");
+    match token_index {
+        Some(index) => {
+            let node_token = rpc(client, &node.url, "rand_getToken", json!([index])).await;
+            let token = live
+                .wait_for(&format!("/api/v1/tokens/{index}"), WAIT, |t| t["total_supply"] == json!(units(&node_token["total_supply"])))
+                .await;
+            assert!(is_units(&token["total_supply"]), "{ZUSD} and {RESERVES} take BigInt(token.total_supply): {token}");
+            assert_eq!(token["index"], index, "{RESERVES} reads token.index: {token}");
+            assert!(token["symbol"].is_string(), "{RESERVES} reads token.symbol: {token}");
+            assert_eq!(token["total_supply"], "1", "{ZUSD}: the one unit the invoke minted: {token}");
+        }
+        None => eprintln!("skipping /tokens/{{index}} for a registered token: no token registry on this build (pre-RPL-2)"),
+    }
+
+    // --- /envelopes ----------------------------------------------------------------------------
+    // balance.js walks the tree a page at a time from leaf 0 with limit=1000, follows next_leaf
+    // until it is null, and reports progress against total_leaves.
+    let tree = rpc(client, &node.url, "rand_getTreeInfo", json!([])).await;
+    let leaves = tree["next_index"].as_i64().unwrap();
+    let page = live
+        .wait_for("/api/v1/envelopes?from_leaf=0&limit=1000", WAIT, |p| p["total_leaves"] == leaves)
+        .await;
+    assert!(page["next_leaf"].is_null(), "{BALANCE} stops when next_leaf is null (every leaf on one page): {page}");
+    let notes = page["notes"].as_array().unwrap_or_else(|| panic!("{BALANCE} iterates page.notes: {page}"));
+    assert_eq!(notes.len() as i64, leaves, "{BALANCE}: one row per leaf: {page}");
+    for (i, n) in notes.iter().enumerate() {
+        assert_eq!(n["leaf_index"], i as i64, "{BALANCE} sorts on n.leaf_index, oldest first: {n}");
+        assert!(n["cm"].is_string(), "{BALANCE} opens n.cm: {n}");
+        assert!(n["height"].is_i64(), "{BALANCE} shows n.height: {n}");
+        let o = n.as_object().unwrap();
+        for key in ["tx_hash", "envelope", "public"] {
+            assert!(o.contains_key(key), "{BALANCE} destructures n.{key} (null allowed, never missing): {n}");
+        }
+        assert!(n["tx_hash"].is_string() || n["tx_hash"].is_null(), "{BALANCE}: n.tx_hash: {n}");
+        assert!(n["envelope"].is_object() || n["envelope"].is_null(), "{BALANCE} passes n.envelope to the opener: {n}");
+    }
+    let mint_row = notes
+        .iter()
+        .find(|n| n["cm"] == *mint_cm)
+        .unwrap_or_else(|| panic!("{BALANCE}: the faucet mint's leaf is served: {page}"));
+    assert_eq!(mint_row["tx_hash"], mint_hash, "{BALANCE}: the mint's leaf names its transaction: {mint_row}");
+    assert!(
+        notes.iter().any(|n| n["envelope"].is_object() && n["tx_hash"].is_string()),
+        "{BALANCE}: at least one leaf carries an envelope to open: {page}"
+    );
+    // Paging: a short page points at the next leaf, and that page starts there.
+    let (status, _, first) = get("/api/v1/envelopes?from_leaf=0&limit=2".into()).await;
+    assert_eq!(status, 200, "{BALANCE}: {first}");
+    assert_eq!(first["next_leaf"], 2, "{BALANCE} follows page.next_leaf: {first}");
+    let (_, _, second) = get("/api/v1/envelopes?from_leaf=2&limit=2".into()).await;
+    assert_eq!(second["notes"][0]["leaf_index"], 2, "{BALANCE}: the next page starts at next_leaf: {second}");
+    assert_eq!(second["total_leaves"], leaves, "{BALANCE} reports progress against total_leaves: {second}");
+
+    // --- /stats --------------------------------------------------------------------------------
+    let node_limits = rpc(client, &node.url, "rand_getLimits", json!([])).await;
+    let stats = live.wait_for("/api/v1/stats", WAIT, |s| s["limits"].is_object()).await;
+    let so = stats.as_object().unwrap();
+    assert!(so.contains_key("gas_prices"), "stats.gas_prices is served (null allowed): {stats}");
+    if node_limits["gas_metering"] == "circuit" {
+        assert!(is_units(&stats["gas_prices"]["gas_price"]) && is_units(&stats["gas_prices"]["byte_price"]), "a gas-section chain's tip prices: {stats}");
+    }
+    match node_limits.get("fee_rules") {
+        Some(rules) => assert_eq!(stats["limits"]["fee_rules"], *rules, "limits.fee_rules passes through as the node serves it: {stats}"),
+        None => {
+            eprintln!("note: this rand-node predates rand_getLimits.fee_rules (fee feedback); only its absence is tolerated");
+            assert!(stats["limits"]["fee_rules"].is_null(), "{stats}");
+        }
+    }
+
+    // --- /supply -------------------------------------------------------------------------------
+    // Every amount the explorer serves is a decimal string and equals the node's own figure; the
+    // node may serve more than the explorer models (`registration_fees_burned`, `faucet_epoch`,
+    // …) and that must not stop the refresh. Wait on a supply at least as new as the head above.
+    // Both sides are read until they describe the same height (the node commits every 500 ms).
+    let start = std::time::Instant::now();
+    let (supply, node_supply) = loop {
+        let (status, _, ours) = get("/api/v1/supply".into()).await;
+        let theirs = rpc(client, &node.url, "rand_getSupply", json!([])).await;
+        if status == 200 && ours["height"] == theirs["height"] {
+            break (ours, theirs);
+        }
+        assert!(start.elapsed() < WAIT, "/api/v1/supply never caught the node's height: {ours} vs {theirs}");
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    };
+    for (k, v) in supply.as_object().unwrap() {
+        match v {
+            Value::String(_) => {
+                assert!(is_units(v), "supply.{k} is a decimal string: {supply}");
+                if let Some(theirs) = node_supply.get(k) {
+                    assert_eq!(*v, json!(units(theirs)), "supply.{k} is the node's figure: node {node_supply}");
+                }
+            }
+            Value::Null => assert!(node_supply.get(k).is_none_or(Value::is_null), "supply.{k} dropped: node {node_supply}"),
+            _ => {}
+        }
+    }
+    match node_supply.get("base_fees_burned") {
+        Some(b) => assert_eq!(supply["base_fees_burned"], json!(units(b)), "base_fees_burned passes through: {supply}"),
+        None => eprintln!("note: this rand-node predates rand_getSupply.base_fees_burned (fee feedback); the indexer unit test covers it"),
+    }
+    assert_eq!(supply["invariant_holds"], true, "{supply}");
+    eprintln!(
+        "consumer contract: bridge enabled={enabled}, {} backing rows, token {:?}, {leaves} envelope leaves, fee_rules {}, base_fees_burned {}",
+        rows.len(),
+        token_index,
+        if node_limits.get("fee_rules").is_some() { "served" } else { "absent" },
+        supply["base_fees_burned"],
+    );
 }

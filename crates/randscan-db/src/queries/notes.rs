@@ -107,22 +107,26 @@ pub async fn get_note_envelopes_for_tx(pool: &PgPool, hash: &str) -> Result<Vec<
          ORDER BY n.leaf_index"
     );
     Ok(sqlx::query_as::<_, NoteEnvelopeRow>(&sql)
-    .bind(hash)
-    .fetch_all(pool)
-    .await?)
+        .bind(hash)
+        .fetch_all(pool)
+        .await?)
 }
 
 /// A page of leaves with envelopes from `from_leaf` upwards (for a history scan in the browser).
-pub async fn list_note_envelopes(pool: &PgPool, from_leaf: i64, limit: i64) -> Result<Vec<NoteEnvelopeRow>> {
+pub async fn list_note_envelopes(
+    pool: &PgPool,
+    from_leaf: i64,
+    limit: i64,
+) -> Result<Vec<NoteEnvelopeRow>> {
     let sql = format!(
         "SELECT {ENVELOPE_COLS} FROM notes n LEFT JOIN transactions t ON t.hash = n.tx_hash
          WHERE n.leaf_index >= $1 ORDER BY n.leaf_index LIMIT $2"
     );
     Ok(sqlx::query_as::<_, NoteEnvelopeRow>(&sql)
-    .bind(from_leaf)
-    .bind(limit)
-    .fetch_all(pool)
-    .await?)
+        .bind(from_leaf)
+        .bind(limit)
+        .fetch_all(pool)
+        .await?)
 }
 
 /// Link notes of `height` to the transactions that created them (for leaves fetched before the

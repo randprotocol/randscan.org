@@ -52,9 +52,16 @@ pub struct TokenBacking {
 pub enum TokenAuthority {
     /// Fixed supply, or renounced: this token can never be minted again.
     None,
-    Key { key: String, address: String },
-    Bridge { backings: Vec<TokenBacking> },
-    Program { program: String },
+    Key {
+        key: String,
+        address: String,
+    },
+    Bridge {
+        backings: Vec<TokenBacking>,
+    },
+    Program {
+        program: String,
+    },
 }
 
 impl TokenAuthority {
@@ -155,11 +162,21 @@ mod tests {
     fn authority_tag_matches_the_variant() {
         assert_eq!(TokenAuthority::None.tag(), "none");
         assert_eq!(
-            TokenAuthority::Key { key: "aa".into(), address: "2nRd".into() }.tag(),
+            TokenAuthority::Key {
+                key: "aa".into(),
+                address: "2nRd".into()
+            }
+            .tag(),
             "key"
         );
         assert_eq!(TokenAuthority::Bridge { backings: vec![] }.tag(), "bridge");
-        assert_eq!(TokenAuthority::Program { program: "aa".into() }.tag(), "program");
+        assert_eq!(
+            TokenAuthority::Program {
+                program: "aa".into()
+            }
+            .tag(),
+            "program"
+        );
     }
 
     fn zusd() -> TokenInfo {
@@ -192,7 +209,10 @@ mod tests {
 
     #[test]
     fn backings_is_empty_for_a_native_token_and_populated_for_a_bridged_one() {
-        let native = TokenInfo { authority: TokenAuthority::None, ..zusd() };
+        let native = TokenInfo {
+            authority: TokenAuthority::None,
+            ..zusd()
+        };
         assert!(native.backings().is_empty());
         assert_eq!(zusd().backings().len(), 1);
         assert_eq!(zusd().backings()[0].minted_today.as_deref(), Some("100"));
@@ -216,7 +236,8 @@ mod tests {
 
     #[test]
     fn a_disabled_chain_reports_no_tokens() {
-        let v: TokenList = serde_json::from_value(serde_json::json!({ "enabled": false, "tokens": [] })).unwrap();
+        let v: TokenList =
+            serde_json::from_value(serde_json::json!({ "enabled": false, "tokens": [] })).unwrap();
         assert!(!v.enabled);
         assert!(v.tokens.is_empty());
         assert_eq!(v.registration_fee, None);
@@ -233,11 +254,19 @@ mod tests {
             "chain": 2, "token": "aa".repeat(32), "decimals": 8, "locked": "600",
             "mint_cap_per_day": 100_000u64 * 100_000_000, "minted_today": "1000", "mint_day": 0,
         });
-        let backing: TokenBacking = serde_json::from_value(v).expect("the node's own mixed encoding must parse");
+        let backing: TokenBacking =
+            serde_json::from_value(v).expect("the node's own mixed encoding must parse");
         assert_eq!(backing.locked, "600");
         assert_eq!(backing.minted_today.as_deref(), Some("1000"));
         assert_eq!(backing.mint_cap_per_day.as_deref(), Some("10000000000000"));
-        assert_eq!((backing.minted_in_window, backing.mint_window_secs, backing.mint_headroom), (None, None, None));
+        assert_eq!(
+            (
+                backing.minted_in_window,
+                backing.mint_window_secs,
+                backing.mint_headroom
+            ),
+            (None, None, None)
+        );
     }
 
     /// A backing row from a node after v0.6.7 (audit v6, BRG-19), the literals of the node's own
@@ -259,7 +288,10 @@ mod tests {
             "minted_in_window": null, "mint_window_secs": null, "mint_headroom": (100_000u64 * 100_000_000 - 1_000).to_string(),
         }))
         .unwrap();
-        assert_eq!((day_counter.minted_in_window, day_counter.mint_window_secs), (None, None));
+        assert_eq!(
+            (day_counter.minted_in_window, day_counter.mint_window_secs),
+            (None, None)
+        );
         assert_eq!(day_counter.mint_headroom.as_deref(), Some("9999999999000"));
     }
 
@@ -276,7 +308,8 @@ mod tests {
                 "mint_nonce": 1, "total_supply": "5700", "registered_at": 3,
             }],
         });
-        let list: TokenList = serde_json::from_value(v).expect("must parse the node's own pinned shape");
+        let list: TokenList =
+            serde_json::from_value(v).expect("must parse the node's own pinned shape");
         assert_eq!(list.registration_fee, Some(1_000_000_000));
         assert_eq!(list.tokens[0].total_supply, "5700");
     }

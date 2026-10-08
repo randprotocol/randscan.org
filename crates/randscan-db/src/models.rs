@@ -2,9 +2,9 @@
 
 use chrono::{DateTime, Utc};
 use randscan_core::{
-    BlockSummary, BridgeFeeNote, BridgeGovernanceAction, Bundle, StakingAction, GeoInfo, NetworkStats, Note, Nullifier,
-    PendingStake, ProgramSummary, Receipt, TokenAction, TransactionDetail, TransactionSummary, Transition,
-    TxKind, Validator,
+    BlockSummary, BridgeFeeNote, BridgeGovernanceAction, Bundle, GeoInfo, NetworkStats, Note,
+    Nullifier, PendingStake, ProgramSummary, Receipt, StakingAction, TokenAction,
+    TransactionDetail, TransactionSummary, Transition, TxKind, Validator,
 };
 use sqlx::FromRow;
 
@@ -189,9 +189,13 @@ impl TxDetailRow {
         let pq_signers = self
             .pq_signers
             .map(|v| v.into_iter().map(i64::from).collect());
-        let transition: Option<Transition> = self.transition.and_then(|v| serde_json::from_value(v).ok());
-        let fee_note: Option<BridgeFeeNote> = self.fee_note.and_then(|v| serde_json::from_value(v).ok());
-        let staking_action: Option<StakingAction> = self.staking_action.and_then(|v| serde_json::from_value(v).ok());
+        let transition: Option<Transition> =
+            self.transition.and_then(|v| serde_json::from_value(v).ok());
+        let fee_note: Option<BridgeFeeNote> =
+            self.fee_note.and_then(|v| serde_json::from_value(v).ok());
+        let staking_action: Option<StakingAction> = self
+            .staking_action
+            .and_then(|v| serde_json::from_value(v).ok());
         TransactionDetail {
             chain_id: self.chain_id,
             bundle,

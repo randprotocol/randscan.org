@@ -143,7 +143,12 @@ impl LiveApp {
     }
 
     /// Poll `GET path` until `pred(body)` holds; panics with the last body after `timeout`.
-    pub async fn wait_for(&self, path: &str, timeout: Duration, pred: impl Fn(&Value) -> bool) -> Value {
+    pub async fn wait_for(
+        &self,
+        path: &str,
+        timeout: Duration,
+        pred: impl Fn(&Value) -> bool,
+    ) -> Value {
         let start = std::time::Instant::now();
         let mut last = Value::Null;
         while start.elapsed() < timeout {
@@ -189,5 +194,10 @@ pub async fn live_app(cfg: ApiConfig, rpc_url: &str) -> Option<LiveApp> {
         limiter: Arc::new(RateLimiter::new()),
         mailer: None,
     };
-    Some(LiveApp { app: create_router(state), pool, indexer, broadcaster })
+    Some(LiveApp {
+        app: create_router(state),
+        pool,
+        indexer,
+        broadcaster,
+    })
 }

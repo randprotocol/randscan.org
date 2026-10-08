@@ -45,11 +45,26 @@ pub const KNOWN_PROVERS: &[KnownProver] = &[KnownProver {
     fingerprint: "RGTF-7HKJ-XZFV-GQ1J",
     pairing_url: Some("https://prover.randprotocol.org/.well-known/rand-prover.json"),
     members: &[
-        KnownProverMember { label: "rand-node-a", ip: "139.59.238.151" },
-        KnownProverMember { label: "rand-archive-2", ip: "206.81.29.236" },
-        KnownProverMember { label: "rand-guardian-1", ip: "104.248.5.129" },
-        KnownProverMember { label: "rand-guardian-2", ip: "137.184.12.108" },
-        KnownProverMember { label: "rand-guardian-5", ip: "209.97.179.217" },
+        KnownProverMember {
+            label: "rand-node-a",
+            ip: "139.59.238.151",
+        },
+        KnownProverMember {
+            label: "rand-archive-2",
+            ip: "206.81.29.236",
+        },
+        KnownProverMember {
+            label: "rand-guardian-1",
+            ip: "104.248.5.129",
+        },
+        KnownProverMember {
+            label: "rand-guardian-2",
+            ip: "137.184.12.108",
+        },
+        KnownProverMember {
+            label: "rand-guardian-5",
+            ip: "209.97.179.217",
+        },
     ],
 }];
 
@@ -134,7 +149,14 @@ impl ProverView {
             error: None,
             checked_at_ms: None,
             last_up_ms: None,
-            members: p.members.iter().map(|m| ProverMember { label: m.label.into(), geo: None }).collect(),
+            members: p
+                .members
+                .iter()
+                .map(|m| ProverMember {
+                    label: m.label.into(),
+                    geo: None,
+                })
+                .collect(),
         }
     }
 }
@@ -154,10 +176,18 @@ mod tests {
             "fee": { "amount": "1000000", "address": "rand1abc" }, "allowed_origins": ["*"],
         }))
         .unwrap();
-        assert_eq!(r.queue, Some(ProverQueue { depth: 0, max: 5, proving: 1 }));
+        assert_eq!(
+            r.queue,
+            Some(ProverQueue {
+                depth: 0,
+                max: 5,
+                proving: 1
+            })
+        );
         assert_eq!(r.fee.as_ref().map(|f| f.amount.as_str()), Some("1000000"));
         assert!(serde_json::to_value(&r).unwrap().get("kem_ek").is_none());
-        let free: ProverInfoReply = serde_json::from_value(serde_json::json!({ "fee": null })).unwrap();
+        let free: ProverInfoReply =
+            serde_json::from_value(serde_json::json!({ "fee": null })).unwrap();
         assert!(free.fee.is_none() && free.queue.is_none());
     }
 
@@ -167,11 +197,20 @@ mod tests {
             assert!(p.url.starts_with("https://"), "{}", p.name);
             assert!(!p.members.is_empty(), "{}", p.name);
             for m in p.members {
-                assert!(m.ip.parse::<std::net::Ipv4Addr>().is_ok(), "{}: {}", m.label, m.ip);
+                assert!(
+                    m.ip.parse::<std::net::Ipv4Addr>().is_ok(),
+                    "{}: {}",
+                    m.label,
+                    m.ip
+                );
             }
             let v = serde_json::to_value(ProverView::unpolled(p)).unwrap();
             for m in p.members {
-                assert!(!v.to_string().contains(m.ip), "{} must not be served", m.label);
+                assert!(
+                    !v.to_string().contains(m.ip),
+                    "{} must not be served",
+                    m.label
+                );
             }
         }
     }

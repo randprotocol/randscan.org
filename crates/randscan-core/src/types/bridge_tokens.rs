@@ -54,7 +54,19 @@ const fn evm(
     decimals: u8,
     explorer_url: &'static str,
 ) -> ApprovedToken {
-    ApprovedToken { symbol, name, chain, chain_name, standard, address, token, decimals, status: TokenStatus::Allowed, explorer_url, note: None }
+    ApprovedToken {
+        symbol,
+        name,
+        chain,
+        chain_name,
+        standard,
+        address,
+        token,
+        decimals,
+        status: TokenStatus::Allowed,
+        explorer_url,
+        note: None,
+    }
 }
 
 /// The allowlist, grouped by home chain in bridge chain id order.
@@ -106,7 +118,9 @@ pub const APPROVED_TOKENS: &[ApprovedToken] = &[
 /// registry stores it (32 bytes hex), case-insensitively and with an optional `0x`.
 pub fn approved_token(chain: i64, token: &str) -> Option<&'static ApprovedToken> {
     let token = token.trim_start_matches("0x").to_ascii_lowercase();
-    APPROVED_TOKENS.iter().find(|t| t.chain == chain && t.token == token)
+    APPROVED_TOKENS
+        .iter()
+        .find(|t| t.chain == chain && t.token == token)
 }
 
 #[cfg(test)]
@@ -146,10 +160,19 @@ mod tests {
     fn wire_form_follows_from_the_printed_address() {
         for t in APPROVED_TOKENS {
             let expected = match t.chain {
-                2 | 3 => format!("{}{}", "0".repeat(24), t.address.trim_start_matches("0x").to_ascii_lowercase()),
+                2 | 3 => format!(
+                    "{}{}",
+                    "0".repeat(24),
+                    t.address.trim_start_matches("0x").to_ascii_lowercase()
+                ),
                 4 => {
                     let raw = base58(t.address);
-                    assert_eq!(raw.len(), 25, "{}: 21-byte body + 4-byte checksum", t.address);
+                    assert_eq!(
+                        raw.len(),
+                        25,
+                        "{}: 21-byte body + 4-byte checksum",
+                        t.address
+                    );
                     assert_eq!(raw[0], 0x41, "{}: Tron mainnet prefix", t.address);
                     format!("{}{}", "0".repeat(24), hex(&raw[1..21]))
                 }
@@ -168,7 +191,11 @@ mod tests {
     /// The Tron README's worked example (tron/README.md §3) is the USDT entry.
     #[test]
     fn tron_usdt_matches_the_bridge_readme() {
-        let t = approved_token(4, "0x000000000000000000000000A614F803B6FD780986A42C78EC9C7F77E6DED13C").unwrap();
+        let t = approved_token(
+            4,
+            "0x000000000000000000000000A614F803B6FD780986A42C78EC9C7F77E6DED13C",
+        )
+        .unwrap();
         assert_eq!(t.symbol, "USDT");
         assert_eq!(t.decimals, 6);
     }
@@ -177,15 +204,38 @@ mod tests {
     fn every_pair_is_listed_once_and_only_tron_usdc_is_discontinued() {
         let mut seen = std::collections::HashSet::new();
         for t in APPROVED_TOKENS {
-            assert!(seen.insert((t.chain, t.symbol)), "duplicate {} on {}", t.symbol, t.chain_name);
+            assert!(
+                seen.insert((t.chain, t.symbol)),
+                "duplicate {} on {}",
+                t.symbol,
+                t.chain_name
+            );
             let discontinued = t.status == TokenStatus::Discontinued;
-            assert_eq!(discontinued, t.chain == 4 && t.symbol == "USDC", "{} on {}", t.symbol, t.chain_name);
+            assert_eq!(
+                discontinued,
+                t.chain == 4 && t.symbol == "USDC",
+                "{} on {}",
+                t.symbol,
+                t.chain_name
+            );
             assert_eq!(discontinued, t.note.is_some());
         }
         for chain in 2..=5 {
-            assert_eq!(APPROVED_TOKENS.iter().filter(|t| t.chain == chain).count(), 2, "USDT and USDC on chain {chain}");
+            assert_eq!(
+                APPROVED_TOKENS.iter().filter(|t| t.chain == chain).count(),
+                2,
+                "USDT and USDC on chain {chain}"
+            );
         }
         assert!(approved_token(2, "cc".repeat(32).as_str()).is_none());
-        assert_eq!(approved_token(5, "ce010e60afedb22717bd63192f54145a3f965a33bb82d2c7029eb2ce1e208264").unwrap().symbol, "USDT");
+        assert_eq!(
+            approved_token(
+                5,
+                "ce010e60afedb22717bd63192f54145a3f965a33bb82d2c7029eb2ce1e208264"
+            )
+            .unwrap()
+            .symbol,
+            "USDT"
+        );
     }
 }

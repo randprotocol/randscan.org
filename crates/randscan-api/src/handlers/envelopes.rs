@@ -33,7 +33,11 @@ pub async fn transaction_envelopes(
 ) -> ApiResult<Json<TransactionEnvelopes>> {
     let hash = match classify_query(&hash) {
         QueryKind::Hash(h) => h,
-        _ => return Err(AppError::BadRequest("transaction hash must be 64 hex characters".into())),
+        _ => {
+            return Err(AppError::BadRequest(
+                "transaction hash must be 64 hex characters".into(),
+            ))
+        }
     };
     let pool = state.db.inner();
     let tx = db::get_transaction_summary(pool, &hash)

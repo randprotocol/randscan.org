@@ -140,7 +140,13 @@ pub fn pk_from_address(address: &str) -> Option<Word8> {
 /// indexer) rebuild the leaf the chain appended without opening any envelope. `None` when
 /// `recipient` does not parse as a shielded address.
 #[allow(clippy::too_many_arguments)]
-pub fn mint_commitment(recipient: &str, amount: u64, index: u32, time: u32, r: &Word8) -> Option<Word8> {
+pub fn mint_commitment(
+    recipient: &str,
+    amount: u64,
+    index: u32,
+    time: u32,
+    r: &Word8,
+) -> Option<Word8> {
     let pk = pk_from_address(recipient)?;
     Some(
         Note {
@@ -156,7 +162,13 @@ pub fn mint_commitment(recipient: &str, amount: u64, index: u32, time: u32, r: &
 }
 
 /// Convenience: the hex commitment, or `None` on a bad address.
-pub fn mint_commitment_hex(recipient: &str, amount: u64, index: u32, time: u32, r_hex: &str) -> Option<String> {
+pub fn mint_commitment_hex(
+    recipient: &str,
+    amount: u64,
+    index: u32,
+    time: u32,
+    r_hex: &str,
+) -> Option<String> {
     let r = word8_from_hex(r_hex)?;
     mint_commitment(recipient, amount, index, time, &r).map(|cm| word8_to_hex(&cm))
 }
@@ -172,12 +184,17 @@ mod tests {
     #[test]
     fn note_commitment_matches_the_shared_test_vector() {
         let note = Note {
-            pk: word8_from_hex("53f57f874e8fee7ad3a5e5be820a12ab7836d5b642631c974ed0b5057f9c60aa").unwrap(),
-            from: word8_from_hex("c37ed965c936aa116c7184b4ae1d285c0a1882813e375a00456ea35df1feb955").unwrap(),
+            pk: word8_from_hex("53f57f874e8fee7ad3a5e5be820a12ab7836d5b642631c974ed0b5057f9c60aa")
+                .unwrap(),
+            from: word8_from_hex(
+                "c37ed965c936aa116c7184b4ae1d285c0a1882813e375a00456ea35df1feb955",
+            )
+            .unwrap(),
             amount: 1_500_000_000,
             asset: 0,
             time: 66,
-            r: word8_from_hex("aa000000bb000000cc000000dd000000ee000000ff0000001100000022000000").unwrap(),
+            r: word8_from_hex("aa000000bb000000cc000000dd000000ee000000ff0000001100000022000000")
+                .unwrap(),
         };
         assert_eq!(
             word8_to_hex(&note.commitment()),
@@ -190,8 +207,15 @@ mod tests {
     #[test]
     fn notecommit_draws_no_constants_at_runtime() {
         let src = include_str!("notecommit.rs");
-        for pattern in [concat!("new_from", "_rng"), concat!("Std", "Rng"), concat!("seed_from", "_u64")] {
-            assert!(!src.contains(pattern), "notecommit.rs still derives constants: {pattern}");
+        for pattern in [
+            concat!("new_from", "_rng"),
+            concat!("Std", "Rng"),
+            concat!("seed_from", "_u64"),
+        ] {
+            assert!(
+                !src.contains(pattern),
+                "notecommit.rs still derives constants: {pattern}"
+            );
         }
     }
 
@@ -204,19 +228,50 @@ mod tests {
         let vectors: [([u64; 8], [u64; 8]); 3] = [
             (
                 [0; 8],
-                [0x1e4b2c9eebb442b0, 0x2fbb0154ab9d22da, 0x9c397e8d1b856b3d, 0x3900699f4fe93a6e, 0xcb37891674d3ad6b, 0x9b530f7ac1ef1f56, 0x0510bc15edfecf33, 0xf9caffe23a93cd28],
+                [
+                    0x1e4b2c9eebb442b0,
+                    0x2fbb0154ab9d22da,
+                    0x9c397e8d1b856b3d,
+                    0x3900699f4fe93a6e,
+                    0xcb37891674d3ad6b,
+                    0x9b530f7ac1ef1f56,
+                    0x0510bc15edfecf33,
+                    0xf9caffe23a93cd28,
+                ],
             ),
             (
                 [0, 1, 2, 3, 4, 5, 6, 7],
-                [0x682c703ce406cd60, 0x35fe4cacd5147b44, 0xf0b819068ae2838e, 0xde5f0a9ba791a8f4, 0xcf8ee9826729b322, 0x38e89ce1e7fcb535, 0xf58f43c0801e00db, 0x694ec48edbb331fa],
+                [
+                    0x682c703ce406cd60,
+                    0x35fe4cacd5147b44,
+                    0xf0b819068ae2838e,
+                    0xde5f0a9ba791a8f4,
+                    0xcf8ee9826729b322,
+                    0x38e89ce1e7fcb535,
+                    0xf58f43c0801e00db,
+                    0x694ec48edbb331fa,
+                ],
             ),
             (
                 [0xffff_ffff_0000_0000; 8],
-                [0xdfebf956a8205183, 0xbacca056a5ba1b75, 0xdc24d665e3f9864b, 0x1ad86aab4b3e131a, 0xc68f628d6f8833e6, 0x0b913e0aa0757959, 0x248d88435c62b658, 0x7bc6fc5500a81dbc],
+                [
+                    0xdfebf956a8205183,
+                    0xbacca056a5ba1b75,
+                    0xdc24d665e3f9864b,
+                    0x1ad86aab4b3e131a,
+                    0xc68f628d6f8833e6,
+                    0x0b913e0aa0757959,
+                    0x248d88435c62b658,
+                    0x7bc6fc5500a81dbc,
+                ],
             ),
         ];
         for (input, want) in vectors {
-            assert_eq!(perm().permute(Val::new_array(input)), Val::new_array(want), "permute({input:x?})");
+            assert_eq!(
+                perm().permute(Val::new_array(input)),
+                Val::new_array(want),
+                "permute({input:x?})"
+            );
         }
     }
 
@@ -261,18 +316,30 @@ mod tests {
     fn the_constants_are_the_circuits_table() {
         use crate::poseidon2_constants::{INITIAL, INTERNAL, TERMINAL};
         use sha2::{Digest, Sha256};
-        let values: Vec<u64> = INITIAL.iter().flatten().chain(INTERNAL.iter()).chain(TERMINAL.iter().flatten()).copied().collect();
+        let values: Vec<u64> = INITIAL
+            .iter()
+            .flatten()
+            .chain(INTERNAL.iter())
+            .chain(TERMINAL.iter().flatten())
+            .copied()
+            .collect();
         assert_eq!(values.len(), 86);
         let mut h = Sha256::new();
         for v in values {
             h.update(v.to_le_bytes());
         }
-        assert_eq!(hex::encode(h.finalize()), "e551d3944d88218c8c4cacb6cb6d8ae4bc2034adc155a6139b0ac77fcc5c24ac");
+        assert_eq!(
+            hex::encode(h.finalize()),
+            "e551d3944d88218c8c4cacb6cb6d8ae4bc2034adc155a6139b0ac77fcc5c24ac"
+        );
     }
 
     #[test]
     fn mint_from_is_the_ascii_tag_rpl_dash_mint() {
-        assert_eq!(word8_to_hex(&MINT_FROM), hex::encode(b"rpl-mint\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"));
+        assert_eq!(
+            word8_to_hex(&MINT_FROM),
+            hex::encode(b"rpl-mint\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0")
+        );
         assert_ne!(MINT_FROM, [0u32; 8]);
     }
 

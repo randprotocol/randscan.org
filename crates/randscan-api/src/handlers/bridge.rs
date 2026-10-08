@@ -1,6 +1,9 @@
 use crate::{error::AppError, state::AppState, ApiResult};
 use axum::{extract::State, Json};
-use randscan_core::{approved_token, ApprovedToken, BridgeAsset, BridgeAssetActivity, BridgeState, Supply, APPROVED_TOKENS};
+use randscan_core::{
+    approved_token, ApprovedToken, BridgeAsset, BridgeAssetActivity, BridgeState, Supply,
+    APPROVED_TOKENS,
+};
 use randscan_db::{BridgeAssetFlowRow, BridgeBackingBurnRow};
 
 /// GET /api/v1/bridge — the bridge's public state as last read from the node, plus `endpoints`:
@@ -17,7 +20,9 @@ pub async fn get_bridge(State(state): State<AppState>) -> ApiResult<Json<BridgeS
 /// of it. The registry comes from the node, the flows from the indexed transactions; a backing
 /// with no flow yet lists zeros, and a flow whose token the node has not (yet) registered is
 /// skipped. Empty on a chain without a bridge.
-pub async fn bridge_assets(State(state): State<AppState>) -> ApiResult<Json<Vec<BridgeAssetActivity>>> {
+pub async fn bridge_assets(
+    State(state): State<AppState>,
+) -> ApiResult<Json<Vec<BridgeAssetActivity>>> {
     let Some(bridge) = state.indexer.bridge().await.filter(|b| b.enabled) else {
         return Ok(Json(vec![]));
     };
@@ -48,11 +53,14 @@ fn backing_rows(
             let token = flows.iter().find(|f| f.asset_index == a.index);
             let token_deposited = token.map_or_else(|| "0".to_string(), |f| f.deposited.clone());
             let token_burned = token.map_or_else(|| "0".to_string(), |f| f.burned.clone());
-            let token_deposit_fees = token.map_or_else(|| "0".to_string(), |f| f.deposit_fees.clone());
+            let token_deposit_fees =
+                token.map_or_else(|| "0".to_string(), |f| f.deposit_fees.clone());
             let token_burn_fees = token.map_or_else(|| "0".to_string(), |f| f.burn_fees.clone());
-            let own = burns
-                .iter()
-                .find(|b| b.asset_index == a.index && b.chain == a.chain && b.token.eq_ignore_ascii_case(&a.token));
+            let own = burns.iter().find(|b| {
+                b.asset_index == a.index
+                    && b.chain == a.chain
+                    && b.token.eq_ignore_ascii_case(&a.token)
+            });
             let burned = own.map_or_else(|| "0".to_string(), |b| b.burned.clone());
             let burn_fees = own.map_or_else(|| "0".to_string(), |b| b.burn_fees.clone());
             let sole = backings == 1;
@@ -69,7 +77,10 @@ fn backing_rows(
                 deposits: sole.then(|| token.map_or(0, |f| f.deposits)),
                 deposited: sole.then(|| token_deposited.clone()),
                 burns: own.map_or(0, |b| b.burns),
-                outstanding: a.locked.clone().unwrap_or_else(|| units_sub(&token_deposited, &burned)),
+                outstanding: a
+                    .locked
+                    .clone()
+                    .unwrap_or_else(|| units_sub(&token_deposited, &burned)),
                 burned,
                 burn_fees,
                 token_deposit_fees,
@@ -128,7 +139,13 @@ mod tests {
         .unwrap()
     }
 
-    fn token_flow(index: i64, deposits: i64, deposited: &str, burns: i64, burned: &str) -> BridgeAssetFlowRow {
+    fn token_flow(
+        index: i64,
+        deposits: i64,
+        deposited: &str,
+        burns: i64,
+        burned: &str,
+    ) -> BridgeAssetFlowRow {
         BridgeAssetFlowRow {
             asset_index: index,
             deposits,
@@ -161,18 +178,36 @@ mod tests {
         assert_eq!(rows.len(), 7);
         for (row, a) in rows.iter().zip(&assets) {
             assert_eq!(row.backings, 7);
-            assert_eq!((row.deposits, row.deposited.as_deref()), (None, None), "not attributable to one coin");
-            assert_eq!(Some(&row.outstanding), a.locked.as_ref(), "a backing holds what the registry says");
-            assert_eq!((row.token_deposits, row.token_deposited.as_str()), (3, "300000000"));
+            assert_eq!(
+                (row.deposits, row.deposited.as_deref()),
+                (None, None),
+                "not attributable to one coin"
+            );
+            assert_eq!(
+                Some(&row.outstanding),
+                a.locked.as_ref(),
+                "a backing holds what the registry says"
+            );
+            assert_eq!(
+                (row.token_deposits, row.token_deposited.as_str()),
+                (3, "300000000")
+            );
         }
         // What the rows hold adds up to what the token's deposits brought in, once.
-        let held: u128 = rows.iter().map(|r| r.outstanding.parse::<u128>().unwrap()).sum();
+        let held: u128 = rows
+            .iter()
+            .map(|r| r.outstanding.parse::<u128>().unwrap())
+            .sum();
         assert_eq!(held, 300_000_000);
     }
 
     #[test]
     fn a_burn_is_laid_on_the_backing_it_names_and_on_no_other() {
-        let assets = vec![backing(1, 2, "AA", "600"), backing(1, 3, "aa", "0"), backing(2, 2, "aa", "0")];
+        let assets = vec![
+            backing(1, 2, "AA", "600"),
+            backing(1, 3, "aa", "0"),
+            backing(2, 2, "aa", "0"),
+        ];
         let burns = vec![BridgeBackingBurnRow {
             asset_index: 1,
             chain: 2,
@@ -196,12 +231,30 @@ mod tests {
     fn a_sole_backing_owns_its_tokens_deposits() {
         let mut old_node = backing(1, 2, "cc", "0");
         old_node.locked = None; // a node before chain 14 serves no `locked`
-        let rows = backing_rows(&[old_node, backing(2, 2, "dd", "0")], &[token_flow(1, 1, "1000", 1, "400")], &[
-            BridgeBackingBurnRow { asset_index: 1, chain: 2, token: "cc".into(), burns: 1, burned: "400".into(), burn_fees: "0".into() },
-        ]);
-        assert_eq!((rows[0].deposits, rows[0].deposited.as_deref()), (Some(1), Some("1000")));
-        assert_eq!(rows[0].outstanding, "600", "rebuilt from the flows only without the registry's figure");
-        assert_eq!((rows[1].deposits, rows[1].deposited.as_deref()), (Some(0), Some("0")));
+        let rows = backing_rows(
+            &[old_node, backing(2, 2, "dd", "0")],
+            &[token_flow(1, 1, "1000", 1, "400")],
+            &[BridgeBackingBurnRow {
+                asset_index: 1,
+                chain: 2,
+                token: "cc".into(),
+                burns: 1,
+                burned: "400".into(),
+                burn_fees: "0".into(),
+            }],
+        );
+        assert_eq!(
+            (rows[0].deposits, rows[0].deposited.as_deref()),
+            (Some(1), Some("1000"))
+        );
+        assert_eq!(
+            rows[0].outstanding, "600",
+            "rebuilt from the flows only without the registry's figure"
+        );
+        assert_eq!(
+            (rows[1].deposits, rows[1].deposited.as_deref()),
+            (Some(0), Some("0"))
+        );
     }
 
     /// Chain 20 (`bridge.fees` 10/10 bps): one 1 zUSD deposit through Ethereum USDT and a 0.5
@@ -223,11 +276,24 @@ mod tests {
         }];
         let rows = backing_rows(&assets, &[flow], &burns);
         let r = &rows[0];
-        assert_eq!(r.deposited.as_deref(), Some("100000000"), "the gross the guardians signed");
-        assert_eq!((r.burned.as_str(), r.burn_fees.as_str()), ("49950000", "50000"));
-        assert_eq!((r.token_deposit_fees.as_str(), r.token_burn_fees.as_str()), ("100000", "50000"));
+        assert_eq!(
+            r.deposited.as_deref(),
+            Some("100000000"),
+            "the gross the guardians signed"
+        );
+        assert_eq!(
+            (r.burned.as_str(), r.burn_fees.as_str()),
+            ("49950000", "50000")
+        );
+        assert_eq!(
+            (r.token_deposit_fees.as_str(), r.token_burn_fees.as_str()),
+            ("100000", "50000")
+        );
         assert_eq!(r.outstanding, "50050000");
         // deposited − released == locked, and supply (net notes + fee notes) is the same figure.
-        assert_eq!(units_sub(r.deposited.as_deref().unwrap(), &r.burned), r.outstanding);
+        assert_eq!(
+            units_sub(r.deposited.as_deref().unwrap(), &r.burned),
+            r.outstanding
+        );
     }
 }

@@ -181,14 +181,15 @@ impl RpcClient {
     }
 
     pub async fn program(&self, id: &str) -> Result<Option<RpcProgram>> {
-        self.call("rand_getProgram", serde_json::json!([id]))
-            .await
+        self.call("rand_getProgram", serde_json::json!([id])).await
     }
 
     /// RPL-2: a program's vault. `None` on a node without the method and on a chain without a
     /// `program_state` section (`{"enabled": false}`); an empty vault is `Some(vec![])`.
     pub async fn program_vault(&self, id: &str) -> Result<Option<Vec<randscan_core::VaultRow>>> {
-        let v: Option<serde_json::Value> = self.call_optional_method("rand_getProgramVault", serde_json::json!([id])).await?;
+        let v: Option<serde_json::Value> = self
+            .call_optional_method("rand_getProgramVault", serde_json::json!([id]))
+            .await?;
         match v {
             Some(rows @ serde_json::Value::Array(_)) => Ok(Some(serde_json::from_value(rows)?)),
             _ => Ok(None),
@@ -197,9 +198,17 @@ impl RpcClient {
 
     /// RPL-2: a page of a program's cells in key order, after `after` (a 64-hex key) when given,
     /// at most `limit` (the node clamps to 1 000). `None` as [`Self::program_vault`].
-    pub async fn program_cells(&self, id: &str, after: Option<&str>, limit: u64) -> Result<Option<randscan_core::ProgramCellsPage>> {
+    pub async fn program_cells(
+        &self,
+        id: &str,
+        after: Option<&str>,
+        limit: u64,
+    ) -> Result<Option<randscan_core::ProgramCellsPage>> {
         let v: Option<serde_json::Value> = self
-            .call_optional_method("rand_getProgramCells", serde_json::json!([id, { "after": after, "limit": limit }]))
+            .call_optional_method(
+                "rand_getProgramCells",
+                serde_json::json!([id, { "after": after, "limit": limit }]),
+            )
             .await?;
         match v {
             Some(v) if v.get("cells").is_some() => Ok(Some(serde_json::from_value(v)?)),
@@ -234,7 +243,11 @@ impl RpcClient {
 
     /// One page of the RPL token registry, `[from_index, limit]`. `None` on a node without the
     /// method (a chain older than the token RPC task).
-    pub async fn tokens_page(&self, from_index: u64, limit: u64) -> Result<Option<randscan_core::TokenList>> {
+    pub async fn tokens_page(
+        &self,
+        from_index: u64,
+        limit: u64,
+    ) -> Result<Option<randscan_core::TokenList>> {
         self.call_optional_method("rand_getTokens", serde_json::json!([from_index, limit]))
             .await
     }
@@ -579,10 +592,7 @@ pub enum RpcAction {
     },
     /// A holder burn: public by design (it audits `total_supply`); a transfer of the same token
     /// is a plain `none` bundle, its asset private.
-    TokenBurn {
-        asset: u32,
-        amount: Units,
-    },
+    TokenBurn { asset: u32, amount: Units },
     /// Bridge hardening B1: the genesis pause key's own signature, no PQ quorum.
     PauseMints { nonce: u64 },
     /// Bridge hardening B1: lifting the pause needs the PQ guardian quorum.
@@ -618,19 +628,37 @@ pub enum RpcAction {
         transition: RpcTransition,
     },
     /// Audit v6, STAKE-2: the validator set's vote admitting a key.
-    AdmitValidator { candidate: String, candidate_key: String, voters: Vec<String> },
+    AdmitValidator {
+        candidate: String,
+        candidate_key: String,
+        voters: Vec<String>,
+    },
     /// Audit v6, STAKE-1: two headers of one key for one view.
-    SlashEquivocation { offender: String, view: u64, first: RpcHeaderRef, second: RpcHeaderRef },
+    SlashEquivocation {
+        offender: String,
+        view: u64,
+        first: RpcHeaderRef,
+        second: RpcHeaderRef,
+    },
     /// Bridge rules v2 (22) and audit v6's possession-carrying twin (30, `v2`).
-    RotatePqGuardians { new_pq_guardians: Vec<String>, possession_signatures: Option<u64>, nonce: u64, pq_signers: Vec<i64>, v2: bool },
+    RotatePqGuardians {
+        new_pq_guardians: Vec<String>,
+        possession_signatures: Option<u64>,
+        nonce: u64,
+        pq_signers: Vec<i64>,
+        v2: bool,
+    },
     /// Bridge rules v2 (23) and audit v6's twin (31, `v2`).
-    RotatePauseKey { new_pause_key: String, nonce: u64, pq_signers: Vec<i64>, v2: bool },
+    RotatePauseKey {
+        new_pause_key: String,
+        nonce: u64,
+        pq_signers: Vec<i64>,
+        v2: bool,
+    },
     /// Audit v6, BRG-14 (32).
     CancelRotation { rotation_kind: String, nonce: u64 },
     /// A kind this build does not decode; `kind` is the node's tag.
-    Unknown {
-        kind: String,
-    },
+    Unknown { kind: String },
 }
 
 /// An invoke's transition as the node renders it — the shape `randscan_core::Transition` keeps,
@@ -667,7 +695,14 @@ pub struct RpcPayout {
 impl RpcTransition {
     /// The explorer's own type, amounts normalised to decimal strings.
     pub fn to_core(&self) -> randscan_core::Transition {
-        let cells = |v: &[RpcCell]| v.iter().map(|c| randscan_core::ProgramCell { key: c.key.clone(), value: c.value.clone() }).collect();
+        let cells = |v: &[RpcCell]| {
+            v.iter()
+                .map(|c| randscan_core::ProgramCell {
+                    key: c.key.clone(),
+                    value: c.value.clone(),
+                })
+                .collect()
+        };
         let payouts = |v: &[RpcPayout]| {
             v.iter()
                 .map(|p| randscan_core::Payout {
@@ -691,7 +726,11 @@ impl RpcTransition {
 
     /// Every payout note's commitment, pays then mints — the order the chain appended them in.
     pub fn payout_cms(&self) -> Vec<String> {
-        self.pays.iter().chain(&self.mints).map(|p| p.cm.clone()).collect()
+        self.pays
+            .iter()
+            .chain(&self.mints)
+            .map(|p| p.cm.clone())
+            .collect()
     }
 }
 
@@ -1082,12 +1121,30 @@ impl<'de> Deserialize<'de> for RpcAction {
                     initial_amount,
                     initial,
                 },
-                KnownAction::TokenMint { asset, amount, recipient, time, r, nonce } => {
-                    RpcAction::TokenMint { asset, amount, recipient, time, r, nonce }
-                }
-                KnownAction::SetAuthority { asset, nonce, new_authority } => {
-                    RpcAction::SetAuthority { asset, nonce, new_authority }
-                }
+                KnownAction::TokenMint {
+                    asset,
+                    amount,
+                    recipient,
+                    time,
+                    r,
+                    nonce,
+                } => RpcAction::TokenMint {
+                    asset,
+                    amount,
+                    recipient,
+                    time,
+                    r,
+                    nonce,
+                },
+                KnownAction::SetAuthority {
+                    asset,
+                    nonce,
+                    new_authority,
+                } => RpcAction::SetAuthority {
+                    asset,
+                    nonce,
+                    new_authority,
+                },
                 KnownAction::TokenBurn { asset, amount } => RpcAction::TokenBurn { asset, amount },
                 KnownAction::PauseMints { nonce } => RpcAction::PauseMints { nonce },
                 KnownAction::UnpauseMints { nonce, pq_signers } => {
@@ -1114,34 +1171,91 @@ impl<'de> Deserialize<'de> for RpcAction {
                     asset_id,
                     pq_signers,
                 },
-                KnownAction::ListBacking { token_index, chain, token, decimals, nonce, pq_signers } => {
-                    RpcAction::ListBacking { token_index, chain, token, decimals, nonce, pq_signers }
-                }
-                KnownAction::AdmitValidator { candidate, candidate_key, voters } => {
-                    RpcAction::AdmitValidator { candidate, candidate_key, voters }
-                }
-                KnownAction::SlashEquivocation { offender, view, first, second } => {
-                    RpcAction::SlashEquivocation { offender, view, first, second }
-                }
-                KnownAction::RotatePqGuardians { new_pq_guardians, nonce, pq_signers } => {
-                    RpcAction::RotatePqGuardians { new_pq_guardians, possession_signatures: None, nonce, pq_signers, v2: false }
-                }
-                KnownAction::RotatePqGuardiansV2 { new_pq_guardians, possession_signatures, nonce, pq_signers } => {
-                    RpcAction::RotatePqGuardians {
-                        new_pq_guardians,
-                        possession_signatures: Some(possession_signatures),
-                        nonce,
-                        pq_signers,
-                        v2: true,
-                    }
-                }
-                KnownAction::RotatePauseKey { new_pause_key, nonce, pq_signers } => {
-                    RpcAction::RotatePauseKey { new_pause_key, nonce, pq_signers, v2: false }
-                }
-                KnownAction::RotatePauseKeyV2 { new_pause_key, nonce, pq_signers } => {
-                    RpcAction::RotatePauseKey { new_pause_key, nonce, pq_signers, v2: true }
-                }
-                KnownAction::CancelRotation { rotation_kind, nonce } => RpcAction::CancelRotation { rotation_kind, nonce },
+                KnownAction::ListBacking {
+                    token_index,
+                    chain,
+                    token,
+                    decimals,
+                    nonce,
+                    pq_signers,
+                } => RpcAction::ListBacking {
+                    token_index,
+                    chain,
+                    token,
+                    decimals,
+                    nonce,
+                    pq_signers,
+                },
+                KnownAction::AdmitValidator {
+                    candidate,
+                    candidate_key,
+                    voters,
+                } => RpcAction::AdmitValidator {
+                    candidate,
+                    candidate_key,
+                    voters,
+                },
+                KnownAction::SlashEquivocation {
+                    offender,
+                    view,
+                    first,
+                    second,
+                } => RpcAction::SlashEquivocation {
+                    offender,
+                    view,
+                    first,
+                    second,
+                },
+                KnownAction::RotatePqGuardians {
+                    new_pq_guardians,
+                    nonce,
+                    pq_signers,
+                } => RpcAction::RotatePqGuardians {
+                    new_pq_guardians,
+                    possession_signatures: None,
+                    nonce,
+                    pq_signers,
+                    v2: false,
+                },
+                KnownAction::RotatePqGuardiansV2 {
+                    new_pq_guardians,
+                    possession_signatures,
+                    nonce,
+                    pq_signers,
+                } => RpcAction::RotatePqGuardians {
+                    new_pq_guardians,
+                    possession_signatures: Some(possession_signatures),
+                    nonce,
+                    pq_signers,
+                    v2: true,
+                },
+                KnownAction::RotatePauseKey {
+                    new_pause_key,
+                    nonce,
+                    pq_signers,
+                } => RpcAction::RotatePauseKey {
+                    new_pause_key,
+                    nonce,
+                    pq_signers,
+                    v2: false,
+                },
+                KnownAction::RotatePauseKeyV2 {
+                    new_pause_key,
+                    nonce,
+                    pq_signers,
+                } => RpcAction::RotatePauseKey {
+                    new_pause_key,
+                    nonce,
+                    pq_signers,
+                    v2: true,
+                },
+                KnownAction::CancelRotation {
+                    rotation_kind,
+                    nonce,
+                } => RpcAction::CancelRotation {
+                    rotation_kind,
+                    nonce,
+                },
             }),
             // A known tag with a malformed body is a real error; an unknown tag is tolerated.
             Err(e) => {
@@ -1310,9 +1424,15 @@ mod tests {
         assert_eq!(l.envelope_bytes, Some(1860));
         assert!(l.hardening_v6);
         assert_eq!(l.hc_auth.as_deref().map(str::len), Some(64));
-        assert_eq!((l.gas_price.as_deref(), l.byte_price.as_deref()), (Some("100"), Some("800")));
+        assert_eq!(
+            (l.gas_price.as_deref(), l.byte_price.as_deref()),
+            (Some("100"), Some("800"))
+        );
         assert!(l.has_gas_section());
-        assert_eq!((l.bundle_gas_limit, l.adjust_bps), (Some(20479), Some(1250)));
+        assert_eq!(
+            (l.bundle_gas_limit, l.adjust_bps),
+            (Some(20479), Some(1250))
+        );
         // A node's own policy (Phase 0, no section) and a chain with none: both read as no section.
         let l: randscan_core::ChainLimits = serde_json::from_str(
             r#"{ "max_program_words": 4096, "max_proof_bytes": 2097152, "max_block_bytes": 4194304,
@@ -1335,11 +1455,15 @@ mod tests {
         assert_eq!(s.hc_auth.as_deref(), Some("1a2b"));
         assert_eq!(
             s.gas_prices,
-            Some(RpcGasPrices { gas_price: Units("112".into()), byte_price: Units("900".into()) })
+            Some(RpcGasPrices {
+                gas_price: Units("112".into()),
+                byte_price: Units("900".into())
+            })
         );
-        let s: NodeStatus =
-            serde_json::from_str(r#"{ "height": 1, "hc_bundle": "60af", "hc_auth": null, "gas_prices": null }"#)
-                .unwrap();
+        let s: NodeStatus = serde_json::from_str(
+            r#"{ "height": 1, "hc_bundle": "60af", "hc_auth": null, "gas_prices": null }"#,
+        )
+        .unwrap();
         assert!(s.hc_auth.is_none() && s.gas_prices.is_none());
 
         let mut b = bundle_json();
@@ -1393,8 +1517,14 @@ mod tests {
         let b: RpcBlock = serde_json::from_value(json).unwrap();
         assert_eq!(b.transactions.len(), 17);
         assert!(matches!(b.transactions[0].action, RpcAction::None));
-        assert_eq!(b.transactions[0].bundle.as_ref().unwrap().nullifiers.len(), 4);
-        assert_eq!(b.transactions[0].bundle.as_ref().unwrap().commitments.len(), 4);
+        assert_eq!(
+            b.transactions[0].bundle.as_ref().unwrap().nullifiers.len(),
+            4
+        );
+        assert_eq!(
+            b.transactions[0].bundle.as_ref().unwrap().commitments.len(),
+            4
+        );
         assert!(b.transactions[1].bundle.is_none());
         match &b.transactions[1].action {
             RpcAction::Mint { amount, .. } => assert_eq!(amount.0, "100000000000"),
@@ -1435,14 +1565,21 @@ mod tests {
             other => panic!("{other:?}"),
         }
         match &b.transactions[8].action {
-            RpcAction::BridgeBurn { token, relayer_fee, .. } => {
+            RpcAction::BridgeBurn {
+                token, relayer_fee, ..
+            } => {
                 assert_eq!(token, "cdcd");
                 assert_eq!(relayer_fee.0, "100");
             }
             other => panic!("{other:?}"),
         }
         match &b.transactions[9].action {
-            RpcAction::RegisterToken { name, index, initial, .. } => {
+            RpcAction::RegisterToken {
+                name,
+                index,
+                initial,
+                ..
+            } => {
                 assert_eq!(name, "zUSD");
                 assert_eq!(*index, 3);
                 assert_eq!(initial.as_ref().unwrap().amount.0, "5000");
@@ -1450,14 +1587,26 @@ mod tests {
             other => panic!("{other:?}"),
         }
         match &b.transactions[10].action {
-            RpcAction::TokenMint { asset, amount, recipient, .. } => {
+            RpcAction::TokenMint {
+                asset,
+                amount,
+                recipient,
+                ..
+            } => {
                 assert_eq!(*asset, 3);
                 assert_eq!(amount.0, "700");
                 assert_eq!(recipient, "rand1abc");
             }
             other => panic!("{other:?}"),
         }
-        assert!(matches!(&b.transactions[11].action, RpcAction::SetAuthority { asset: 3, nonce: 1, .. }));
+        assert!(matches!(
+            &b.transactions[11].action,
+            RpcAction::SetAuthority {
+                asset: 3,
+                nonce: 1,
+                ..
+            }
+        ));
         match &b.transactions[12].action {
             RpcAction::TokenBurn { asset, amount } => {
                 assert_eq!(*asset, 3);
@@ -1465,7 +1614,10 @@ mod tests {
             }
             other => panic!("{other:?}"),
         }
-        assert!(matches!(&b.transactions[13].action, RpcAction::PauseMints { nonce: 4 }));
+        assert!(matches!(
+            &b.transactions[13].action,
+            RpcAction::PauseMints { nonce: 4 }
+        ));
         assert!(b.transactions[13].bundle.is_none());
         match &b.transactions[14].action {
             RpcAction::UnpauseMints { nonce, pq_signers } => {
@@ -1475,7 +1627,12 @@ mod tests {
             other => panic!("{other:?}"),
         }
         match &b.transactions[15].action {
-            RpcAction::RegisterBridgedToken { name, chain, pq_signers, .. } => {
+            RpcAction::RegisterBridgedToken {
+                name,
+                chain,
+                pq_signers,
+                ..
+            } => {
                 assert_eq!(name, "zUSD");
                 assert_eq!(*chain, 3);
                 assert_eq!(pq_signers, &vec![1]);
@@ -1483,7 +1640,12 @@ mod tests {
             other => panic!("{other:?}"),
         }
         match &b.transactions[16].action {
-            RpcAction::ListBacking { token_index, chain, pq_signers, .. } => {
+            RpcAction::ListBacking {
+                token_index,
+                chain,
+                pq_signers,
+                ..
+            } => {
                 assert_eq!(*token_index, 3);
                 assert_eq!(*chain, 4);
                 assert_eq!(pq_signers, &vec![2]);
@@ -1506,12 +1668,25 @@ mod tests {
         }))
         .unwrap();
         match a {
-            RpcAction::BridgeAttest { amount, deposit_amount, fee_note, commitment, .. } => {
+            RpcAction::BridgeAttest {
+                amount,
+                deposit_amount,
+                fee_note,
+                commitment,
+                ..
+            } => {
                 assert_eq!(amount.unwrap().0, "100000000");
                 assert_eq!(deposit_amount.unwrap().0, "99900000");
                 let f = fee_note.unwrap().to_core();
-                assert_eq!((f.amount.as_str(), f.asset, f.commitment.as_str()), ("100000", 1, "47c3"));
-                assert_eq!(commitment.as_deref(), Some("d8f1"), "the net deposit's leaf");
+                assert_eq!(
+                    (f.amount.as_str(), f.asset, f.commitment.as_str()),
+                    ("100000", 1, "47c3")
+                );
+                assert_eq!(
+                    commitment.as_deref(),
+                    Some("d8f1"),
+                    "the net deposit's leaf"
+                );
             }
             other => panic!("{other:?}"),
         }
@@ -1521,7 +1696,9 @@ mod tests {
             "fee_note": { "amount": "500", "asset": 1, "commitment": "ee", "r": "ff", "time": 9 }
         }))
         .unwrap();
-        assert!(matches!(b, RpcAction::BridgeBurn { release_amount: Some(ref r), fee_note: Some(_), .. } if r.0 == "499500"));
+        assert!(
+            matches!(b, RpcAction::BridgeBurn { release_amount: Some(ref r), fee_note: Some(_), .. } if r.0 == "499500")
+        );
         // A chain without the group (and an older node): no split.
         let b: RpcAction = serde_json::from_value(serde_json::json!({
             "kind": "bridge_burn", "asset": 1, "amount": 400, "relayer_fee": 100, "to_chain": 5, "token": "cd", "to": "ab",
@@ -1536,24 +1713,48 @@ mod tests {
             RpcAction::AdmitValidator { ref voters, .. } if voters.len() == 2
         ));
         assert!(matches!(
-            k(serde_json::json!({ "kind": "slash_equivocation", "offender": "2nRd", "view": 1,
-                "first": { "hash": "aa", "height": 3 }, "second": { "hash": "bb", "height": 3 } })),
+            k(
+                serde_json::json!({ "kind": "slash_equivocation", "offender": "2nRd", "view": 1,
+                "first": { "hash": "aa", "height": 3 }, "second": { "hash": "bb", "height": 3 } })
+            ),
             RpcAction::SlashEquivocation { view: 1, .. }
         ));
         assert!(matches!(
-            k(serde_json::json!({ "kind": "rotate_pq_guardians", "new_pq_guardians": ["k0", "k1"], "nonce": 7, "pq_signers": [1, 4] })),
-            RpcAction::RotatePqGuardians { v2: false, possession_signatures: None, nonce: 7, .. }
+            k(
+                serde_json::json!({ "kind": "rotate_pq_guardians", "new_pq_guardians": ["k0", "k1"], "nonce": 7, "pq_signers": [1, 4] })
+            ),
+            RpcAction::RotatePqGuardians {
+                v2: false,
+                possession_signatures: None,
+                nonce: 7,
+                ..
+            }
         ));
         assert!(matches!(
-            k(serde_json::json!({ "kind": "rotate_pq_guardians_v2", "new_pq_guardians": ["k0", "k1"], "possession_signatures": 2, "nonce": 9, "pq_signers": [2] })),
-            RpcAction::RotatePqGuardians { v2: true, possession_signatures: Some(2), nonce: 9, .. }
+            k(
+                serde_json::json!({ "kind": "rotate_pq_guardians_v2", "new_pq_guardians": ["k0", "k1"], "possession_signatures": 2, "nonce": 9, "pq_signers": [2] })
+            ),
+            RpcAction::RotatePqGuardians {
+                v2: true,
+                possession_signatures: Some(2),
+                nonce: 9,
+                ..
+            }
         ));
         assert!(matches!(
-            k(serde_json::json!({ "kind": "rotate_pause_key_v2", "new_pause_key": "k0", "nonce": 10, "pq_signers": [1] })),
-            RpcAction::RotatePauseKey { v2: true, nonce: 10, .. }
+            k(
+                serde_json::json!({ "kind": "rotate_pause_key_v2", "new_pause_key": "k0", "nonce": 10, "pq_signers": [1] })
+            ),
+            RpcAction::RotatePauseKey {
+                v2: true,
+                nonce: 10,
+                ..
+            }
         ));
         assert!(matches!(
-            k(serde_json::json!({ "kind": "cancel_rotation", "rotation_kind": "pause_key", "nonce": 11 })),
+            k(
+                serde_json::json!({ "kind": "cancel_rotation", "rotation_kind": "pause_key", "nonce": 11 })
+            ),
             RpcAction::CancelRotation { nonce: 11, .. }
         ));
     }
@@ -1566,10 +1767,17 @@ mod tests {
         )
         .unwrap();
         assert!(l.testnet && l.admission_by_vote && l.slashing.is_none());
-        assert_eq!((l.binding_domain, l.proof_window_blocks), (Some(1), Some(1024)));
-        assert_eq!((l.max_gas_price.as_deref(), l.max_byte_price.as_deref()), (Some("10000"), Some("80000")));
+        assert_eq!(
+            (l.binding_domain, l.proof_window_blocks),
+            (Some(1), Some(1024))
+        );
+        assert_eq!(
+            (l.max_gas_price.as_deref(), l.max_byte_price.as_deref()),
+            (Some("10000"), Some("80000"))
+        );
         assert_eq!(l.byte_load.as_deref(), Some("paying"));
-        let back: randscan_core::ChainLimits = serde_json::from_value(serde_json::to_value(&l).unwrap()).unwrap();
+        let back: randscan_core::ChainLimits =
+            serde_json::from_value(serde_json::to_value(&l).unwrap()).unwrap();
         assert_eq!(back, l);
     }
 
@@ -1668,7 +1876,10 @@ mod tests {
     #[test]
     fn there_is_no_token_transfer_kind_a_transfer_is_none() {
         let json = r#"{"kind":"none"}"#;
-        assert!(matches!(serde_json::from_str::<RpcAction>(json).unwrap(), RpcAction::None));
+        assert!(matches!(
+            serde_json::from_str::<RpcAction>(json).unwrap(),
+            RpcAction::None
+        ));
         // A node tag this build has never heard of (e.g. a future kind) is tolerated, not fatal.
         assert!(serde_json::from_str::<RpcAction>(r#"{"kind":"token_transfer"}"#).is_ok());
     }

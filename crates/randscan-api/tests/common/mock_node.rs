@@ -44,7 +44,8 @@ pub fn h(seed: &str) -> String {
 /// realistic `token_mint`/`register_token` fixture and, by the indexer under test, to link that
 /// leaf back to its transaction (`randscan_core::notecommit::mint_commitment`).
 pub fn mint_note_cm(recipient: &str, amount: u64, index: u32, time: u32, r_hex: &str) -> String {
-    notecommit::mint_commitment_hex(recipient, amount, index, time, r_hex).expect("a well-formed shielded address")
+    notecommit::mint_commitment_hex(recipient, amount, index, time, r_hex)
+        .expect("a well-formed shielded address")
 }
 
 /// A register entry as the S2 node serves it.
@@ -192,7 +193,8 @@ impl MockChain {
                 Some("invoke") => {
                     for side in ["pays", "mints"] {
                         for p in a["transition"][side].as_array().into_iter().flatten() {
-                            self.leaves.push((p["cm"].as_str().unwrap().to_string(), height));
+                            self.leaves
+                                .push((p["cm"].as_str().unwrap().to_string(), height));
                         }
                     }
                 }
@@ -227,7 +229,12 @@ impl MockChain {
     fn committed(&self) -> impl Iterator<Item = (u64, usize, &Value)> + '_ {
         self.blocks.iter().flat_map(|b| {
             let height = b["height"].as_u64().unwrap_or(0);
-            b["transactions"].as_array().into_iter().flatten().enumerate().map(move |(i, t)| (height, i, t))
+            b["transactions"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .enumerate()
+                .map(move |(i, t)| (height, i, t))
         })
     }
 
@@ -527,9 +534,16 @@ fn matches_token_key(row: &Value, key: &Value) -> bool {
             return true;
         }
     }
-    let hex_key = s.strip_prefix("0x").or_else(|| s.strip_prefix("0X")).unwrap_or(s);
-    row["id"].as_str().is_some_and(|id| id.eq_ignore_ascii_case(hex_key))
-        || row["id_text"].as_str().is_some_and(|t| t.eq_ignore_ascii_case(s))
+    let hex_key = s
+        .strip_prefix("0x")
+        .or_else(|| s.strip_prefix("0X"))
+        .unwrap_or(s);
+    row["id"]
+        .as_str()
+        .is_some_and(|id| id.eq_ignore_ascii_case(hex_key))
+        || row["id_text"]
+            .as_str()
+            .is_some_and(|t| t.eq_ignore_ascii_case(s))
 }
 
 /// The public fields of the chain-14 hidden-asset bundle, unique per `seed`: four slots, no

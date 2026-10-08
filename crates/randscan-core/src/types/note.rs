@@ -99,7 +99,11 @@ pub fn public_note_for(cm: &str, tx: &LeafTx<'_>) -> Option<PublicNote> {
             _ => return None,
         };
         // A deposit's note carries the net under `bridge.fees`; `amount` stays the gross.
-        let amount = if tx.kind == "bridge_attest" { tx.deposit_amount.or(tx.amount) } else { tx.amount };
+        let amount = if tx.kind == "bridge_attest" {
+            tx.deposit_amount.or(tx.amount)
+        } else {
+            tx.amount
+        };
         return Some(PublicNote {
             source: source.into(),
             amount: amount?.to_string(),
@@ -110,7 +114,10 @@ pub fn public_note_for(cm: &str, tx: &LeafTx<'_>) -> Option<PublicNote> {
     }
     if tx.kind == "invoke" {
         let t = tx.transition?;
-        let payouts = ["pays", "mints"].into_iter().filter_map(|k| t.get(k)?.as_array()).flatten();
+        let payouts = ["pays", "mints"]
+            .into_iter()
+            .filter_map(|k| t.get(k)?.as_array())
+            .flatten();
         for p in payouts {
             if eq(p.get("cm").and_then(|c| c.as_str())) {
                 return from_json("payout", p);
@@ -163,11 +170,28 @@ mod public_note_tests {
             deposit_r: Some("63a44e149332d851011f20ac2c2622e814297177c8b18f7447fe9a0484edb7a0"),
             ..Default::default()
         };
-        let d = public_note_for("d8f146fd390c839e5cc084a2c560c42f1901968864b834062e8aa28972ace5e2", &tx).unwrap();
-        assert_eq!((d.source.as_str(), d.amount.as_str(), d.asset, d.time), ("bridge_deposit", "99900000", 1, 1599));
-        let f = public_note_for("47c3ad478fa92b55348204ac0d9884500466aba53d19875b782ada67d2ca6ee4", &tx).unwrap();
-        assert_eq!((f.source.as_str(), f.amount.as_str()), ("bridge_fee", "100000"));
-        assert!(public_note_for(&"00".repeat(32), &tx).is_none(), "a bundle slot has no public opening");
+        let d = public_note_for(
+            "d8f146fd390c839e5cc084a2c560c42f1901968864b834062e8aa28972ace5e2",
+            &tx,
+        )
+        .unwrap();
+        assert_eq!(
+            (d.source.as_str(), d.amount.as_str(), d.asset, d.time),
+            ("bridge_deposit", "99900000", 1, 1599)
+        );
+        let f = public_note_for(
+            "47c3ad478fa92b55348204ac0d9884500466aba53d19875b782ada67d2ca6ee4",
+            &tx,
+        )
+        .unwrap();
+        assert_eq!(
+            (f.source.as_str(), f.amount.as_str()),
+            ("bridge_fee", "100000")
+        );
+        assert!(
+            public_note_for(&"00".repeat(32), &tx).is_none(),
+            "a bundle slot has no public opening"
+        );
     }
 
     #[test]
@@ -175,8 +199,15 @@ mod public_note_tests {
         let t = serde_json::json!({ "reads": [], "writes": [], "inflow": "none",
             "pays": [{ "asset": 0, "amount": "300", "recipient": "rand1x", "time": 41, "r": "aa", "cm": "bb" }],
             "mints": [{ "asset": 2, "amount": "40", "recipient": "rand1x", "time": 41, "r": "cc", "cm": "dd" }] });
-        let tx = LeafTx { kind: "invoke", transition: Some(&t), ..Default::default() };
+        let tx = LeafTx {
+            kind: "invoke",
+            transition: Some(&t),
+            ..Default::default()
+        };
         let p = public_note_for("dd", &tx).unwrap();
-        assert_eq!((p.source.as_str(), p.amount.as_str(), p.asset, p.r.as_str()), ("payout", "40", 2, "cc"));
+        assert_eq!(
+            (p.source.as_str(), p.amount.as_str(), p.asset, p.r.as_str()),
+            ("payout", "40", 2, "cc")
+        );
     }
 }

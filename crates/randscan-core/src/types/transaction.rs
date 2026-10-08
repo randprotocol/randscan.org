@@ -312,8 +312,13 @@ pub enum TokenAction {
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum BridgeGovernanceAction {
     /// The genesis pause key's own signature; no PQ quorum (only *lifting* the pause needs one).
-    PauseMints { nonce: i64 },
-    UnpauseMints { nonce: i64, pq_signers: Vec<i64> },
+    PauseMints {
+        nonce: i64,
+    },
+    UnpauseMints {
+        nonce: i64,
+        pq_signers: Vec<i64>,
+    },
     RegisterBridgedToken {
         name: String,
         symbol: String,
@@ -334,16 +339,36 @@ pub enum BridgeGovernanceAction {
         pq_signers: Vec<i64>,
     },
     /// Bridge rules v2: a new PQ guardian set (Dilithium2 keys, hex), signed by the set before.
-    RotatePqGuardians { new_pq_guardians: Vec<String>, nonce: i64, pq_signers: Vec<i64> },
+    RotatePqGuardians {
+        new_pq_guardians: Vec<String>,
+        nonce: i64,
+        pq_signers: Vec<i64>,
+    },
     /// Bridge rules v2: a new pause key, signed by the PQ quorum.
-    RotatePauseKey { new_pause_key: String, nonce: i64, pq_signers: Vec<i64> },
+    RotatePauseKey {
+        new_pause_key: String,
+        nonce: i64,
+        pq_signers: Vec<i64>,
+    },
     /// Audit v6 (BRG-14): the rotation with every new holder's proof of possession (counted, not
     /// shown); it takes effect after the genesis `bridge.rotation.delay_secs` unless cancelled.
-    RotatePqGuardiansV2 { new_pq_guardians: Vec<String>, possession_signatures: i64, nonce: i64, pq_signers: Vec<i64> },
-    RotatePauseKeyV2 { new_pause_key: String, nonce: i64, pq_signers: Vec<i64> },
+    RotatePqGuardiansV2 {
+        new_pq_guardians: Vec<String>,
+        possession_signatures: i64,
+        nonce: i64,
+        pq_signers: Vec<i64>,
+    },
+    RotatePauseKeyV2 {
+        new_pause_key: String,
+        nonce: i64,
+        pq_signers: Vec<i64>,
+    },
     /// Audit v6 (BRG-14): a pending rotation withdrawn before it took effect; `rotation_kind` is
     /// `pq_guardians` or `pause_key`.
-    CancelRotation { rotation_kind: String, nonce: i64 },
+    CancelRotation {
+        rotation_kind: String,
+        nonce: i64,
+    },
 }
 
 /// Audit v6's validator-set actions (fullnode v0.6.8): bundle-less and fee-less.
@@ -353,9 +378,18 @@ pub enum StakingAction {
     /// STAKE-2: the validator set's vote admitting `candidate` (an address; `candidate_key` the
     /// Dilithium2 key, hex) to register with a `bond`, on a chain whose genesis sets
     /// `staking.admission_by_vote`. `voters` are the signing validators, by address.
-    AdmitValidator { candidate: String, candidate_key: String, voters: Vec<String> },
+    AdmitValidator {
+        candidate: String,
+        candidate_key: String,
+        voters: Vec<String>,
+    },
     /// STAKE-1: the evidence of a leader equivocation — two headers one key signed for one view.
-    SlashEquivocation { offender: String, view: i64, first: HeaderRef, second: HeaderRef },
+    SlashEquivocation {
+        offender: String,
+        view: i64,
+        first: HeaderRef,
+        second: HeaderRef,
+    },
 }
 
 /// A block header named by hash and height (a `slash_equivocation`'s two headers).
@@ -515,7 +549,10 @@ mod tests {
         );
         assert_eq!(TxKind::Transfer.node_tag(), "none");
         assert_eq!(TxKind::Withdraw.node_tag(), "withdraw");
-        assert_eq!(TxKind::RegisterBridgedToken.as_str(), "register_bridged_token");
+        assert_eq!(
+            TxKind::RegisterBridgedToken.as_str(),
+            "register_bridged_token"
+        );
     }
 
     #[test]
@@ -534,9 +571,18 @@ mod tests {
             "mints": [{ "asset": 2, "amount": "40", "recipient": "rand1abc", "time": 41, "r": "cc".repeat(32), "cm": "dd".repeat(32) }],
         }))
         .unwrap();
-        assert_eq!((t.reads.len(), t.writes.len(), t.inflow.as_str()), (1, 1, "deposit"));
-        assert_eq!((t.pays[0].asset, t.pays[0].amount.as_str(), t.mints[0].asset), (0, "300", 2));
-        assert_eq!(serde_json::to_value(&t).unwrap()["pays"][0]["cm"], "bb".repeat(32));
+        assert_eq!(
+            (t.reads.len(), t.writes.len(), t.inflow.as_str()),
+            (1, 1, "deposit")
+        );
+        assert_eq!(
+            (t.pays[0].asset, t.pays[0].amount.as_str(), t.mints[0].asset),
+            (0, "300", 2)
+        );
+        assert_eq!(
+            serde_json::to_value(&t).unwrap()["pays"][0]["cm"],
+            "bb".repeat(32)
+        );
     }
 
     #[test]
@@ -574,7 +620,10 @@ mod tests {
         assert!(TxKind::UnpauseMints.has_pq_signers());
         assert!(TxKind::RegisterBridgedToken.has_pq_signers());
         assert!(TxKind::ListBacking.has_pq_signers());
-        assert!(!TxKind::PauseMints.has_pq_signers(), "the pause key alone, no quorum");
+        assert!(
+            !TxKind::PauseMints.has_pq_signers(),
+            "the pause key alone, no quorum"
+        );
         assert!(!TxKind::TokenMint.has_pq_signers());
     }
 
@@ -648,7 +697,10 @@ mod tests {
         assert_eq!(v["kind"], "transfer");
         assert_eq!(v["bundle"]["nullifiers"].as_array().unwrap().len(), 4);
         assert_eq!(v["bundle"]["commitments"][3], "08");
-        assert!(v["bundle"].get("asset").is_none(), "no public asset field on the bundle");
+        assert!(
+            v["bundle"].get("asset").is_none(),
+            "no public asset field on the bundle"
+        );
         assert!(v.get("sender").is_none() && v.get("nonce").is_none());
     }
 
@@ -673,7 +725,10 @@ mod tests {
         });
         let v = serde_json::to_value(&d).unwrap();
         let dump = v.to_string();
-        assert!(!dump.contains("\"asset\":"), "a transfer's asset must never be serialised: {dump}");
+        assert!(
+            !dump.contains("\"asset\":"),
+            "a transfer's asset must never be serialised: {dump}"
+        );
         assert_eq!(v["asset_index"], serde_json::Value::Null);
     }
 
@@ -726,7 +781,10 @@ mod tests {
             pq_signers: vec![0, 2],
         });
         let v = serde_json::to_value(&d).unwrap();
-        assert_eq!(v["bridge_governance"]["pq_signers"], serde_json::json!([0, 2]));
+        assert_eq!(
+            v["bridge_governance"]["pq_signers"],
+            serde_json::json!([0, 2])
+        );
     }
 
     /// Audit v6's kinds are filterable, their tags are the node's (`tx_json` in fullnode
@@ -746,7 +804,10 @@ mod tests {
             assert_eq!(TxKind::parse(tag), Some(k));
             assert_eq!(serde_json::to_string(&k).unwrap(), format!("\"{tag}\""));
         }
-        assert!(TxKind::RotatePqGuardiansV2.has_pq_signers() && !TxKind::CancelRotation.has_pq_signers());
+        assert!(
+            TxKind::RotatePqGuardiansV2.has_pq_signers()
+                && !TxKind::CancelRotation.has_pq_signers()
+        );
         assert!(!TxKind::AdmitValidator.has_pq_signers());
         // The governance enum's own tags agree with the kinds'.
         let g = BridgeGovernanceAction::RotatePqGuardiansV2 {
@@ -755,15 +816,24 @@ mod tests {
             nonce: 9,
             pq_signers: vec![2],
         };
-        assert_eq!(serde_json::to_value(&g).unwrap()["kind"], "rotate_pq_guardians_v2");
+        assert_eq!(
+            serde_json::to_value(&g).unwrap()["kind"],
+            "rotate_pq_guardians_v2"
+        );
         let c: BridgeGovernanceAction =
             serde_json::from_value(serde_json::json!({ "kind": "cancel_rotation", "rotation_kind": "pause_key", "nonce": 11 })).unwrap();
-        assert!(matches!(c, BridgeGovernanceAction::CancelRotation { nonce: 11, .. }));
+        assert!(matches!(
+            c,
+            BridgeGovernanceAction::CancelRotation { nonce: 11, .. }
+        ));
         let s: StakingAction = serde_json::from_value(serde_json::json!({
             "kind": "slash_equivocation", "offender": "2nRd", "view": 7,
             "first": { "hash": "aa", "height": 5 }, "second": { "hash": "bb", "height": 5 }
         }))
         .unwrap();
-        assert!(matches!(s, StakingAction::SlashEquivocation { view: 7, .. }));
+        assert!(matches!(
+            s,
+            StakingAction::SlashEquivocation { view: 7, .. }
+        ));
     }
 }

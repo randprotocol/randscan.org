@@ -29,7 +29,9 @@ pub fn amount<'de, D: Deserializer<'de>>(d: D) -> Result<String, D::Error> {
 pub fn amount_opt<'de, D: Deserializer<'de>>(d: D) -> Result<Option<String>, D::Error> {
     match Option::<Value>::deserialize(d)? {
         None | Some(Value::Null) => Ok(None),
-        Some(v) => from_value(&v).map(Some).ok_or_else(|| D::Error::custom(format!("not an amount: {v}"))),
+        Some(v) => from_value(&v)
+            .map(Some)
+            .ok_or_else(|| D::Error::custom(format!("not an amount: {v}"))),
     }
 }
 
@@ -39,8 +41,15 @@ pub fn amount_opt<'de, D: Deserializer<'de>>(d: D) -> Result<Option<String>, D::
 pub fn int_opt<'de, D: Deserializer<'de>>(d: D) -> Result<Option<i64>, D::Error> {
     match Option::<Value>::deserialize(d)? {
         None | Some(Value::Null) => Ok(None),
-        Some(Value::Number(n)) => n.as_i64().map(Some).ok_or_else(|| D::Error::custom(format!("integer out of range: {n}"))),
-        Some(Value::String(s)) => s.trim().parse::<i64>().map(Some).map_err(|_| D::Error::custom(format!("not an integer: {s:?}"))),
+        Some(Value::Number(n)) => n
+            .as_i64()
+            .map(Some)
+            .ok_or_else(|| D::Error::custom(format!("integer out of range: {n}"))),
+        Some(Value::String(s)) => s
+            .trim()
+            .parse::<i64>()
+            .map(Some)
+            .map_err(|_| D::Error::custom(format!("not an integer: {s:?}"))),
         Some(other) => Err(D::Error::custom(format!("not an integer: {other}"))),
     }
 }
@@ -55,7 +64,9 @@ fn from_value(v: &Value) -> Option<String> {
         // that fits u64/i64 — the same assumption the rest of this API already makes for every
         // other amount field (e.g. the indexer's own `Units` wrapper does the same).
         Value::Number(n) if n.is_u64() || n.is_i64() => Some(n.to_string()),
-        Value::String(s) if !s.is_empty() && s.bytes().all(|b| b.is_ascii_digit()) => Some(s.clone()),
+        Value::String(s) if !s.is_empty() && s.bytes().all(|b| b.is_ascii_digit()) => {
+            Some(s.clone())
+        }
         _ => None,
     }
 }
@@ -85,10 +96,22 @@ mod tests {
 
     #[test]
     fn amount_accepts_a_number_or_a_string() {
-        assert_eq!(serde_json::from_value::<Req>(serde_json::json!({ "a": 600 })).unwrap().a, "600");
-        assert_eq!(serde_json::from_value::<Req>(serde_json::json!({ "a": "600" })).unwrap().a, "600");
         assert_eq!(
-            serde_json::from_value::<Req>(serde_json::json!({ "a": 100_000u64 * 100_000_000 })).unwrap().a,
+            serde_json::from_value::<Req>(serde_json::json!({ "a": 600 }))
+                .unwrap()
+                .a,
+            "600"
+        );
+        assert_eq!(
+            serde_json::from_value::<Req>(serde_json::json!({ "a": "600" }))
+                .unwrap()
+                .a,
+            "600"
+        );
+        assert_eq!(
+            serde_json::from_value::<Req>(serde_json::json!({ "a": 100_000u64 * 100_000_000 }))
+                .unwrap()
+                .a,
             "10000000000000"
         );
         assert!(serde_json::from_value::<Req>(serde_json::json!({ "a": "not-a-number" })).is_err());
@@ -98,17 +121,52 @@ mod tests {
 
     #[test]
     fn amount_opt_defaults_on_absence_or_null() {
-        assert_eq!(serde_json::from_value::<Opt>(serde_json::json!({})).unwrap().a, None);
-        assert_eq!(serde_json::from_value::<Opt>(serde_json::json!({ "a": null })).unwrap().a, None);
-        assert_eq!(serde_json::from_value::<Opt>(serde_json::json!({ "a": 600 })).unwrap().a, Some("600".into()));
-        assert_eq!(serde_json::from_value::<Opt>(serde_json::json!({ "a": "600" })).unwrap().a, Some("600".into()));
+        assert_eq!(
+            serde_json::from_value::<Opt>(serde_json::json!({}))
+                .unwrap()
+                .a,
+            None
+        );
+        assert_eq!(
+            serde_json::from_value::<Opt>(serde_json::json!({ "a": null }))
+                .unwrap()
+                .a,
+            None
+        );
+        assert_eq!(
+            serde_json::from_value::<Opt>(serde_json::json!({ "a": 600 }))
+                .unwrap()
+                .a,
+            Some("600".into())
+        );
+        assert_eq!(
+            serde_json::from_value::<Opt>(serde_json::json!({ "a": "600" }))
+                .unwrap()
+                .a,
+            Some("600".into())
+        );
     }
 
     #[test]
     fn int_opt_accepts_a_number_or_a_numeral_string() {
-        assert_eq!(serde_json::from_value::<Int>(serde_json::json!({})).unwrap().a, None);
-        assert_eq!(serde_json::from_value::<Int>(serde_json::json!({ "a": 1_000_000_000u64 })).unwrap().a, Some(1_000_000_000));
-        assert_eq!(serde_json::from_value::<Int>(serde_json::json!({ "a": "1000000000" })).unwrap().a, Some(1_000_000_000));
+        assert_eq!(
+            serde_json::from_value::<Int>(serde_json::json!({}))
+                .unwrap()
+                .a,
+            None
+        );
+        assert_eq!(
+            serde_json::from_value::<Int>(serde_json::json!({ "a": 1_000_000_000u64 }))
+                .unwrap()
+                .a,
+            Some(1_000_000_000)
+        );
+        assert_eq!(
+            serde_json::from_value::<Int>(serde_json::json!({ "a": "1000000000" }))
+                .unwrap()
+                .a,
+            Some(1_000_000_000)
+        );
         assert!(serde_json::from_value::<Int>(serde_json::json!({ "a": "not-a-number" })).is_err());
     }
 }

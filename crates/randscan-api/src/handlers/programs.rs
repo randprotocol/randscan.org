@@ -51,8 +51,15 @@ pub async fn get_program(
     // order. `None` on a chain without the section (and on an older node); a failed read is
     // logged and served as `None` rather than failing the page.
     let rpc = state.indexer.rpc();
-    let program_state = match (rpc.program_vault(&id).await, rpc.program_cells(&id, None, CELLS_FIRST_PAGE).await) {
-        (Ok(Some(vault)), Ok(Some(page))) => Some(ProgramState { vault, cells: page.cells, cells_next: page.next }),
+    let program_state = match (
+        rpc.program_vault(&id).await,
+        rpc.program_cells(&id, None, CELLS_FIRST_PAGE).await,
+    ) {
+        (Ok(Some(vault)), Ok(Some(page))) => Some(ProgramState {
+            vault,
+            cells: page.cells,
+            cells_next: page.next,
+        }),
         (Ok(_), Ok(_)) => None,
         (Err(e), _) | (_, Err(e)) => {
             warn!("program state read for {id} failed: {e:#}");
@@ -92,7 +99,11 @@ pub async fn program_cells(
     let after = match q.after.as_deref().filter(|a| !a.is_empty()) {
         Some(a) => match classify_query(a) {
             QueryKind::Hash(h) => Some(h),
-            _ => return Err(AppError::BadRequest("after must be a 64 hex cell key".into())),
+            _ => {
+                return Err(AppError::BadRequest(
+                    "after must be a 64 hex cell key".into(),
+                ))
+            }
         },
         None => None,
     };
@@ -103,6 +114,8 @@ pub async fn program_cells(
         .program_cells(&id, after.as_deref(), limit)
         .await
         .map_err(|e| AppError::Internal(format!("program cells: {e:#}")))?
-        .ok_or_else(|| AppError::NotFound("program state (this chain has no program_state section)".into()))?;
+        .ok_or_else(|| {
+            AppError::NotFound("program state (this chain has no program_state section)".into())
+        })?;
     Ok(Json(page))
 }

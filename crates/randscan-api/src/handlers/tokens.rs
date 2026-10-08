@@ -27,7 +27,10 @@ fn find_token<'a>(tokens: &'a [TokenInfo], key: &str) -> Option<&'a TokenInfo> {
             return Some(t);
         }
     }
-    let hex_key = key.strip_prefix("0x").or_else(|| key.strip_prefix("0X")).unwrap_or(key);
+    let hex_key = key
+        .strip_prefix("0x")
+        .or_else(|| key.strip_prefix("0X"))
+        .unwrap_or(key);
     tokens
         .iter()
         .find(|t| t.id.eq_ignore_ascii_case(hex_key) || t.id_text.eq_ignore_ascii_case(key))
@@ -36,7 +39,10 @@ fn find_token<'a>(tokens: &'a [TokenInfo], key: &str) -> Option<&'a TokenInfo> {
 /// GET /api/v1/tokens/:id — one token by index, 64-hex id or `rpl1…` text form, its deploy
 /// transaction and its public supply history (every `register_token`/`token_mint`/`token_burn`
 /// naming it, oldest first).
-pub async fn get_token(State(state): State<AppState>, Path(id): Path<String>) -> ApiResult<Json<TokenDetail>> {
+pub async fn get_token(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> ApiResult<Json<TokenDetail>> {
     let list = state.indexer.tokens().await.unwrap_or_default();
     let info = find_token(&list.tokens, &id)
         .cloned()
@@ -62,11 +68,21 @@ pub async fn get_token(State(state): State<AppState>, Path(id): Path<String>) ->
                 "token_burn" => e.amount.as_deref().map(|a| format!("-{a}")),
                 _ => None,
             }?;
-            Some(TokenSupplyEvent { tx_hash: e.tx_hash, height: e.height, timestamp_ms: e.timestamp_ms, kind: e.kind, delta })
+            Some(TokenSupplyEvent {
+                tx_hash: e.tx_hash,
+                height: e.height,
+                timestamp_ms: e.timestamp_ms,
+                kind: e.kind,
+                delta,
+            })
         })
         .collect();
 
-    Ok(Json(TokenDetail { info, deploy_tx, supply_history }))
+    Ok(Json(TokenDetail {
+        info,
+        deploy_tx,
+        supply_history,
+    }))
 }
 
 #[cfg(test)]
@@ -93,7 +109,10 @@ mod tests {
         let id = "aa".repeat(32);
         let tokens = vec![token(3, &id, "rpl1zusd")];
         assert_eq!(find_token(&tokens, "3").unwrap().symbol, "zUSD");
-        assert_eq!(find_token(&tokens, &id.to_ascii_uppercase()).unwrap().index, 3);
+        assert_eq!(
+            find_token(&tokens, &id.to_ascii_uppercase()).unwrap().index,
+            3
+        );
         assert_eq!(find_token(&tokens, &format!("0x{id}")).unwrap().index, 3);
         assert_eq!(find_token(&tokens, "RPL1ZUSD").unwrap().index, 3);
         assert!(find_token(&tokens, "9").is_none());

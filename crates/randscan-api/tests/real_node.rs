@@ -154,11 +154,24 @@ async fn start_node(bin: &PathBuf, cli: &PathBuf) -> (Node, String, String) {
     if help.contains("--gas-price") && help.contains("--auth-guest") {
         args.extend(
             [
-                "--hardening-v6", "--bundle-guest", "v3", "--auth-guest",
-                "--max-proof-bytes", "4194304", "--max-block-bytes", "20971520",
-                "--envelope-bytes", "1860",
-                "--gas-price", "100", "--byte-price", "800", "--bundle-gas-limit", "20479",
-                "--gas-dynamic", "10485760,262144,1250",
+                "--hardening-v6",
+                "--bundle-guest",
+                "v3",
+                "--auth-guest",
+                "--max-proof-bytes",
+                "4194304",
+                "--max-block-bytes",
+                "20971520",
+                "--envelope-bytes",
+                "1860",
+                "--gas-price",
+                "100",
+                "--byte-price",
+                "800",
+                "--bundle-gas-limit",
+                "20479",
+                "--gas-dynamic",
+                "10485760,262144,1250",
             ]
             .into_iter()
             .map(str::to_string),
@@ -172,7 +185,11 @@ async fn start_node(bin: &PathBuf, cli: &PathBuf) -> (Node, String, String) {
         args.extend(["--binding-domain", "1"].into_iter().map(str::to_string));
     }
     if help.contains("--proof-window-blocks") {
-        args.extend(["--proof-window-blocks", "1024"].into_iter().map(str::to_string));
+        args.extend(
+            ["--proof-window-blocks", "1024"]
+                .into_iter()
+                .map(str::to_string),
+        );
     }
     // RPL-2 (fullnode v0.6.8, `feat/rpl2`): a build that knows the `program_state` section gets
     // one, with the token registry it stands on, so the explorer meets an `invoke`, a program's
@@ -186,9 +203,14 @@ async fn start_node(bin: &PathBuf, cli: &PathBuf) -> (Node, String, String) {
         )
         .unwrap();
         args.extend(
-            ["--tokens", tokens_json.to_str().unwrap(), "--program-state-cell-fee", "10000000"]
-                .into_iter()
-                .map(str::to_string),
+            [
+                "--tokens",
+                tokens_json.to_str().unwrap(),
+                "--program-state-cell-fee",
+                "10000000",
+            ]
+            .into_iter()
+            .map(str::to_string),
         );
     }
     run(bin, &args.iter().map(String::as_str).collect::<Vec<_>>());
@@ -265,12 +287,18 @@ async fn explorer_agrees_with_a_real_shielded_node() {
     // instead of passing it as a skip.
     let required = std::env::var_os("RANDSCAN_REQUIRE_REAL_NODE").is_some();
     let Ok(bin) = std::env::var("RAND_NODE_BIN") else {
-        assert!(!required, "RANDSCAN_REQUIRE_REAL_NODE is set but RAND_NODE_BIN is not");
+        assert!(
+            !required,
+            "RANDSCAN_REQUIRE_REAL_NODE is set but RAND_NODE_BIN is not"
+        );
         eprintln!("skipping: RAND_NODE_BIN unset");
         return;
     };
     if std::env::var("DATABASE_URL").is_err() {
-        assert!(!required, "RANDSCAN_REQUIRE_REAL_NODE is set but DATABASE_URL is not");
+        assert!(
+            !required,
+            "RANDSCAN_REQUIRE_REAL_NODE is set but DATABASE_URL is not"
+        );
         eprintln!("skipping: DATABASE_URL unset");
         return;
     }
@@ -318,7 +346,15 @@ async fn explorer_agrees_with_a_real_shielded_node() {
         .trim()
         .to_string();
     // Since v0.5.10 `rand send` confirms first and refuses a non-terminal stdin without `--yes`.
-    let mut send = vec!["send", &wallet2_addr, "1.25", "--key", wallet, "--rpc", &node.url];
+    let mut send = vec![
+        "send",
+        &wallet2_addr,
+        "1.25",
+        "--key",
+        wallet,
+        "--rpc",
+        &node.url,
+    ];
     if run(&cli, &["send", "--help"]).contains("--yes") {
         send.push("--yes");
     }
@@ -463,8 +499,16 @@ async fn explorer_agrees_with_a_real_shielded_node() {
     // node serves them (`null` on a node or chain without), and the limits carry the genesis'
     // envelope format, auth guest and gas section. A chain-18 build got that genesis above.
     let null = json!(null);
-    assert_eq!(stats["hc_auth"], *node_status.get("hc_auth").unwrap_or(&null), "{stats}");
-    assert_eq!(stats["gas_prices"], *node_status.get("gas_prices").unwrap_or(&null), "{stats}");
+    assert_eq!(
+        stats["hc_auth"],
+        *node_status.get("hc_auth").unwrap_or(&null),
+        "{stats}"
+    );
+    assert_eq!(
+        stats["gas_prices"],
+        *node_status.get("gas_prices").unwrap_or(&null),
+        "{stats}"
+    );
     let node_limits = rpc(&client, &node.url, "rand_getLimits", json!([])).await;
     if node_limits["gas_metering"] == "circuit" {
         let l = &stats["limits"];
@@ -474,17 +518,27 @@ async fn explorer_agrees_with_a_real_shielded_node() {
         assert_eq!(l["envelope_bytes"], 1860);
         assert_eq!(l["hardening_v6"], true);
         assert_eq!(l["hc_auth"], node_status["hc_auth"]);
-        assert!(l["hc_auth"].is_string(), "a v3 chain pins an auth guest: {l}");
+        assert!(
+            l["hc_auth"].is_string(),
+            "a v3 chain pins an auth guest: {l}"
+        );
         assert!(stats["gas_prices"]["gas_price"].is_string(), "{stats}");
         // The genesis prices are the floors; the tip's cannot be below them.
         let floor: u64 = node_limits["gas_price"].as_str().unwrap().parse().unwrap();
-        let tip: u64 = stats["gas_prices"]["gas_price"].as_str().unwrap().parse().unwrap();
+        let tip: u64 = stats["gas_prices"]["gas_price"]
+            .as_str()
+            .unwrap()
+            .parse()
+            .unwrap();
         assert!(tip >= floor, "{tip} < {floor}");
         // Under `hc_auth` every bundle carries an auth proof and every envelope is 1 860 B.
         assert_eq!(transfer["bundle"]["auth_commit"], nb["auth_commit"]);
         assert!(nb["auth_proof_bytes"].as_u64().unwrap() > 0, "{nb}");
         assert_eq!(transfer["bundle"]["auth_proof_len"], nb["auth_proof_bytes"]);
-        assert_eq!(transfer["bundle"]["envelope_len"], json!([1860, 1860, 1860, 1860]));
+        assert_eq!(
+            transfer["bundle"]["envelope_len"],
+            json!([1860, 1860, 1860, 1860])
+        );
     }
     assert_eq!(stats["validator_count"], 1);
     assert_eq!(stats["faucet"], true);
@@ -498,7 +552,10 @@ async fn explorer_agrees_with_a_real_shielded_node() {
     assert_eq!(list[0]["active"], true);
     // The proposer earned the transfer's fee (and the deploy/call fees below, later).
     let rewards: u128 = list[0]["rewards"].as_str().unwrap().parse().unwrap();
-    assert!(rewards >= units(&nb["fee"]).parse::<u128>().unwrap(), "{list:?}");
+    assert!(
+        rewards >= units(&nb["fee"]).parse::<u128>().unwrap(),
+        "{list:?}"
+    );
 
     let (status, _, found) = call(
         &live.app,
@@ -668,11 +725,39 @@ async fn explorer_agrees_with_a_real_shielded_node() {
 /// the program token — three proofs. Then the explorer's view against the node's: the invoke
 /// with its transition, a call's receipt, both payout leaves linked to it, the program's cells
 /// and vault, the limits' `program_state` group and the supply's vault counters.
-async fn invoke_round_trip(live: &LiveApp, client: &reqwest::Client, node: &Node, cli: &PathBuf, wallet: &str, payee: &str) -> i64 {
+async fn invoke_round_trip(
+    live: &LiveApp,
+    client: &reqwest::Client,
+    node: &Node,
+    cli: &PathBuf,
+    wallet: &str,
+    payee: &str,
+) -> i64 {
     let dir = node.dir.path();
     let counter_json = dir.join("counter.json");
-    run(cli, &["program", "build", "--guest", "rpl2_counter", "--out", counter_json.to_str().unwrap()]);
-    let out = run(cli, &["program", "deploy", counter_json.to_str().unwrap(), "--rpc", &node.url, "--key", wallet]);
+    run(
+        cli,
+        &[
+            "program",
+            "build",
+            "--guest",
+            "rpl2_counter",
+            "--out",
+            counter_json.to_str().unwrap(),
+        ],
+    );
+    let out = run(
+        cli,
+        &[
+            "program",
+            "deploy",
+            counter_json.to_str().unwrap(),
+            "--rpc",
+            &node.url,
+            "--key",
+            wallet,
+        ],
+    );
     let counter = out
         .lines()
         .find_map(|l| l.strip_prefix("program id: "))
@@ -681,15 +766,39 @@ async fn invoke_round_trip(live: &LiveApp, client: &reqwest::Client, node: &Node
         .to_string();
     let out = run(
         cli,
-        &["token", "create", "--name", "Counter Share", "--symbol", "CTR", "--decimals", "0", "--program", &counter, "--rpc", &node.url, "--key", wallet],
+        &[
+            "token",
+            "create",
+            "--name",
+            "Counter Share",
+            "--symbol",
+            "CTR",
+            "--decimals",
+            "0",
+            "--program",
+            &counter,
+            "--rpc",
+            &node.url,
+            "--key",
+            wallet,
+        ],
     );
     // The wallet reports it as "submitted token registration <hash>".
     let register_hash = submitted_hash(&out, "token registration");
     let registered = live
-        .wait_for(&format!("/api/v1/transactions/{register_hash}"), WAIT, |t| t["kind"] == "register_token")
+        .wait_for(
+            &format!("/api/v1/transactions/{register_hash}"),
+            WAIT,
+            |t| t["kind"] == "register_token",
+        )
         .await;
-    let share_index = registered["asset_index"].as_i64().expect("the registration's index");
-    assert_eq!(registered["token_action"]["authority"], "program", "{registered}");
+    let share_index = registered["asset_index"]
+        .as_i64()
+        .expect("the registration's index");
+    assert_eq!(
+        registered["token_action"]["authority"], "program",
+        "{registered}"
+    );
 
     // The counter accepts exactly a transition that reads one cell and writes its first word
     // plus one; everything else rides along (`docs/cli.md`, "A stateful program").
@@ -707,20 +816,47 @@ async fn invoke_round_trip(live: &LiveApp, client: &reqwest::Client, node: &Node
         .to_string(),
     )
     .unwrap();
-    let out = run(cli, &["program", "invoke", &counter, "--transition", transition.to_str().unwrap(), "--rpc", &node.url, "--key", wallet]);
+    let out = run(
+        cli,
+        &[
+            "program",
+            "invoke",
+            &counter,
+            "--transition",
+            transition.to_str().unwrap(),
+            "--rpc",
+            &node.url,
+            "--key",
+            wallet,
+        ],
+    );
     let invoke_hash = submitted_hash(&out, "invoke");
 
-    let node_tx = rpc(client, &node.url, "rand_getTransaction", json!([invoke_hash])).await;
+    let node_tx = rpc(
+        client,
+        &node.url,
+        "rand_getTransaction",
+        json!([invoke_hash]),
+    )
+    .await;
     assert_eq!(node_tx["tx"]["action"]["kind"], "invoke", "{node_tx}");
     let node_receipt = rpc(client, &node.url, "rand_getReceipt", json!([invoke_hash])).await;
-    assert!(node_receipt.is_object(), "node has no receipt for {invoke_hash}: {node_receipt}");
+    assert!(
+        node_receipt.is_object(),
+        "node has no receipt for {invoke_hash}: {node_receipt}"
+    );
     let tx = live
-        .wait_for(&format!("/api/v1/transactions/{invoke_hash}"), WAIT, |t| t["receipt"].is_object())
+        .wait_for(&format!("/api/v1/transactions/{invoke_hash}"), WAIT, |t| {
+            t["receipt"].is_object()
+        })
         .await;
     assert_eq!(tx["kind"], "invoke");
     assert_eq!(tx["program"], counter);
     assert_eq!(tx["call_proof_len"], node_tx["tx"]["action"]["proof_len"]);
-    assert_eq!(tx["bundle"]["burn_r"], "500000000", "the RAND the transition deposited is the bundle's burn: {tx}");
+    assert_eq!(
+        tx["bundle"]["burn_r"], "500000000",
+        "the RAND the transition deposited is the bundle's burn: {tx}"
+    );
     let t = &tx["transition"];
     let nt = &node_tx["tx"]["action"]["transition"];
     assert_eq!(t["inflow"], "none");
@@ -734,7 +870,10 @@ async fn invoke_round_trip(live: &LiveApp, client: &reqwest::Client, node: &Node
         assert_eq!(ours["cm"], theirs["cm"], "{side}: {tx}");
         assert_eq!(ours["recipient"], theirs["recipient"]);
         assert_eq!(ours["amount"], units(&theirs["amount"]));
-        assert_eq!(ours["time"], node_tx["tx"]["bundle"]["time"], "a payout note's time is the bundle's");
+        assert_eq!(
+            ours["time"], node_tx["tx"]["bundle"]["time"],
+            "a payout note's time is the bundle's"
+        );
     }
     assert_eq!(t["pays"][0]["recipient"], payee);
     assert_eq!(t["mints"][0]["asset"], share_index);
@@ -742,42 +881,106 @@ async fn invoke_round_trip(live: &LiveApp, client: &reqwest::Client, node: &Node
     assert_eq!(tx["receipt"]["outputs"][0], 1, "the counter's new count");
 
     // Both payout leaves are the chain's, linked to the invoke, among its notes.
-    let head = rpc(client, &node.url, "rand_getHead", json!([])).await["height"].as_i64().unwrap();
-    live.wait_for("/api/v1/health", WAIT, |h| h["indexer"]["current_height"].as_i64().unwrap_or(-1) >= head).await;
+    let head = rpc(client, &node.url, "rand_getHead", json!([])).await["height"]
+        .as_i64()
+        .unwrap();
+    live.wait_for("/api/v1/health", WAIT, |h| {
+        h["indexer"]["current_height"].as_i64().unwrap_or(-1) >= head
+    })
+    .await;
     let tree = rpc(client, &node.url, "rand_getTreeInfo", json!([])).await;
-    live.wait_for("/api/v1/stats", WAIT, |s| s["notes"] == tree["next_index"]).await;
-    for cm in [t["pays"][0]["cm"].as_str().unwrap(), t["mints"][0]["cm"].as_str().unwrap()] {
-        let (status, _, n) = call(&live.app, json_req("GET", &format!("/api/v1/notes/{cm}"), None, None)).await;
+    live.wait_for("/api/v1/stats", WAIT, |s| s["notes"] == tree["next_index"])
+        .await;
+    for cm in [
+        t["pays"][0]["cm"].as_str().unwrap(),
+        t["mints"][0]["cm"].as_str().unwrap(),
+    ] {
+        let (status, _, n) = call(
+            &live.app,
+            json_req("GET", &format!("/api/v1/notes/{cm}"), None, None),
+        )
+        .await;
         assert_eq!(status, 200, "{n}");
         assert_eq!(n["tx_hash"], invoke_hash, "{n}");
     }
-    let (_, _, env) = call(&live.app, json_req("GET", &format!("/api/v1/transactions/{invoke_hash}/envelopes"), None, None)).await;
-    assert_eq!(env["notes"].as_array().map(Vec::len), Some(6), "four slots and two payouts: {env}");
+    let (_, _, env) = call(
+        &live.app,
+        json_req(
+            "GET",
+            &format!("/api/v1/transactions/{invoke_hash}/envelopes"),
+            None,
+            None,
+        ),
+    )
+    .await;
+    assert_eq!(
+        env["notes"].as_array().map(Vec::len),
+        Some(6),
+        "four slots and two payouts: {env}"
+    );
 
     // The program: counted as an invoke, its cell and its vault as the node serves them.
     let program = live
-        .wait_for(&format!("/api/v1/programs/{counter}"), WAIT, |p| p["invoke_count"] == 1)
+        .wait_for(&format!("/api/v1/programs/{counter}"), WAIT, |p| {
+            p["invoke_count"] == 1
+        })
         .await;
     assert_eq!(program["call_count"], 0);
     assert_eq!(program["recent_calls"][0]["hash"], invoke_hash);
-    let node_cells = rpc(client, &node.url, "rand_getProgramCells", json!([counter, { "limit": 10 }])).await;
+    let node_cells = rpc(
+        client,
+        &node.url,
+        "rand_getProgramCells",
+        json!([counter, { "limit": 10 }]),
+    )
+    .await;
     let node_vault = rpc(client, &node.url, "rand_getProgramVault", json!([counter])).await;
     assert_eq!(program["program_state"]["cells"], node_cells["cells"]);
-    assert_eq!(program["program_state"]["cells"][0], json!({ "key": cell_key, "value": cell_key }));
+    assert_eq!(
+        program["program_state"]["cells"][0],
+        json!({ "key": cell_key, "value": cell_key })
+    );
     assert_eq!(program["program_state"]["vault"], node_vault);
-    assert_eq!(program["program_state"]["vault"][0], json!({ "asset": 0, "amount": "300000000" }), "0.5 in, 0.2 out");
-    let (status, _, page) = call(&live.app, json_req("GET", &format!("/api/v1/programs/{counter}/cells?limit=1"), None, None)).await;
+    assert_eq!(
+        program["program_state"]["vault"][0],
+        json!({ "asset": 0, "amount": "300000000" }),
+        "0.5 in, 0.2 out"
+    );
+    let (status, _, page) = call(
+        &live.app,
+        json_req(
+            "GET",
+            &format!("/api/v1/programs/{counter}/cells?limit=1"),
+            None,
+            None,
+        ),
+    )
+    .await;
     assert_eq!(status, 200, "{page}");
     assert_eq!(page["cells"], node_cells["cells"]);
 
     // The limits' group and the supply's vault counters, both the node's own figures.
     let node_limits = rpc(client, &node.url, "rand_getLimits", json!([])).await;
-    let stats = live.wait_for("/api/v1/stats", WAIT, |s| s["limits"]["program_state"].is_object()).await;
-    assert_eq!(stats["limits"]["program_state"], node_limits["program_state"]);
+    let stats = live
+        .wait_for("/api/v1/stats", WAIT, |s| {
+            s["limits"]["program_state"].is_object()
+        })
+        .await;
+    assert_eq!(
+        stats["limits"]["program_state"],
+        node_limits["program_state"]
+    );
     assert_eq!(stats["limits"]["program_state"]["cell_fee"], "10000000");
     let node_supply = rpc(client, &node.url, "rand_getSupply", json!([])).await;
-    let supply = live.wait_for("/api/v1/supply", WAIT, |s| s["program_rand_held"] == json!("300000000")).await;
-    assert_eq!(supply["program_rand_out"], units(&node_supply["program_rand_out"]));
+    let supply = live
+        .wait_for("/api/v1/supply", WAIT, |s| {
+            s["program_rand_held"] == json!("300000000")
+        })
+        .await;
+    assert_eq!(
+        supply["program_rand_out"],
+        units(&node_supply["program_rand_out"])
+    );
     assert_eq!(supply["program_rand_out"], "200000000");
     assert_eq!(supply["invariant_holds"], true, "{supply}");
     share_index
@@ -809,40 +1012,78 @@ async fn consumer_contract(
     const ZUSD: &str = "zusd.money src/lib/balance-sheet.mjs (via BalanceSheet.astro)";
     const RESERVES: &str = "randprotocol.org src/components/BridgeReserves.astro";
     const BALANCE: &str = "randprotocol.org src/scripts/balance.js";
-    let get = |path: String| async move { call(&live.app, json_req("GET", &path, None, None)).await };
-    let is_units = |v: &Value| v.as_str().is_some_and(|s| !s.is_empty() && s.bytes().all(|b| b.is_ascii_digit()));
+    let get =
+        |path: String| async move { call(&live.app, json_req("GET", &path, None, None)).await };
+    let is_units = |v: &Value| {
+        v.as_str()
+            .is_some_and(|s| !s.is_empty() && s.bytes().all(|b| b.is_ascii_digit()))
+    };
 
     // Settle on the node's head first, so the bridge/token/supply caches have been refreshed.
-    let head = rpc(client, &node.url, "rand_getHead", json!([])).await["height"].as_i64().unwrap();
-    live.wait_for("/api/v1/health", WAIT, |h| h["indexer"]["current_height"].as_i64().unwrap_or(-1) >= head).await;
+    let head = rpc(client, &node.url, "rand_getHead", json!([])).await["height"]
+        .as_i64()
+        .unwrap();
+    live.wait_for("/api/v1/health", WAIT, |h| {
+        h["indexer"]["current_height"].as_i64().unwrap_or(-1) >= head
+    })
+    .await;
 
     // --- /bridge ---------------------------------------------------------------------------
     let node_bridge = rpc(client, &node.url, "rand_getBridgeState", json!([])).await;
     let (status, _, bridge) = get("/api/v1/bridge".into()).await;
     assert_eq!(status, 200, "{ZUSD} and {RESERVES} fetch /bridge: {bridge}");
-    assert!(bridge["enabled"].is_boolean(), "{ZUSD} reads bridge.enabled as a boolean: {bridge}");
-    assert!(bridge["mint_paused"].is_boolean(), "{ZUSD} reads bridge.mint_paused as a boolean: {bridge}");
+    assert!(
+        bridge["enabled"].is_boolean(),
+        "{ZUSD} reads bridge.enabled as a boolean: {bridge}"
+    );
+    assert!(
+        bridge["mint_paused"].is_boolean(),
+        "{ZUSD} reads bridge.mint_paused as a boolean: {bridge}"
+    );
     let enabled = node_bridge["enabled"].as_bool().unwrap_or(false);
-    assert_eq!(bridge["enabled"], enabled, "{ZUSD}: /bridge.enabled must be the node's: node {node_bridge}");
+    assert_eq!(
+        bridge["enabled"], enabled,
+        "{ZUSD}: /bridge.enabled must be the node's: node {node_bridge}"
+    );
     if !enabled {
-        assert_eq!(bridge["mint_paused"], false, "{ZUSD}: a chain without a bridge reports no pause: {bridge}");
+        assert_eq!(
+            bridge["mint_paused"], false,
+            "{ZUSD}: a chain without a bridge reports no pause: {bridge}"
+        );
     }
 
     // --- /bridge/assets ----------------------------------------------------------------------
     let (status, _, assets) = get("/api/v1/bridge/assets".into()).await;
-    assert_eq!(status, 200, "{ZUSD} and {RESERVES} fetch /bridge/assets: {assets}");
-    let rows = assets.as_array().unwrap_or_else(|| panic!("{ZUSD} iterates /bridge/assets as an array: {assets}"));
+    assert_eq!(
+        status, 200,
+        "{ZUSD} and {RESERVES} fetch /bridge/assets: {assets}"
+    );
+    let rows = assets
+        .as_array()
+        .unwrap_or_else(|| panic!("{ZUSD} iterates /bridge/assets as an array: {assets}"));
     if !enabled {
-        assert!(rows.is_empty(), "{ZUSD}: a chain without a bridge lists no backings ([]): {assets}");
+        assert!(
+            rows.is_empty(),
+            "{ZUSD}: a chain without a bridge lists no backings ([]): {assets}"
+        );
     }
     for a in rows {
         assert!(a["index"].is_i64(), "{ZUSD} groups by row.index: {a}");
         assert!(a["chain"].is_i64(), "{ZUSD} keys rows by row.chain: {a}");
-        assert!(a["symbol"].is_string() || a["symbol"].is_null(), "{ZUSD} filters on row.symbol (string or null): {a}");
+        assert!(
+            a["symbol"].is_string() || a["symbol"].is_null(),
+            "{ZUSD} filters on row.symbol (string or null): {a}"
+        );
         if a["symbol"].is_string() {
             // Only symbol'd rows are summed, with BigInt(row.locked): null there would throw.
-            assert!(is_units(&a["locked"]), "{ZUSD} sums BigInt(row.locked): {a}");
-            assert!(is_units(&a["minted_today"]) && is_units(&a["mint_cap_per_day"]), "{RESERVES} renders minted_today / mint_cap_per_day: {a}");
+            assert!(
+                is_units(&a["locked"]),
+                "{ZUSD} sums BigInt(row.locked): {a}"
+            );
+            assert!(
+                is_units(&a["minted_today"]) && is_units(&a["mint_cap_per_day"]),
+                "{RESERVES} renders minted_today / mint_cap_per_day: {a}"
+            );
         }
     }
 
@@ -850,7 +1091,10 @@ async fn consumer_contract(
     // The sites ask for each index the bridge rows name and treat a non-2xx as "unknown"; an
     // index nobody registered must be a 404, never a 200 with a made-up supply.
     let (status, _, missing) = get("/api/v1/tokens/987654".into()).await;
-    assert_eq!(status, 404, "{ZUSD} rejects a non-ok /tokens/{{index}}: {missing}");
+    assert_eq!(
+        status, 404,
+        "{ZUSD} rejects a non-ok /tokens/{{index}}: {missing}"
+    );
     match token_index {
         Some(index) => {
             let node_token = rpc(client, &node.url, "rand_getToken", json!([index])).await;
@@ -871,53 +1115,102 @@ async fn consumer_contract(
     let tree = rpc(client, &node.url, "rand_getTreeInfo", json!([])).await;
     let leaves = tree["next_index"].as_i64().unwrap();
     let page = live
-        .wait_for("/api/v1/envelopes?from_leaf=0&limit=1000", WAIT, |p| p["total_leaves"] == leaves)
+        .wait_for("/api/v1/envelopes?from_leaf=0&limit=1000", WAIT, |p| {
+            p["total_leaves"] == leaves
+        })
         .await;
-    assert!(page["next_leaf"].is_null(), "{BALANCE} stops when next_leaf is null (every leaf on one page): {page}");
-    let notes = page["notes"].as_array().unwrap_or_else(|| panic!("{BALANCE} iterates page.notes: {page}"));
-    assert_eq!(notes.len() as i64, leaves, "{BALANCE}: one row per leaf: {page}");
+    assert!(
+        page["next_leaf"].is_null(),
+        "{BALANCE} stops when next_leaf is null (every leaf on one page): {page}"
+    );
+    let notes = page["notes"]
+        .as_array()
+        .unwrap_or_else(|| panic!("{BALANCE} iterates page.notes: {page}"));
+    assert_eq!(
+        notes.len() as i64,
+        leaves,
+        "{BALANCE}: one row per leaf: {page}"
+    );
     for (i, n) in notes.iter().enumerate() {
-        assert_eq!(n["leaf_index"], i as i64, "{BALANCE} sorts on n.leaf_index, oldest first: {n}");
+        assert_eq!(
+            n["leaf_index"], i as i64,
+            "{BALANCE} sorts on n.leaf_index, oldest first: {n}"
+        );
         assert!(n["cm"].is_string(), "{BALANCE} opens n.cm: {n}");
         assert!(n["height"].is_i64(), "{BALANCE} shows n.height: {n}");
         let o = n.as_object().unwrap();
         for key in ["tx_hash", "envelope", "public"] {
-            assert!(o.contains_key(key), "{BALANCE} destructures n.{key} (null allowed, never missing): {n}");
+            assert!(
+                o.contains_key(key),
+                "{BALANCE} destructures n.{key} (null allowed, never missing): {n}"
+            );
         }
-        assert!(n["tx_hash"].is_string() || n["tx_hash"].is_null(), "{BALANCE}: n.tx_hash: {n}");
-        assert!(n["envelope"].is_object() || n["envelope"].is_null(), "{BALANCE} passes n.envelope to the opener: {n}");
+        assert!(
+            n["tx_hash"].is_string() || n["tx_hash"].is_null(),
+            "{BALANCE}: n.tx_hash: {n}"
+        );
+        assert!(
+            n["envelope"].is_object() || n["envelope"].is_null(),
+            "{BALANCE} passes n.envelope to the opener: {n}"
+        );
     }
     let mint_row = notes
         .iter()
         .find(|n| n["cm"] == *mint_cm)
         .unwrap_or_else(|| panic!("{BALANCE}: the faucet mint's leaf is served: {page}"));
-    assert_eq!(mint_row["tx_hash"], mint_hash, "{BALANCE}: the mint's leaf names its transaction: {mint_row}");
+    assert_eq!(
+        mint_row["tx_hash"], mint_hash,
+        "{BALANCE}: the mint's leaf names its transaction: {mint_row}"
+    );
     assert!(
-        notes.iter().any(|n| n["envelope"].is_object() && n["tx_hash"].is_string()),
+        notes
+            .iter()
+            .any(|n| n["envelope"].is_object() && n["tx_hash"].is_string()),
         "{BALANCE}: at least one leaf carries an envelope to open: {page}"
     );
     // Paging: a short page points at the next leaf, and that page starts there (needs a third leaf).
     if leaves > 2 {
         let (status, _, first) = get("/api/v1/envelopes?from_leaf=0&limit=2".into()).await;
         assert_eq!(status, 200, "{BALANCE}: {first}");
-        assert_eq!(first["next_leaf"], 2, "{BALANCE} follows page.next_leaf: {first}");
+        assert_eq!(
+            first["next_leaf"], 2,
+            "{BALANCE} follows page.next_leaf: {first}"
+        );
         let (_, _, second) = get("/api/v1/envelopes?from_leaf=2&limit=2".into()).await;
-        assert_eq!(second["notes"][0]["leaf_index"], 2, "{BALANCE}: the next page starts at next_leaf: {second}");
-        assert_eq!(second["total_leaves"], leaves, "{BALANCE} reports progress against total_leaves: {second}");
+        assert_eq!(
+            second["notes"][0]["leaf_index"], 2,
+            "{BALANCE}: the next page starts at next_leaf: {second}"
+        );
+        assert_eq!(
+            second["total_leaves"], leaves,
+            "{BALANCE} reports progress against total_leaves: {second}"
+        );
     }
 
     // --- /stats --------------------------------------------------------------------------------
     let node_limits = rpc(client, &node.url, "rand_getLimits", json!([])).await;
-    let stats = live.wait_for("/api/v1/stats", WAIT, |s| s["limits"].is_object()).await;
+    let stats = live
+        .wait_for("/api/v1/stats", WAIT, |s| s["limits"].is_object())
+        .await;
     let so = stats.as_object().unwrap();
-    assert!(so.contains_key("gas_prices"), "stats.gas_prices is served (null allowed): {stats}");
+    assert!(
+        so.contains_key("gas_prices"),
+        "stats.gas_prices is served (null allowed): {stats}"
+    );
     if node_limits["gas_metering"] == "circuit" {
-        assert!(is_units(&stats["gas_prices"]["gas_price"]) && is_units(&stats["gas_prices"]["byte_price"]), "a gas-section chain's tip prices: {stats}");
+        assert!(
+            is_units(&stats["gas_prices"]["gas_price"])
+                && is_units(&stats["gas_prices"]["byte_price"]),
+            "a gas-section chain's tip prices: {stats}"
+        );
     }
     match node_limits.get("fee_rules") {
         // Only the flags the explorer models (`FeeRules`) are compared, so a flag a later node
         // adds beside them does not fail the gate; a `null` group must stay `null`.
-        Some(Value::Null) => assert!(stats["limits"]["fee_rules"].is_null(), "limits.fee_rules is null as the node serves it: {stats}"),
+        Some(Value::Null) => assert!(
+            stats["limits"]["fee_rules"].is_null(),
+            "limits.fee_rules is null as the node serves it: {stats}"
+        ),
         Some(rules) => {
             for flag in ["burn_base", "subsidy_net_of_fees", "burn_floor"] {
                 assert_eq!(
@@ -946,7 +1239,10 @@ async fn consumer_contract(
         if status == 200 && ours["height"] == theirs["height"] {
             break (ours, theirs);
         }
-        assert!(start.elapsed() < WAIT, "/api/v1/supply never caught the node's height: {ours} vs {theirs}");
+        assert!(
+            start.elapsed() < WAIT,
+            "/api/v1/supply never caught the node's height: {ours} vs {theirs}"
+        );
         tokio::time::sleep(Duration::from_millis(50)).await;
     };
     for (k, v) in supply.as_object().unwrap() {
@@ -954,10 +1250,17 @@ async fn consumer_contract(
             Value::String(_) => {
                 assert!(is_units(v), "supply.{k} is a decimal string: {supply}");
                 if let Some(theirs) = node_supply.get(k) {
-                    assert_eq!(*v, json!(units(theirs)), "supply.{k} is the node's figure: node {node_supply}");
+                    assert_eq!(
+                        *v,
+                        json!(units(theirs)),
+                        "supply.{k} is the node's figure: node {node_supply}"
+                    );
                 }
             }
-            Value::Null => assert!(node_supply.get(k).is_none_or(Value::is_null), "supply.{k} dropped: node {node_supply}"),
+            Value::Null => assert!(
+                node_supply.get(k).is_none_or(Value::is_null),
+                "supply.{k} dropped: node {node_supply}"
+            ),
             _ => {}
         }
     }

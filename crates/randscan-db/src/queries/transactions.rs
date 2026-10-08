@@ -356,7 +356,11 @@ pub struct TokenEventRow {
 /// The transaction that registered a token: a `register_token` naming this registry index, or a
 /// `register_bridged_token` naming this asset id (that action's `tx_json` carries no registry
 /// index — only the id the chain will derive it under — so it is matched by id instead).
-pub async fn find_token_deploy_tx(pool: &PgPool, asset_index: i64, asset_id_hex: &str) -> Result<Option<String>> {
+pub async fn find_token_deploy_tx(
+    pool: &PgPool,
+    asset_index: i64,
+    asset_id_hex: &str,
+) -> Result<Option<String>> {
     Ok(sqlx::query_scalar(
         "SELECT hash FROM transactions
          WHERE (kind = 'register_token' AND asset_index = $1)
@@ -369,7 +373,11 @@ pub async fn find_token_deploy_tx(pool: &PgPool, asset_index: i64, asset_id_hex:
     .await?)
 }
 
-pub async fn list_token_events(pool: &PgPool, asset_index: i64, limit: i64) -> Result<Vec<TokenEventRow>> {
+pub async fn list_token_events(
+    pool: &PgPool,
+    asset_index: i64,
+    limit: i64,
+) -> Result<Vec<TokenEventRow>> {
     Ok(sqlx::query_as::<_, TokenEventRow>(
         "SELECT hash AS tx_hash, height, timestamp_ms, kind, amount::text AS amount, token_action
          FROM transactions

@@ -200,7 +200,10 @@ pub fn bridge_chain_name(chain: i64) -> Option<&'static str> {
 /// are not zero.
 pub fn emitter_address(chain: i64, emitter: &str) -> Option<String> {
     use sha2::{Digest, Sha256};
-    let word: [u8; 32] = hex::decode(emitter.trim_start_matches("0x")).ok()?.try_into().ok()?;
+    let word: [u8; 32] = hex::decode(emitter.trim_start_matches("0x"))
+        .ok()?
+        .try_into()
+        .ok()?;
     let padded = || word[..12].iter().all(|&b| b == 0).then(|| &word[12..]);
     match chain {
         2 | 3 => Some(format!("0x{}", hex::encode(padded()?))),
@@ -241,9 +244,14 @@ impl BridgeState {
                     chain,
                     chain_name: bridge_chain_name(chain).map(str::to_string),
                     emitter: emitter.clone(),
-                    explorer_url: address.as_deref().and_then(|a| emitter_explorer_url(chain, a)),
+                    explorer_url: address
+                        .as_deref()
+                        .and_then(|a| emitter_explorer_url(chain, a)),
                     address,
-                    min_inbound_sequence: self.min_inbound_sequence.as_ref().and_then(|f| f.get(id).copied()),
+                    min_inbound_sequence: self
+                        .min_inbound_sequence
+                        .as_ref()
+                        .and_then(|f| f.get(id).copied()),
                 })
             })
             .collect();
@@ -333,7 +341,8 @@ mod tests {
             "decimals": 8, "locked": 600,
             "mint_cap_per_day": 100_000u64 * 100_000_000, "minted_today": 1_000, "mint_day": 0,
         });
-        let asset: BridgeAsset = serde_json::from_value(v).expect("the node's own numeric encoding must parse");
+        let asset: BridgeAsset =
+            serde_json::from_value(v).expect("the node's own numeric encoding must parse");
         assert_eq!(asset.locked.as_deref(), Some("600"));
         assert_eq!(asset.minted_today.as_deref(), Some("1000"));
         assert_eq!(asset.mint_cap_per_day.as_deref(), Some("10000000000000"));
@@ -372,12 +381,20 @@ mod tests {
                 "mint_cap_per_day": 100_000u64 * 100_000_000, "minted_today": 1_000, "mint_day": 0,
             }],
         });
-        let state: BridgeState = serde_json::from_value(v).expect("must parse without next_index and with numeric amounts");
+        let state: BridgeState = serde_json::from_value(v)
+            .expect("must parse without next_index and with numeric amounts");
         assert_eq!(state.registration_fee, Some(1_000_000_000));
         assert_eq!(state.next_index, None);
         assert_eq!(state.assets[0].locked.as_deref(), Some("600"));
         // A reply this old has no rules v2, no replay floor, and nothing of the explorer's own.
-        assert_eq!((state.rotation_nonce, state.rules_v2, state.min_inbound_sequence), (None, None, None));
+        assert_eq!(
+            (
+                state.rotation_nonce,
+                state.rules_v2,
+                state.min_inbound_sequence
+            ),
+            (None, None, None)
+        );
         assert!(state.endpoints.is_empty());
     }
 
@@ -412,19 +429,44 @@ mod tests {
         assert_eq!(state.burn_sequence, Some(8));
         assert_eq!(state.rotation_nonce, Some(0));
         let rules = state.rules_v2.as_ref().unwrap();
-        assert_eq!((rules.global_mint_cap_per_window.as_str(), rules.cap_window_secs), ("400000000000", 86400));
+        assert_eq!(
+            (
+                rules.global_mint_cap_per_window.as_str(),
+                rules.cap_window_secs
+            ),
+            ("400000000000", 86400)
+        );
         let floor = state.min_inbound_sequence.as_ref().unwrap();
-        assert_eq!(floor.iter().map(|(c, s)| (c.as_str(), *s)).collect::<Vec<_>>(), [("2", 1), ("3", 1), ("4", 1), ("5", 4)]);
+        assert_eq!(
+            floor
+                .iter()
+                .map(|(c, s)| (c.as_str(), *s))
+                .collect::<Vec<_>>(),
+            [("2", 1), ("3", 1), ("4", 1), ("5", 4)]
+        );
         // A chain without either group says `null`, and a number where the node sends a string.
         let bare: BridgeState = serde_json::from_value(serde_json::json!({
             "enabled": true, "rotation_nonce": 0, "rules_v2": null, "min_inbound_sequence": null,
         }))
         .unwrap();
-        assert_eq!((bare.rotation_nonce, bare.rules_v2, bare.min_inbound_sequence), (Some(0), None, None));
+        assert_eq!(
+            (
+                bare.rotation_nonce,
+                bare.rules_v2,
+                bare.min_inbound_sequence
+            ),
+            (Some(0), None, None)
+        );
         let numeric: BridgeRulesV2 =
             serde_json::from_value(serde_json::json!({ "global_mint_cap_per_window": 50_000_000_000_000u64, "cap_window_secs": 3600 })).unwrap();
         assert_eq!(numeric.global_mint_cap_per_window, "50000000000000");
-        assert_eq!((numeric.global_minted_in_window, numeric.global_mint_headroom), (None, None));
+        assert_eq!(
+            (
+                numeric.global_minted_in_window,
+                numeric.global_mint_headroom
+            ),
+            (None, None)
+        );
     }
 
     /// The same reply from a node after v0.6.7 (audit v6, BRG-19): rules v2 says what the whole
@@ -444,9 +486,22 @@ mod tests {
         }))
         .unwrap();
         let rules = state.rules_v2.unwrap();
-        assert_eq!((rules.global_minted_in_window.as_deref(), rules.global_mint_headroom.as_deref()), (Some("1000"), Some("999000")));
+        assert_eq!(
+            (
+                rules.global_minted_in_window.as_deref(),
+                rules.global_mint_headroom.as_deref()
+            ),
+            (Some("1000"), Some("999000"))
+        );
         let a = &state.assets[0];
-        assert_eq!((a.minted_in_window.as_deref(), a.mint_window_secs, a.mint_headroom.as_deref()), (Some("1000"), Some(86_400), Some("999000")));
+        assert_eq!(
+            (
+                a.minted_in_window.as_deref(),
+                a.mint_window_secs,
+                a.mint_headroom.as_deref()
+            ),
+            (Some("1000"), Some(86_400), Some("999000"))
+        );
     }
 
     /// Every address is the bridge repository's own record of the deployment
@@ -456,23 +511,50 @@ mod tests {
     fn an_emitter_reads_as_its_chain_prints_it() {
         let pad = |a: &str| format!("{}{a}", "0".repeat(24));
         // chain 19
-        assert_eq!(emitter_address(2, &pad("7af6b17047c1db6cb54347fdea45cf9179075bfa")).unwrap(), "0x7af6b17047c1db6cb54347fdea45cf9179075bfa");
-        assert_eq!(emitter_address(3, &pad("7af6b17047c1db6cb54347fdea45cf9179075bfa")).unwrap(), "0x7af6b17047c1db6cb54347fdea45cf9179075bfa");
-        assert_eq!(emitter_address(4, &pad("6410797df959987a5baf65b5fab97edeb34d5163")).unwrap(), "TK6JJv55CCkFjNHq7WwoU91GKaZEiC93me");
+        assert_eq!(
+            emitter_address(2, &pad("7af6b17047c1db6cb54347fdea45cf9179075bfa")).unwrap(),
+            "0x7af6b17047c1db6cb54347fdea45cf9179075bfa"
+        );
+        assert_eq!(
+            emitter_address(3, &pad("7af6b17047c1db6cb54347fdea45cf9179075bfa")).unwrap(),
+            "0x7af6b17047c1db6cb54347fdea45cf9179075bfa"
+        );
+        assert_eq!(
+            emitter_address(4, &pad("6410797df959987a5baf65b5fab97edeb34d5163")).unwrap(),
+            "TK6JJv55CCkFjNHq7WwoU91GKaZEiC93me"
+        );
         // chains 14–18
-        assert_eq!(emitter_address(2, &pad("d6ebd21c3df90c9175ebdc8d6b377a9361604892")).unwrap(), "0xd6ebd21c3df90c9175ebdc8d6b377a9361604892");
-        assert_eq!(emitter_address(4, &pad("0992df85dcce77ded2c0387f1fa9cf98ac859700")).unwrap(), "TAqq2i8KfYpACPUc9f5e2gAjdSgXqmPpkU");
+        assert_eq!(
+            emitter_address(2, &pad("d6ebd21c3df90c9175ebdc8d6b377a9361604892")).unwrap(),
+            "0xd6ebd21c3df90c9175ebdc8d6b377a9361604892"
+        );
+        assert_eq!(
+            emitter_address(4, &pad("0992df85dcce77ded2c0387f1fa9cf98ac859700")).unwrap(),
+            "TAqq2i8KfYpACPUc9f5e2gAjdSgXqmPpkU"
+        );
         // Solana, not redeployed: the program id is the word itself
         let solana = "d3e58f1e9317bbc3c69b63fadff558ea82ba5d00765f1f1e483d705d209b413a";
-        assert_eq!(emitter_address(5, solana).unwrap(), "FGA3kY3RjfDKjUszJESMYtYXAbsnkFhhoxM3Mb34vycu");
-        assert_eq!(emitter_address(5, &format!("0x{}", solana.to_uppercase())).unwrap(), "FGA3kY3RjfDKjUszJESMYtYXAbsnkFhhoxM3Mb34vycu");
+        assert_eq!(
+            emitter_address(5, solana).unwrap(),
+            "FGA3kY3RjfDKjUszJESMYtYXAbsnkFhhoxM3Mb34vycu"
+        );
+        assert_eq!(
+            emitter_address(5, &format!("0x{}", solana.to_uppercase())).unwrap(),
+            "FGA3kY3RjfDKjUszJESMYtYXAbsnkFhhoxM3Mb34vycu"
+        );
         // Not an address of that chain: a 20-byte chain's word with padding that is not zero, a
         // word of the wrong length, something that is not hex, a chain the explorer cannot name.
         assert_eq!(emitter_address(2, solana), None);
         assert_eq!(emitter_address(4, solana), None);
-        assert_eq!(emitter_address(2, "7af6b17047c1db6cb54347fdea45cf9179075bfa"), None);
+        assert_eq!(
+            emitter_address(2, "7af6b17047c1db6cb54347fdea45cf9179075bfa"),
+            None
+        );
         assert_eq!(emitter_address(5, "not hex"), None);
-        assert_eq!(emitter_address(9, &pad("7af6b17047c1db6cb54347fdea45cf9179075bfa")), None);
+        assert_eq!(
+            emitter_address(9, &pad("7af6b17047c1db6cb54347fdea45cf9179075bfa")),
+            None
+        );
     }
 
     #[test]
@@ -482,21 +564,56 @@ mod tests {
         state.emitters.insert("10".into(), "ee".repeat(32));
         state.emitters.insert("not a chain".into(), "ee".repeat(32));
         let endpoints = state.derive_endpoints();
-        let row = |e: &BridgeEndpoint| (e.chain, e.chain_name.clone(), e.address.clone(), e.explorer_url.clone(), e.min_inbound_sequence);
+        let row = |e: &BridgeEndpoint| {
+            (
+                e.chain,
+                e.chain_name.clone(),
+                e.address.clone(),
+                e.explorer_url.clone(),
+                e.min_inbound_sequence,
+            )
+        };
         let some = |s: &str| Some(s.to_string());
         assert_eq!(
             endpoints.iter().map(row).collect::<Vec<_>>(),
             [
-                (2, some("Ethereum"), some("0x7af6b17047c1db6cb54347fdea45cf9179075bfa"), some("https://etherscan.io/address/0x7af6b17047c1db6cb54347fdea45cf9179075bfa"), Some(1)),
-                (3, some("BSC"), some("0x7af6b17047c1db6cb54347fdea45cf9179075bfa"), some("https://bscscan.com/address/0x7af6b17047c1db6cb54347fdea45cf9179075bfa"), Some(1)),
-                (4, some("Tron"), some("TK6JJv55CCkFjNHq7WwoU91GKaZEiC93me"), some("https://tronscan.org/#/contract/TK6JJv55CCkFjNHq7WwoU91GKaZEiC93me"), Some(1)),
-                (5, some("Solana"), some("FGA3kY3RjfDKjUszJESMYtYXAbsnkFhhoxM3Mb34vycu"), some("https://solscan.io/account/FGA3kY3RjfDKjUszJESMYtYXAbsnkFhhoxM3Mb34vycu"), Some(4)),
+                (
+                    2,
+                    some("Ethereum"),
+                    some("0x7af6b17047c1db6cb54347fdea45cf9179075bfa"),
+                    some("https://etherscan.io/address/0x7af6b17047c1db6cb54347fdea45cf9179075bfa"),
+                    Some(1)
+                ),
+                (
+                    3,
+                    some("BSC"),
+                    some("0x7af6b17047c1db6cb54347fdea45cf9179075bfa"),
+                    some("https://bscscan.com/address/0x7af6b17047c1db6cb54347fdea45cf9179075bfa"),
+                    Some(1)
+                ),
+                (
+                    4,
+                    some("Tron"),
+                    some("TK6JJv55CCkFjNHq7WwoU91GKaZEiC93me"),
+                    some("https://tronscan.org/#/contract/TK6JJv55CCkFjNHq7WwoU91GKaZEiC93me"),
+                    Some(1)
+                ),
+                (
+                    5,
+                    some("Solana"),
+                    some("FGA3kY3RjfDKjUszJESMYtYXAbsnkFhhoxM3Mb34vycu"),
+                    some("https://solscan.io/account/FGA3kY3RjfDKjUszJESMYtYXAbsnkFhhoxM3Mb34vycu"),
+                    Some(4)
+                ),
                 (10, None, None, None, None),
             ]
         );
         assert_eq!(endpoints[0].emitter, state.emitters["2"]);
         // No floor in the genesis: every endpoint is there, none has one.
         state.min_inbound_sequence = None;
-        assert!(state.derive_endpoints().iter().all(|e| e.min_inbound_sequence.is_none()));
+        assert!(state
+            .derive_endpoints()
+            .iter()
+            .all(|e| e.min_inbound_sequence.is_none()));
     }
 }

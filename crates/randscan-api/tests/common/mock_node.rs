@@ -98,6 +98,13 @@ pub struct MockChain {
     /// reports the group, `rand_getSupply` the vault counters, and the program-state methods
     /// answer; without it they answer `{"enabled": false}`, as a v0.6.8 node on chain 18 would.
     pub program_state: bool,
+    /// What `rand_getPeers` answers (`{peer_id, addrs, connected_secs}` rows); none by default.
+    pub peers: Vec<Value>,
+    /// Methods that answer a JSON-RPC server error (-32000), for every call (`None`) or only
+    /// those whose first parameter is the given string: a node that is up but failing.
+    pub fail: Vec<(String, Option<String>)>,
+    /// Methods that answer `null`, the same way: a node that does not know the thing asked for.
+    pub null: Vec<(String, Option<String>)>,
 }
 
 impl MockChain {
@@ -120,6 +127,9 @@ impl MockChain {
             list_nonce: 0,
             pq_guardians: vec![],
             program_state: false,
+            peers: Vec::new(),
+            fail: Vec::new(),
+            null: Vec::new(),
         };
         c.push_block(vec![]);
         c
@@ -241,6 +251,20 @@ impl MockChain {
     fn dispatch(&mut self, method: &str, params: &Value) -> Result<Value, (i64, String)> {
         self.calls.push(method.to_string());
         let p = |i: usize| params.get(i).cloned().unwrap_or(Value::Null);
+        let hit = |list: &[(String, Option<String>)]| {
+            list.iter().any(|(m, first)| {
+                m == method
+                    && first
+                        .as_ref()
+                        .is_none_or(|f| p(0).as_str() == Some(f.as_str()))
+            })
+        };
+        if hit(&self.fail) {
+            return Err((-32000, format!("{method} is failing")));
+        }
+        if hit(&self.null) {
+            return Ok(Value::Null);
+        }
         Ok(match method {
             "rand_chainId" => json!(self.chain_id),
             "rand_tokenInfo" => json!({ "symbol": "RAND", "decimals": 9 }),
@@ -407,7 +431,7 @@ impl MockChain {
                     "backings": t["authority"]["backings"].as_array().cloned().unwrap_or_default(),
                 }))
                 .unwrap_or(Value::Null),
-            "rand_getPeers" => json!([]),
+            "rand_getPeers" => json!(self.peers),
             "rand_getCallEnvelope" => {
                 // A transcript for every call the mock knows about, sealed to nobody (opaque bytes).
                 let hash = p(0).as_str().unwrap_or("").to_string();

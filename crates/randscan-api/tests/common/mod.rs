@@ -164,9 +164,16 @@ impl LiveApp {
 }
 
 pub async fn live_app(cfg: ApiConfig, rpc_url: &str) -> Option<LiveApp> {
+    live_app_with_ip(cfg, rpc_url, "127.0.0.1").await
+}
+
+/// [`live_app`] with the node's public IP (`NODE_PUBLIC_IP`) set to `public_ip`, so the peer
+/// tracker does not ask the network for it. A public one needs a fresh `node_geo` row to avoid
+/// a lookup.
+pub async fn live_app_with_ip(cfg: ApiConfig, rpc_url: &str, public_ip: &str) -> Option<LiveApp> {
     let url = std::env::var("DATABASE_URL").ok()?;
     // Keep the peer tracker off the network (it would geolocate the host otherwise).
-    std::env::set_var("NODE_PUBLIC_IP", "127.0.0.1");
+    std::env::set_var("NODE_PUBLIC_IP", public_ip);
     let pool = PgPoolOptions::new()
         .max_connections(6)
         .connect(&url)

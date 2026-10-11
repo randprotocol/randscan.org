@@ -1,6 +1,6 @@
 # RandScan
 
-[![coverage](https://codecov.io/gh/randprotocol/randscan/graph/badge.svg)](https://codecov.io/gh/randprotocol/randscan)
+[![coverage](https://codecov.io/gh/randprotocol/randscan.org/graph/badge.svg)](https://codecov.io/gh/randprotocol/randscan.org)
 
 Line coverage of the Rust workspace, measured by the `coverage` job in `.github/workflows/ci.yml` (cargo-llvm-cov) on every push to `main` and published to Codecov.
 

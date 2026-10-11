@@ -171,6 +171,34 @@ jobs:
           NEXT_PUBLIC_API_URL: http://localhost:3000
           NEXT_PUBLIC_WS_URL: ws://localhost:3000
 
+  # The frontend's node:test suite (tests/*.test.mjs). Its own job on Node 22: utils.test.mjs loads
+  # TypeScript through Node's type stripping, which Node 20 (the build job's) lacks, and the file
+  # skips itself there. Needs nothing from the other jobs.
+  frontend-test:
+    name: Frontend tests
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Test
+        run: npm test
+
   # Docker build test
   docker:
     name: Docker Build

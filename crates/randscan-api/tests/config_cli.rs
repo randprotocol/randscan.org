@@ -18,8 +18,30 @@ const KEYS: &[&str] = &[
     "MAIL_FROM",
 ];
 
+/// Puts the named environment variables back as they were when it is dropped, on a panic too,
+/// so a failing assertion cannot leave the process environment altered for the other tests.
+struct EnvGuard(Vec<(&'static str, Option<String>)>);
+
+impl EnvGuard {
+    fn new(keys: &[&'static str]) -> Self {
+        EnvGuard(keys.iter().map(|k| (*k, std::env::var(k).ok())).collect())
+    }
+}
+
+impl Drop for EnvGuard {
+    fn drop(&mut self) {
+        for (k, v) in self.0.drain(..) {
+            match v {
+                Some(v) => std::env::set_var(k, v),
+                None => std::env::remove_var(k),
+            }
+        }
+    }
+}
+
 #[test]
 fn the_environment_overrides_the_defaults_and_bad_values_fall_back() {
+    let _env = EnvGuard::new(KEYS);
     for k in KEYS {
         std::env::remove_var(k);
     }
@@ -71,10 +93,6 @@ fn the_environment_overrides_the_defaults_and_bad_values_fall_back() {
     assert_eq!(c.anon_rpm, 60);
     assert_eq!(c.public_url, d.public_url);
     assert_eq!(c.mail_from, d.mail_from);
-
-    for k in KEYS {
-        std::env::remove_var(k);
-    }
 }
 
 fn hash_password_cli(stdin: &str) -> std::process::Output {

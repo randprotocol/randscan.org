@@ -10,6 +10,27 @@ use std::sync::{Arc, Mutex};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpListener;
 
+/// Puts the named environment variables back as they were when it is dropped, on a panic too,
+/// so a failing assertion cannot leave the process environment altered for the other tests.
+struct EnvGuard(Vec<(&'static str, Option<String>)>);
+
+impl EnvGuard {
+    fn new(keys: &[&'static str]) -> Self {
+        EnvGuard(keys.iter().map(|k| (*k, std::env::var(k).ok())).collect())
+    }
+}
+
+impl Drop for EnvGuard {
+    fn drop(&mut self) {
+        for (k, v) in self.0.drain(..) {
+            match v {
+                Some(v) => std::env::set_var(k, v),
+                None => std::env::remove_var(k),
+            }
+        }
+    }
+}
+
 /// Serve `answer(request_json)` as `(status, body)` for every request, recording each request.
 async fn serve(
     answer: impl Fn(&Value) -> (u16, String) + Send + Sync + 'static,
@@ -239,6 +260,7 @@ fn the_indexer_config_reads_the_environment() {
         "STATS_INTERVAL_SECS",
         "NODES_INTERVAL_SECS",
     ];
+    let _env = EnvGuard::new(&keys);
     for k in keys {
         std::env::remove_var(k);
     }
@@ -260,7 +282,4 @@ fn the_indexer_config_reads_the_environment() {
     assert_eq!(c.batch_size, 17);
     assert_eq!(c.stats_interval.as_secs(), 5, "unparsable falls back");
     assert_eq!(c.nodes_interval.as_secs(), 9);
-    for k in keys {
-        std::env::remove_var(k);
-    }
 }

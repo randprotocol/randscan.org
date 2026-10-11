@@ -12,6 +12,27 @@ use randscan_db::{
 use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
 
+/// Puts the named environment variables back as they were when it is dropped, on a panic too,
+/// so a failing assertion cannot leave the process environment altered for the other tests.
+struct EnvGuard(Vec<(&'static str, Option<String>)>);
+
+impl EnvGuard {
+    fn new(keys: &[&'static str]) -> Self {
+        EnvGuard(keys.iter().map(|k| (*k, std::env::var(k).ok())).collect())
+    }
+}
+
+impl Drop for EnvGuard {
+    fn drop(&mut self) {
+        for (k, v) in self.0.drain(..) {
+            match v {
+                Some(v) => std::env::set_var(k, v),
+                None => std::env::remove_var(k),
+            }
+        }
+    }
+}
+
 static LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 
 async fn clean_pool() -> Option<(PgPool, tokio::sync::MutexGuard<'static, ()>)> {
@@ -441,7 +462,7 @@ async fn pool_settings_come_from_the_environment_and_a_bad_url_is_a_connection_e
         "DB_CONNECT_TIMEOUT",
         "DB_IDLE_TIMEOUT",
     ];
-    let saved: Vec<_> = keys.iter().map(|k| (*k, std::env::var(k).ok())).collect();
+    let _env = EnvGuard::new(&keys);
     for k in keys {
         std::env::remove_var(k);
     }
@@ -467,13 +488,6 @@ async fn pool_settings_come_from_the_environment_and_a_bad_url_is_a_connection_e
     assert_eq!(c.idle_timeout.as_secs(), 300, "unparsable falls back");
     let err = db::create_pool(&c).await.unwrap_err();
     assert!(matches!(err, db::DbError::Connection(_)), "{err:?}");
-
-    for (k, v) in saved {
-        match v {
-            Some(v) => std::env::set_var(k, v),
-            None => std::env::remove_var(k),
-        }
-    }
 }
 
 #[tokio::test]

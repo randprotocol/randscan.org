@@ -98,6 +98,8 @@ pub struct MockChain {
     /// reports the group, `rand_getSupply` the vault counters, and the program-state methods
     /// answer; without it they answer `{"enabled": false}`, as a v0.6.8 node on chain 18 would.
     pub program_state: bool,
+    /// What `rand_getPeers` answers (`{peer_id, addrs, connected_secs}` rows); none by default.
+    pub peers: Vec<Value>,
 }
 
 impl MockChain {
@@ -120,6 +122,7 @@ impl MockChain {
             list_nonce: 0,
             pq_guardians: vec![],
             program_state: false,
+            peers: Vec::new(),
         };
         c.push_block(vec![]);
         c
@@ -407,7 +410,7 @@ impl MockChain {
                     "backings": t["authority"]["backings"].as_array().cloned().unwrap_or_default(),
                 }))
                 .unwrap_or(Value::Null),
-            "rand_getPeers" => json!([]),
+            "rand_getPeers" => json!(self.peers),
             "rand_getCallEnvelope" => {
                 // A transcript for every call the mock knows about, sealed to nobody (opaque bytes).
                 let hash = p(0).as_str().unwrap_or("").to_string();

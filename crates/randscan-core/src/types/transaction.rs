@@ -24,6 +24,13 @@ use serde::{Deserialize, Serialize};
 /// rotations — `rotate_pq_guardians` / `rotate_pause_key` (rules v2, 22/23) and their
 /// possession-carrying twins `rotate_pq_guardians_v2` / `rotate_pause_key_v2` (30/31) — and
 /// `cancel_rotation` (32).
+///
+/// Fullnode v0.8.0 (each genesis-gated, refused on chain 20; chain 21 carries them): RPL-3 perps
+/// (`perp_deposit` 34, `perp_order` 35, `perp_cancel` 36, `perp_withdraw` 37, `perp_oracle` 38,
+/// `perp_state_proof` 39), multisig accounts (`create_multisig` 40, `multisig_deposit` 41,
+/// `multisig_pay` 42, `multisig_rotate` 43) and the validator set's RAND/USD price vote
+/// (`set_rand_price` 44); and block aggregation's `aggregate`, whose rendering gained
+/// `payout_total` and `layout` (no chain has carried one yet).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum TxKind {
@@ -52,6 +59,18 @@ pub enum TxKind {
     RotatePqGuardiansV2,
     RotatePauseKeyV2,
     CancelRotation,
+    PerpDeposit,
+    PerpOrder,
+    PerpCancel,
+    PerpWithdraw,
+    PerpOracle,
+    PerpStateProof,
+    CreateMultisig,
+    MultisigDeposit,
+    MultisigPay,
+    MultisigRotate,
+    SetRandPrice,
+    Aggregate,
     Other,
 }
 
@@ -83,6 +102,18 @@ impl TxKind {
         TxKind::RotatePqGuardiansV2,
         TxKind::RotatePauseKeyV2,
         TxKind::CancelRotation,
+        TxKind::PerpDeposit,
+        TxKind::PerpOrder,
+        TxKind::PerpCancel,
+        TxKind::PerpWithdraw,
+        TxKind::PerpOracle,
+        TxKind::PerpStateProof,
+        TxKind::CreateMultisig,
+        TxKind::MultisigDeposit,
+        TxKind::MultisigPay,
+        TxKind::MultisigRotate,
+        TxKind::SetRandPrice,
+        TxKind::Aggregate,
     ];
 
     pub fn as_str(&self) -> &'static str {
@@ -112,6 +143,18 @@ impl TxKind {
             TxKind::RotatePqGuardiansV2 => "rotate_pq_guardians_v2",
             TxKind::RotatePauseKeyV2 => "rotate_pause_key_v2",
             TxKind::CancelRotation => "cancel_rotation",
+            TxKind::PerpDeposit => "perp_deposit",
+            TxKind::PerpOrder => "perp_order",
+            TxKind::PerpCancel => "perp_cancel",
+            TxKind::PerpWithdraw => "perp_withdraw",
+            TxKind::PerpOracle => "perp_oracle",
+            TxKind::PerpStateProof => "perp_state_proof",
+            TxKind::CreateMultisig => "create_multisig",
+            TxKind::MultisigDeposit => "multisig_deposit",
+            TxKind::MultisigPay => "multisig_pay",
+            TxKind::MultisigRotate => "multisig_rotate",
+            TxKind::SetRandPrice => "set_rand_price",
+            TxKind::Aggregate => "aggregate",
             TxKind::Other => "other",
         }
     }
@@ -390,6 +433,15 @@ pub enum StakingAction {
         first: HeaderRef,
         second: HeaderRef,
     },
+    /// Fullnode v0.8.0 (44, genesis `fees.usd_subsidy`): the validator set's vote on the RAND/USD
+    /// price the sealing subsidy converts at — `admit_validator`'s shape. `price_micros_per_rand`
+    /// is micro-dollars per RAND (a decimal string), `voters` the signing validators by address.
+    SetRandPrice {
+        #[serde(deserialize_with = "crate::amount::amount")]
+        price_micros_per_rand: String,
+        nonce: i64,
+        voters: Vec<String>,
+    },
 }
 
 /// A block header named by hash and height (a `slash_equivocation`'s two headers).
@@ -397,6 +449,149 @@ pub enum StakingAction {
 pub struct HeaderRef {
     pub hash: String,
     pub height: i64,
+}
+
+/// An order as its trader signed it (RPL-3). `side` 0 buy, 1 sell; `kind` 0 limit, 1 market;
+/// `tif` 0 GTC, 1 IOC, 2 post-only. `price` is collateral units per unit of the market's
+/// underlying (`"0"` on a market order) and `size` a multiple of the market's `lot`, decimal
+/// strings both.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PerpOrderBody {
+    pub nonce: u64,
+    pub market: u32,
+    pub side: u8,
+    pub kind: u8,
+    pub tif: u8,
+    pub reduce_only: bool,
+    #[serde(deserialize_with = "crate::amount::amount")]
+    pub price: String,
+    #[serde(deserialize_with = "crate::amount::amount")]
+    pub size: String,
+}
+
+/// One market's price in a `perp_oracle` submission.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PerpPrice {
+    pub market: u32,
+    #[serde(deserialize_with = "crate::amount::amount")]
+    pub price: String,
+}
+
+/// What a `perp_state_proof` pays against one pending withdrawal: the request id (the
+/// `perp_withdraw` it settles) and the amount in collateral units.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PerpPayout {
+    pub request: String,
+    #[serde(deserialize_with = "crate::amount::amount")]
+    pub amount: String,
+}
+
+/// RPL-3 perps (fullnode v0.8.0, genesis `perps`; tags 34–39). Public by design: the exchange's
+/// inputs are what its prover replays. Collateral amounts are in the genesis
+/// `perps.collateral_asset`'s units (zUSD on chain 21), not RAND's. Field for field the node's
+/// `tx_json` (`crates/randprotocol-node/src/rpc.rs`).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum PerpAction {
+    /// Opens or tops up the trading account of `trading_key` (Dilithium2, hex); `account` is the
+    /// key's id. The amount is the bundle's `burn_a` / `burn_r`.
+    PerpDeposit {
+        trading_key: String,
+        account: String,
+    },
+    /// An order recorded for the proved engine to match; the chain checks only its signature and
+    /// nonce. Bundle-less and fee-less.
+    PerpOrder {
+        account: String,
+        body: PerpOrderBody,
+    },
+    /// Cancels the order with nonce `target`; `nonce` is the cancel's own slot.
+    PerpCancel {
+        account: String,
+        nonce: u64,
+        target: u64,
+    },
+    /// A withdrawal request, paid as a note to `recipient` (stamped `time`) when a state proof
+    /// covers it. The envelope is the recipient's and is not rendered.
+    PerpWithdraw {
+        account: String,
+        nonce: u64,
+        #[serde(deserialize_with = "crate::amount::amount")]
+        amount: String,
+        recipient: String,
+        time: i64,
+    },
+    /// A validator's prices, one per market; each block's price is the median of the fresh ones.
+    PerpOracle {
+        validator: String,
+        prices: Vec<PerpPrice>,
+        nonce: u64,
+    },
+    /// A prover's state transition over blocks `from_height + 1 ..= to_height`: the engine's new
+    /// root, the withdrawals it pays and the fees it collected, with the proof by size.
+    PerpStateProof {
+        from_height: i64,
+        to_height: i64,
+        new_root: String,
+        payouts: Vec<PerpPayout>,
+        #[serde(deserialize_with = "crate::amount::amount")]
+        fees: String,
+        proof_bytes: i64,
+    },
+}
+
+/// Multisig accounts (fullnode v0.8.0, genesis `multisig`; tags 40–43): M-of-N controlled public
+/// balances. A create's and a deposit's funding is the bundle's `burn_r` / `burn_a` /
+/// `burn_asset`; a pay and a rotate are bundle-less, signed by signers named by their position in
+/// the account's list (`rand_getMultisig`).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum MultisigAction {
+    /// The keys are on the raw transaction; `signer_count` says how many.
+    CreateMultisig {
+        salt: String,
+        threshold: u32,
+        signer_count: u32,
+    },
+    MultisigDeposit {
+        account: String,
+    },
+    /// Every payout with every word of its note and the leaf the chain appended (`cm`), stamped
+    /// with the action's own `time`; `signers` by position. The account also pays the bundle
+    /// base out of its RAND row.
+    MultisigPay {
+        account: String,
+        nonce: u64,
+        time: i64,
+        pays: Vec<Payout>,
+        signers: Vec<i64>,
+    },
+    /// A new signer set (`signer_count` keys) and threshold under the same id; `signed_by` the
+    /// old set's positions that signed it. Fee-less.
+    MultisigRotate {
+        account: String,
+        nonce: u64,
+        threshold: u32,
+        signer_count: u32,
+        signed_by: Vec<i64>,
+    },
+}
+
+/// Block aggregation's `aggregate`: one proof covering `covers` bundles, sealed by a registered
+/// aggregator. Fullnode v0.8.0 adds `payout_total` (RAND units the ledger pays the aggregator,
+/// exactly, or refuses it) and `layout` (`flat`, or `tree` for the rVM tree); `None` from an
+/// older node.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AggregateAction {
+    pub covers: i64,
+    pub proof_len: i64,
+    pub aggregator: String,
+    pub nonce: u64,
+    pub time: i64,
+    #[serde(default, deserialize_with = "crate::amount::amount_opt")]
+    pub payout_total: Option<String>,
+    #[serde(default)]
+    pub layout: Option<String>,
 }
 
 /// The bridge fee note (fullnode v0.6.8, genesis `bridge.fees`, chain 20): the zUSD note the chain
@@ -527,8 +722,19 @@ pub struct TransactionDetail {
     /// bridge_attest / bridge_burn (v0.6.8): the fee note, `None` without `bridge.fees` or when
     /// the fee rounds to zero.
     pub fee_note: Option<BridgeFeeNote>,
-    /// admit_validator / slash_equivocation.
+    /// admit_validator / slash_equivocation / set_rand_price.
     pub staking_action: Option<StakingAction>,
+    /// perp_deposit / perp_order / perp_cancel / perp_withdraw / perp_oracle / perp_state_proof
+    /// (fullnode v0.8.0).
+    #[serde(default)]
+    pub perp_action: Option<PerpAction>,
+    /// create_multisig / multisig_deposit / multisig_pay / multisig_rotate (fullnode v0.8.0).
+    #[serde(default)]
+    pub multisig_action: Option<MultisigAction>,
+    /// aggregate: the cover count, the proof size, the aggregator and (v0.8.0) `payout_total`
+    /// and `layout`.
+    #[serde(default)]
+    pub aggregate: Option<AggregateAction>,
 }
 
 #[cfg(test)]
@@ -673,6 +879,9 @@ mod tests {
             release_amount: None,
             fee_note: None,
             staking_action: None,
+            perp_action: None,
+            multisig_action: None,
+            aggregate: None,
         }
     }
 
@@ -835,5 +1044,57 @@ mod tests {
             s,
             StakingAction::SlashEquivocation { view: 7, .. }
         ));
+    }
+
+    /// Fullnode v0.8.0's kinds are filterable under the node's own tags, and their detail
+    /// round-trips through the explorer's JSON (what the database keeps and the API serves).
+    #[test]
+    fn the_v080_kinds_are_the_nodes_tags_and_round_trip() {
+        for tag in [
+            "perp_deposit",
+            "perp_order",
+            "perp_cancel",
+            "perp_withdraw",
+            "perp_oracle",
+            "perp_state_proof",
+            "create_multisig",
+            "multisig_deposit",
+            "multisig_pay",
+            "multisig_rotate",
+            "set_rand_price",
+            "aggregate",
+        ] {
+            let k = TxKind::parse(tag).unwrap_or_else(|| panic!("{tag}"));
+            assert_eq!((k.as_str(), k.node_tag()), (tag, tag));
+            assert!(!k.has_receipt() && !k.has_pq_signers() && !k.amount_is_bridged());
+        }
+        let p: PerpAction =
+            serde_json::from_value(serde_json::json!({ "kind": "perp_order", "account": "01",
+            "body": { "nonce": 3, "market": 0, "side": 1, "kind": 0, "tif": 2, "reduce_only": false,
+                      "price": 6425000000000u64, "size": "100000" } }))
+            .unwrap();
+        let v = serde_json::to_value(&p).unwrap();
+        assert_eq!(
+            (v["kind"].as_str(), v["body"]["kind"].as_u64()),
+            (Some("perp_order"), Some(0))
+        );
+        assert_eq!(
+            v["body"]["price"], "6425000000000",
+            "amounts leave as decimal strings"
+        );
+        assert_eq!(serde_json::from_value::<PerpAction>(v).unwrap(), p);
+        let mut d = empty_detail(TxKind::MultisigRotate);
+        d.multisig_action = Some(MultisigAction::MultisigRotate {
+            account: "06".into(),
+            nonce: 1,
+            threshold: 3,
+            signer_count: 3,
+            signed_by: vec![1, 2],
+        });
+        d.aggregate = None;
+        let v = serde_json::to_value(&d).unwrap();
+        assert_eq!(v["kind"], "multisig_rotate");
+        assert_eq!(v["multisig_action"]["signed_by"], serde_json::json!([1, 2]));
+        assert!(v["perp_action"].is_null() && v["aggregate"].is_null());
     }
 }

@@ -158,6 +158,44 @@ pub struct ChainLimits {
     /// and on a node predating the field. Informational: no fee a wallet pays changes.
     #[serde(default)]
     pub fee_rules: Option<FeeRules>,
+    /// Multisig accounts (fullnode v0.8.0, genesis `multisig`): `None` on a chain without the
+    /// section — where every multisig action is refused — and on a node predating the field.
+    #[serde(default)]
+    pub multisig: Option<MultisigLimits>,
+    /// RPL-3 perps (genesis `perps`): `None` on a chain without the section and on a node
+    /// predating the field.
+    #[serde(default)]
+    pub perps: Option<PerpsLimits>,
+}
+
+/// The `multisig` group of `rand_getLimits` (fullnode v0.8.0).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MultisigLimits {
+    /// RAND units a `create_multisig` pays above the bundle base, decimal string.
+    #[serde(deserialize_with = "crate::amount::amount")]
+    pub create_fee: String,
+    pub max_signers: u32,
+    pub max_payouts: u32,
+}
+
+/// The `perps` group of `rand_getLimits` (RPL-3).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PerpsLimits {
+    /// The asset a deposit burns and a payout pays (0 is RAND; zUSD's index on chain 21).
+    pub collateral_asset: u32,
+    pub max_tier: u32,
+    pub max_window_blocks: u64,
+    pub max_payouts: u32,
+    /// 0 from a node predating the field.
+    #[serde(default)]
+    pub max_block_inputs: u32,
+    /// Collateral units, decimal string; `"0"` for no floor (and from a node predating it).
+    #[serde(default = "zero", deserialize_with = "crate::amount::amount")]
+    pub min_deposit: String,
+}
+
+fn zero() -> String {
+    "0".into()
 }
 
 /// The `fee_rules` group of `rand_getLimits` (fee feedback). Each flag reads `false` when absent,
@@ -174,6 +212,96 @@ pub struct FeeRules {
     /// The whole settled floor is burned (only ever beside `burn_base`).
     #[serde(default)]
     pub burn_floor: bool,
+    /// Fullnode v0.8.0, the proposer/aggregator split: the share of the base (basis points) the
+    /// proposer keeps at inclusion. `None` when the genesis leaves it out.
+    #[serde(default)]
+    pub proposer_share_bps: Option<u32>,
+    /// RAND units every bundle's floor rises by on an aggregating chain, decimal string — the
+    /// one `fee_rules` key that moves what a sender pays (`rand_estimateFee` includes it).
+    #[serde(default, deserialize_with = "crate::amount::amount_opt")]
+    pub prove_base: Option<String>,
+    /// Fullnode v0.8.0, dollar-indexed prover pay (`fees.usd_subsidy`).
+    #[serde(default)]
+    pub usd_subsidy: Option<UsdSubsidy>,
+}
+
+/// `fee_rules.usd_subsidy`: the sealing subsidy's dollar target, converted at the validator
+/// set's voted RAND/USD price (`rand_getRandPrice`) and capped while that price is fresh.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct UsdSubsidy {
+    /// micro-dollars per sealed block, decimal string
+    #[serde(deserialize_with = "crate::amount::amount")]
+    pub usd_micros_per_sealed_block: String,
+    /// RAND units, decimal string
+    #[serde(deserialize_with = "crate::amount::amount")]
+    pub max_subsidy_per_block: String,
+    pub price_max_age_blocks: u64,
+}
+
+/// `rand_getRandPrice` (fullnode v0.8.0): the validator set's voted RAND/USD price. The node
+/// answers `null` on a chain without `fees.usd_subsidy`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RandPrice {
+    /// micro-dollars per RAND, decimal string
+    #[serde(deserialize_with = "crate::amount::amount")]
+    pub price_micros_per_rand: String,
+    /// the block that set it, 0 for the genesis price
+    pub set_at_height: u64,
+    pub nonce: u64,
+    /// judged for the next block: whether an aggregate landing now is paid at the dollar target
+    pub fresh: bool,
+    pub max_age_blocks: u64,
+}
+
+/// One perps market as `rand_getPerps` lists it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PerpMarket {
+    pub id: u32,
+    pub symbol: String,
+    #[serde(deserialize_with = "crate::amount::amount")]
+    pub lot: String,
+    #[serde(deserialize_with = "crate::amount::amount")]
+    pub tick: String,
+    pub max_leverage: u32,
+    pub maintenance_bps: u32,
+    pub taker_fee_bps: u32,
+    pub maker_fee_bps: u32,
+}
+
+/// One market's oracle median at the head, `"0"` without a quorum of fresh prices.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PerpMedian {
+    pub market: u32,
+    #[serde(deserialize_with = "crate::amount::amount")]
+    pub price: String,
+}
+
+/// `rand_getPerps` (RPL-3): the exchange's public state as of the head. A chain without the
+/// section answers `{"enabled": false}`, which this reads as `enabled: false` and nothing else.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PerpsInfo {
+    pub enabled: bool,
+    #[serde(default)]
+    pub collateral_asset: u32,
+    #[serde(default)]
+    pub markets: Vec<PerpMarket>,
+    #[serde(default)]
+    pub engine_hc: Option<String>,
+    #[serde(default)]
+    pub proved_root: Option<String>,
+    #[serde(default)]
+    pub proved_height: Option<u64>,
+    #[serde(default)]
+    pub head_height: Option<u64>,
+    /// The closed heights no state proof covers yet, ascending (at most `max_window_blocks`).
+    #[serde(default)]
+    pub pending_heights: Vec<u64>,
+    #[serde(default)]
+    pub medians: Vec<PerpMedian>,
+    #[serde(default)]
+    pub accounts: u64,
+    #[serde(default)]
+    pub pending_withdrawals: u64,
 }
 
 /// The `slashing` group of `rand_getLimits` (audit v6, STAKE-1).
@@ -243,4 +371,47 @@ pub struct Supply {
     /// `burned`. `"0"` on a chain without the flag, `None` on a node predating the field.
     #[serde(default, deserialize_with = "crate::amount::amount_opt")]
     pub base_fees_burned: Option<String>,
+    /// Multisig accounts (fullnode v0.8.0): what genesis seeded the accounts with (issuance),
+    /// RAND creates and deposits put in, RAND payout notes, the bases payments paid proposers, and
+    /// what the accounts still hold (inside `total_supply`). `"0"` on a chain without the
+    /// section, `None` on a node predating them.
+    #[serde(default, deserialize_with = "crate::amount::amount_opt")]
+    pub multisig_issued: Option<String>,
+    #[serde(default, deserialize_with = "crate::amount::amount_opt")]
+    pub multisig_rand_in: Option<String>,
+    #[serde(default, deserialize_with = "crate::amount::amount_opt")]
+    pub multisig_rand_out: Option<String>,
+    #[serde(default, deserialize_with = "crate::amount::amount_opt")]
+    pub multisig_base_out: Option<String>,
+    #[serde(default, deserialize_with = "crate::amount::amount_opt")]
+    pub multisig_rand_held: Option<String>,
+    /// RPL-3 perps: RAND state proofs paid out of the exchange as notes, and what it still holds.
+    /// `"0"` without the section and on a chain whose collateral is a token (chain 21's zUSD:
+    /// a token collateral's supply does not move), `None` on a node predating them.
+    #[serde(default, deserialize_with = "crate::amount::amount_opt")]
+    pub perps_rand_out: Option<String>,
+    #[serde(default, deserialize_with = "crate::amount::amount_opt")]
+    pub perps_rand_held: Option<String>,
+}
+
+/// One row of a multisig account's vault: an asset (0 is RAND) and its balance in that asset's
+/// own units.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct VaultBalance {
+    pub asset: u32,
+    #[serde(deserialize_with = "crate::amount::amount")]
+    pub amount: String,
+}
+
+/// `rand_getMultisig` (fullnode v0.8.0): one account as of the head — its signers in order (a
+/// signature names its signer by position), threshold, the nonce a pay and a rotate share, and
+/// its vault ascending by asset.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MultisigAccount {
+    pub id: String,
+    pub signers: Vec<String>,
+    pub threshold: u32,
+    pub nonce: u64,
+    #[serde(default)]
+    pub vault: Vec<VaultBalance>,
 }

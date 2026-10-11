@@ -13,7 +13,8 @@ pub const TX_DETAIL_COLS: &str = "hash, block_hash, height, tx_index, kind, fee:
     words_len, call_proof_len, input_envelope_len, cm, registered, action_nonce, attestation_len, recipient, note_time,
     relayer_fee::text AS relayer_fee, to_chain, bridge_to, bridge_token, deposit_r, derived_cm, pq_signers,
     token_action, bridge_governance, auth_commit, auth_proof_len, transition,
-    deposit_amount::text AS deposit_amount, release_amount::text AS release_amount, fee_note, staking_action";
+    deposit_amount::text AS deposit_amount, release_amount::text AS release_amount, fee_note, staking_action,
+    perp_action, multisig_action, aggregate_action";
 
 /// The public fields of one hidden-asset bundle (chain 14: four input slots, four output slots,
 /// dummies included; no public `asset` field — see `randscan_core::Bundle`'s doc comment).
@@ -88,8 +89,12 @@ pub struct NewTx<'a> {
     /// bridge_attest / bridge_burn (v0.6.8): the fee note in full, and its leaf's commitment.
     pub fee_note: Option<serde_json::Value>,
     pub fee_cm: Option<String>,
-    /// admit_validator / slash_equivocation, in full.
+    /// admit_validator / slash_equivocation / set_rand_price, in full.
     pub staking_action: Option<serde_json::Value>,
+    /// Fullnode v0.8.0: the perps and multisig actions and an aggregate, each in full.
+    pub perp_action: Option<serde_json::Value>,
+    pub multisig_action: Option<serde_json::Value>,
+    pub aggregate_action: Option<serde_json::Value>,
 }
 
 /// Insert the transaction and every nullifier its bundle published.
@@ -106,7 +111,8 @@ pub async fn insert_transaction(conn: &mut PgConnection, t: &NewTx<'_>) -> Resul
              action_nonce, attestation_len, recipient, note_time, asset_index, relayer_fee, to_chain, bridge_to,
              bridge_token, deposit_r, derived_cm, pq_signers, token_action, bridge_governance,
              auth_commit, auth_proof_len, transition, payout_cms,
-             deposit_amount, release_amount, fee_note, fee_cm, staking_action)
+             deposit_amount, release_amount, fee_note, fee_cm, staking_action,
+             perp_action, multisig_action, aggregate_action)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8::numeric,
              $9, $10, $11, $12, $13, $14, $15, $16, $17, $18,
              $19::numeric, $20::numeric, $21, $22,
@@ -115,7 +121,8 @@ pub async fn insert_transaction(conn: &mut PgConnection, t: &NewTx<'_>) -> Resul
              $36, $37, $38, $39, $40, $41::numeric, $42, $43,
              $44, $45, $46, $47, $48, $49,
              $50, $51, $52, $53,
-             $54::numeric, $55::numeric, $56, $57, $58)",
+             $54::numeric, $55::numeric, $56, $57, $58,
+             $59, $60, $61)",
     )
     .bind(t.hash)
     .bind(t.block_hash)
@@ -175,6 +182,9 @@ pub async fn insert_transaction(conn: &mut PgConnection, t: &NewTx<'_>) -> Resul
     .bind(t.fee_note.as_ref())
     .bind(t.fee_cm.as_deref())
     .bind(t.staking_action.as_ref())
+    .bind(t.perp_action.as_ref())
+    .bind(t.multisig_action.as_ref())
+    .bind(t.aggregate_action.as_ref())
     .execute(&mut *conn)
     .await?;
 

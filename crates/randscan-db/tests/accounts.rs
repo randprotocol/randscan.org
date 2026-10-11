@@ -32,7 +32,7 @@ async fn migrations_are_versioned_and_idempotent() {
     // A long-lived database (this shared one, and the live one) may also record the burned
     // version 8, the reverted chain-11 receivers migration; a fresh database never does.
     let versions: Vec<i32> = versions.into_iter().filter(|v| *v != 8).collect();
-    assert_eq!(versions, vec![1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13]);
+    assert_eq!(versions, vec![1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14]);
 
     for table in ["users", "sessions", "api_keys"] {
         let exists: bool = sqlx::query_scalar(
@@ -275,7 +275,7 @@ async fn concurrent_migrations_do_not_race() {
             .await
             .unwrap();
     // A fresh database: every migration in the tree once, and never the burned version 8.
-    assert_eq!(versions, vec![1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13]);
+    assert_eq!(versions, vec![1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14]);
 
     pool.close().await;
     sqlx::query(&format!("DROP DATABASE IF EXISTS {scratch_db}"))

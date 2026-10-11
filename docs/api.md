@@ -122,6 +122,9 @@ for v in validators:
 | `GET /health` | explorer status and indexer lag |
 | `GET /stats` | network statistics |
 | `GET /supply` | the node's supply audit (404 on a node that does not serve it) |
+| `GET /perps` | the perps exchange's public state: collateral asset, markets, proved root and height, oracle medians (404 on a chain without a `perps` section) |
+| `GET /price` | the validator set's voted RAND/USD price (404 on a chain without `fees.usd_subsidy`) |
+| `GET /multisig/:id` | one multisig account read live from the node: signers in order, threshold, nonce, vault (404 for an unknown id or a chain without a `multisig` section; 400 for an id that is not 64 hex) |
 | `GET /bridge` | the bridge's public state and asset registry |
 | `GET /bridge/assets` | every backing of every bridged token with its burns and what it holds, and the token's deposits |
 | `GET /bridge/tokens` | the tokens the bridge accepts, with their contract addresses on each chain |
@@ -230,8 +233,18 @@ the proof, not a field of the receipt), so the explorer cannot show it per trans
   "withdraw_deposited": "…", "fees_paid": "…", "burned": "…",
   "pool_value": "…", "register_total": "…", "total_supply": "…", "invariant_holds": true,
   "vesting_issued": "…", "vesting_released": "…", "vesting_in_register": "…", "vesting_locked": "…",
-  "program_rand_out": "…", "program_rand_held": "…" }
+  "program_rand_out": "…", "program_rand_held": "…",
+  "base_fees_burned": "…",
+  "multisig_issued": "…", "multisig_rand_in": "…", "multisig_rand_out": "…",
+  "multisig_base_out": "…", "multisig_rand_held": "…",
+  "perps_rand_out": "…", "perps_rand_held": "…" }
 ```
+
+Fullnode v0.8.0's counters: `base_fees_burned` (bundle bases burned under `fees.burn_base`), the
+five `multisig_*` (what genesis seeded accounts with, RAND creates and deposits put in, RAND paid
+out as notes, bases paid to proposers, what the accounts hold) and `perps_rand_out` /
+`perps_rand_held` (RAND only; `"0"` on a chain whose collateral is a token, as chain 21's zUSD
+is). Each is `"0"` on a chain without its section and `null` from a node predating it.
 
 `program_rand_out` and `program_rand_held` are RPL-2: RAND that invokes have paid out of program
 vaults as notes (pool side, beside `withdraw_deposited`) and what the vaults still hold (register
@@ -529,6 +542,18 @@ kinds and which fields they fill:
 | `rotate_pq_guardians` / `rotate_pause_key` | bridge rules v2: a new PQ guardian set / pause key | null | | `bridge_governance`, `pq_signers`, `action_nonce` |
 | `rotate_pq_guardians_v2` / `rotate_pause_key_v2` | audit v6: the same with proofs of possession, effective after the genesis delay | null | | `bridge_governance` (`possession_signatures` on the PQ one), `pq_signers`, `action_nonce` |
 | `cancel_rotation` | audit v6: a pending rotation withdrawn | null | | `bridge_governance` (`rotation_kind`), `action_nonce` |
+| `perp_deposit` | RPL-3: opens or tops up a trading account with the bundle's collateral burn | null | | `perp_action` (`trading_key`, `account`), `bundle` (the burn) |
+| `perp_order` | RPL-3: an order recorded for the proved engine (bundle-less) | null | | `perp_action` (`account`, `body`: `nonce`, `market`, `side` 0 buy / 1 sell, `kind` 0 limit / 1 market, `tif` 0 GTC / 1 IOC / 2 post-only, `reduce_only`, `price`, `size`), `action_nonce` |
+| `perp_cancel` | RPL-3: cancels the order with nonce `target` | null | | `perp_action` (`account`, `nonce`, `target`), `action_nonce` |
+| `perp_withdraw` | RPL-3: a withdrawal request, paid when a state proof covers it | null (collateral units, in `perp_action.amount`) | | `perp_action` (`account`, `nonce`, `amount`, `recipient`, `time`), `recipient`, `note_time`, `action_nonce` |
+| `perp_oracle` | RPL-3: a validator's prices, one per market | null | `validator` | `perp_action` (`prices`), `action_nonce` |
+| `perp_state_proof` | RPL-3: a prover's state transition over a window of blocks | null | | `perp_action` (`from_height`, `to_height`, `new_root`, `payouts`, `fees`, `proof_bytes`) |
+| `create_multisig` | a new M-of-N account, funded by the bundle's burn | null | | `multisig_action` (`salt`, `threshold`, `signer_count`) |
+| `multisig_deposit` | the bundle's burn into an existing account | null | | `multisig_action` (`account`) |
+| `multisig_pay` | notes paid out of an account, signed by a threshold of its signers (bundle-less) | null | | `multisig_action` (`account`, `nonce`, `time`, `pays` — each note as an invoke's payout, its leaf linked to this transaction — `signers` by position), `note_time`, `action_nonce` |
+| `multisig_rotate` | a new signer set and threshold under the same id (fee-less) | null | | `multisig_action` (`account`, `nonce`, `threshold`, `signer_count`, `signed_by`), `action_nonce` |
+| `set_rand_price` | the validator set's vote on the RAND/USD price (`fees.usd_subsidy`) | null | | `staking_action` (`price_micros_per_rand`, `nonce`, `voters`), `action_nonce` |
+| `aggregate` | one proof standing in for the bundle proofs of the blocks it covers | RAND units of `payout_total` (null from a node before v0.8.0) | | `aggregate` (`covers`, `proof_len`, `aggregator`, `nonce`, `time`, `payout_total`, `layout` `flat` / `tree`), `action_nonce` |
 | `other` | a kind newer than this explorer build | null | | none |
 
 An `invoke`'s `transition` is the node's rendering, verbatim but for amounts as decimal strings:

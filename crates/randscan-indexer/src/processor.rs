@@ -168,6 +168,9 @@ impl BlockProcessor {
                     fee_note: f.fee_note.clone(),
                     fee_cm: f.fee_cm.clone(),
                     staking_action: f.staking_action.clone(),
+                    perp_action: f.perp_action.clone(),
+                    multisig_action: f.multisig_action.clone(),
+                    aggregate_action: f.aggregate_action.clone(),
                 },
             )
             .await
@@ -384,8 +387,12 @@ struct TxFields<'a> {
     /// transaction as a `derived_cm` is.
     fee_note: Option<serde_json::Value>,
     fee_cm: Option<String>,
-    /// admit_validator / slash_equivocation.
+    /// admit_validator / slash_equivocation / set_rand_price.
     staking_action: Option<serde_json::Value>,
+    /// The v0.8.0 kinds, kept whole: perps, multisig, and an aggregate.
+    perp_action: Option<serde_json::Value>,
+    multisig_action: Option<serde_json::Value>,
+    aggregate_action: Option<serde_json::Value>,
 }
 
 impl<'a> TxFields<'a> {
@@ -422,6 +429,9 @@ impl<'a> TxFields<'a> {
             fee_note: None,
             fee_cm: None,
             staking_action: None,
+            perp_action: None,
+            multisig_action: None,
+            aggregate_action: None,
         }
     }
 
@@ -851,6 +861,88 @@ impl<'a> TxFields<'a> {
                     ..Self::empty(TxKind::CancelRotation)
                 }
             }
+            RpcAction::Perp(action) => {
+                use randscan_core::PerpAction as P;
+                let kind = match action {
+                    P::PerpDeposit { .. } => TxKind::PerpDeposit,
+                    P::PerpOrder { .. } => TxKind::PerpOrder,
+                    P::PerpCancel { .. } => TxKind::PerpCancel,
+                    P::PerpWithdraw { .. } => TxKind::PerpWithdraw,
+                    P::PerpOracle { .. } => TxKind::PerpOracle,
+                    P::PerpStateProof { .. } => TxKind::PerpStateProof,
+                };
+                let nonce = match action {
+                    P::PerpOrder { body, .. } => Some(body.nonce),
+                    P::PerpCancel { nonce, .. }
+                    | P::PerpWithdraw { nonce, .. }
+                    | P::PerpOracle { nonce, .. } => Some(*nonce),
+                    _ => None,
+                };
+                let mut f = TxFields {
+                    action_nonce: nonce.map(|n| n as i64),
+                    perp_action: serde_json::to_value(action).ok(),
+                    ..Self::empty(kind)
+                };
+                match action {
+                    // The oracle's signer is a validator: the explorer links it as one.
+                    P::PerpOracle { validator, .. } => f.validator = Some(validator.as_str()),
+                    // A withdrawal's amount is collateral units (not RAND), so it stays in
+                    // `perp_action` rather than the RAND-denominated `amount` column; its
+                    // recipient and note time are public like a token mint's.
+                    P::PerpWithdraw {
+                        recipient, time, ..
+                    } => {
+                        f.recipient = Some(recipient.as_str());
+                        f.note_time = Some(*time);
+                    }
+                    _ => {}
+                }
+                f
+            }
+            RpcAction::Multisig(action) => {
+                use randscan_core::MultisigAction as M;
+                let (kind, nonce) = match action {
+                    M::CreateMultisig { .. } => (TxKind::CreateMultisig, None),
+                    M::MultisigDeposit { .. } => (TxKind::MultisigDeposit, None),
+                    M::MultisigPay { nonce, .. } => (TxKind::MultisigPay, Some(*nonce)),
+                    M::MultisigRotate { nonce, .. } => (TxKind::MultisigRotate, Some(*nonce)),
+                };
+                let mut f = TxFields {
+                    action_nonce: nonce.map(|n| n as i64),
+                    multisig_action: serde_json::to_value(action).ok(),
+                    ..Self::empty(kind)
+                };
+                // A payment's notes are leaves the chain appended, linked to this transaction as
+                // an invoke's payouts are.
+                if let M::MultisigPay { pays, time, .. } = action {
+                    f.payout_cms = pays.iter().map(|p| p.cm.clone()).collect();
+                    f.note_time = Some(*time);
+                }
+                f
+            }
+            RpcAction::SetRandPrice {
+                price_micros_per_rand,
+                nonce,
+                voters,
+            } => {
+                let action = randscan_core::StakingAction::SetRandPrice {
+                    price_micros_per_rand: price_micros_per_rand.0.clone(),
+                    nonce: *nonce as i64,
+                    voters: voters.clone(),
+                };
+                TxFields {
+                    action_nonce: Some(*nonce as i64),
+                    staking_action: serde_json::to_value(&action).ok(),
+                    ..Self::empty(TxKind::SetRandPrice)
+                }
+            }
+            RpcAction::Aggregate(a) => TxFields {
+                // What the ledger paid the aggregator, RAND units.
+                amount: a.payout_total.clone(),
+                action_nonce: Some(a.nonce as i64),
+                aggregate_action: serde_json::to_value(a).ok(),
+                ..Self::empty(TxKind::Aggregate)
+            },
             RpcAction::Unknown { kind: tag } => TxFields {
                 // The column is VARCHAR(32); a longer tag is stored truncated on a char boundary.
                 kind_tag: truncate_chars(tag, 32),
@@ -1158,5 +1250,94 @@ mod tests {
             kind: "slash".into(),
         };
         assert_eq!(TxFields::from_action(&k).kind_tag, "slash");
+    }
+
+    /// Fullnode v0.8.0's kinds land under their own tags with their detail kept whole; a
+    /// multisig payment's notes link to it; a perp withdrawal's collateral amount stays out of
+    /// the RAND `amount` column; an aggregate's `payout_total` (RAND) goes in it.
+    #[test]
+    fn the_v080_kinds_are_stored_with_their_detail() {
+        let parse = |v: serde_json::Value| -> RpcAction { serde_json::from_value(v).unwrap() };
+        let w = |b: &str| b.repeat(32);
+
+        let a = parse(
+            serde_json::json!({ "kind": "perp_withdraw", "account": w("01"), "nonce": 6,
+            "amount": "2000000", "recipient": "rand1qq", "time": 41 }),
+        );
+        let f = TxFields::from_action(&a);
+        assert_eq!(
+            (f.kind, f.kind_tag),
+            (TxKind::PerpWithdraw, "perp_withdraw")
+        );
+        assert_eq!(
+            (f.action_nonce, f.recipient, f.note_time),
+            (Some(6), Some("rand1qq"), Some(41))
+        );
+        assert_eq!(f.amount, None, "collateral units, not RAND");
+        assert_eq!(f.perp_action.as_ref().unwrap()["amount"], "2000000");
+
+        let a = parse(
+            serde_json::json!({ "kind": "perp_oracle", "validator": "2nRd",
+            "prices": [{ "market": 0, "price": "6425000000000" }], "nonce": 9 }),
+        );
+        let f = TxFields::from_action(&a);
+        assert_eq!(
+            (f.kind, f.validator, f.action_nonce),
+            (TxKind::PerpOracle, Some("2nRd"), Some(9))
+        );
+
+        let a = parse(
+            serde_json::json!({ "kind": "perp_order", "account": w("01"),
+            "body": { "nonce": 3, "market": 0, "side": 1, "kind": 1, "tif": 1, "reduce_only": true,
+                      "price": "0", "size": "100000" } }),
+        );
+        let f = TxFields::from_action(&a);
+        assert_eq!((f.kind, f.action_nonce), (TxKind::PerpOrder, Some(3)));
+        assert_eq!(f.perp_action.as_ref().unwrap()["body"]["kind"], 1);
+
+        let a = parse(
+            serde_json::json!({ "kind": "multisig_pay", "account": w("06"), "nonce": 0, "time": 77,
+            "pays": [{ "asset": 0, "amount": "1000000000", "recipient": "rand1qq", "time": 77, "r": w("07"), "cm": w("08") }],
+            "signers": [0, 2] }),
+        );
+        let f = TxFields::from_action(&a);
+        assert_eq!(
+            (f.kind, f.action_nonce, f.note_time),
+            (TxKind::MultisigPay, Some(0), Some(77))
+        );
+        assert_eq!(
+            f.payout_cms,
+            vec![w("08")],
+            "the payout leaf links to the payment"
+        );
+        assert_eq!(
+            f.multisig_action.as_ref().unwrap()["signers"],
+            serde_json::json!([0, 2])
+        );
+
+        let a = parse(serde_json::json!({ "kind": "create_multisig",
+            "salt": w("05"), "threshold": 2, "signer_count": 3 }));
+        let f = TxFields::from_action(&a);
+        assert_eq!((f.kind, f.action_nonce), (TxKind::CreateMultisig, None));
+        assert!(f.payout_cms.is_empty());
+
+        let a = parse(serde_json::json!({ "kind": "set_rand_price",
+            "price_micros_per_rand": "150000", "nonce": 3, "voters": ["2nRd"] }));
+        let f = TxFields::from_action(&a);
+        assert_eq!((f.kind, f.action_nonce), (TxKind::SetRandPrice, Some(3)));
+        let s: randscan_core::StakingAction =
+            serde_json::from_value(f.staking_action.unwrap()).unwrap();
+        assert!(
+            matches!(s, randscan_core::StakingAction::SetRandPrice { price_micros_per_rand, .. } if price_micros_per_rand == "150000")
+        );
+
+        let a = parse(serde_json::json!({ "kind": "aggregate", "covers": 8,
+            "proof_len": 9, "aggregator": "2nRd", "nonce": 2, "time": 200, "payout_total": "300000000", "layout": "flat" }));
+        let f = TxFields::from_action(&a);
+        assert_eq!(
+            (f.kind, f.amount.as_deref()),
+            (TxKind::Aggregate, Some("300000000"))
+        );
+        assert_eq!(f.aggregate_action.as_ref().unwrap()["layout"], "flat");
     }
 }

@@ -36,6 +36,9 @@ pub fn public_digest(program: &str) -> String {
     h(&format!("public-{program}"))
 }
 
+/// The treasury account a chain-21 mock (`v080: Some(true)`) holds.
+pub const MOCK_TREASURY: &str = "9b2e000000000000000000000000000000000000000000000000000000000001";
+
 pub fn h(seed: &str) -> String {
     hex::encode(Sha256::digest(seed.as_bytes()))
 }
@@ -98,6 +101,12 @@ pub struct MockChain {
     /// reports the group, `rand_getSupply` the vault counters, and the program-state methods
     /// answer; without it they answer `{"enabled": false}`, as a v0.6.8 node on chain 18 would.
     pub program_state: bool,
+    /// Fullnode v0.8.0: `None` is an older node (the new methods answer -32601, the new fields
+    /// are absent); `Some(false)` a v0.8.0 node on a chain without the gated sections (chain 20
+    /// after the roll: `null` groups, `{"enabled": false}`, `"0"` counters); `Some(true)` chain
+    /// 21's cut — `fees`, `perps` (BTC-PERP on zUSD) and `multisig` (the treasury
+    /// [`MOCK_TREASURY`]) — plus a `fees.usd_subsidy` price.
+    pub v080: Option<bool>,
     /// What `rand_getPeers` answers (`{peer_id, addrs, connected_secs}` rows); none by default.
     pub peers: Vec<Value>,
     /// Methods that answer a JSON-RPC server error (-32000), for every call (`None`) or only
@@ -127,6 +136,7 @@ impl MockChain {
             list_nonce: 0,
             pq_guardians: vec![],
             program_state: false,
+            v080: None,
             peers: Vec::new(),
             fail: Vec::new(),
             null: Vec::new(),
@@ -206,6 +216,15 @@ impl MockChain {
                             self.leaves
                                 .push((p["cm"].as_str().unwrap().to_string(), height));
                         }
+                    }
+                }
+                // Fullnode v0.8.0: a multisig payment's notes, one leaf per payout. (A perp
+                // withdrawal's note is appended by the state proof that pays it; its `cm` is not
+                // rendered, so the mock appends none.)
+                Some("multisig_pay") => {
+                    for p in a["pays"].as_array().into_iter().flatten() {
+                        self.leaves
+                            .push((p["cm"].as_str().unwrap().to_string(), height));
                     }
                 }
                 _ => {}
@@ -357,6 +376,23 @@ impl MockChain {
                     s["program_rand_out"] = json!("300");
                     s["program_rand_held"] = json!("700");
                 }
+                // Fullnode v0.8.0: the multisig and perps counters, `"0"` without the sections.
+                if let Some(on) = self.v080 {
+                    for (k, v) in [
+                        ("multisig_issued", "100000000000000"),
+                        ("multisig_rand_in", "0"),
+                        ("multisig_rand_out", "1000000000"),
+                        ("multisig_base_out", "1000000"),
+                        ("multisig_rand_held", "99998999000000"),
+                        ("perps_rand_out", "0"),
+                        ("perps_rand_held", "0"),
+                    ] {
+                        s[k] = json!(if on { v } else { "0" });
+                    }
+                    if on {
+                        s["base_fees_burned"] = json!("2000000");
+                    }
+                }
                 s
             }
             // The shape (and, critically, the *encoding*) is copied verbatim from the node's own
@@ -493,8 +529,46 @@ impl MockChain {
                 } else {
                     Value::Null
                 };
+                // Fullnode v0.8.0: chain 21's groups, or `null` on a chain without them.
+                match self.v080 {
+                    Some(true) => {
+                        l["fee_rules"] = json!({ "burn_base": true, "subsidy_net_of_fees": false, "burn_floor": false,
+                            "proposer_share_bps": null, "prove_base": null,
+                            "usd_subsidy": { "usd_micros_per_sealed_block": "4791", "max_subsidy_per_block": "300000000",
+                                             "price_max_age_blocks": 72000 } });
+                        l["multisig"] = json!({ "create_fee": "1000000000", "max_signers": 10, "max_payouts": 4 });
+                        l["perps"] = json!({ "collateral_asset": 1, "max_tier": 18, "max_window_blocks": 64,
+                            "max_payouts": 8, "max_block_inputs": 24, "min_deposit": "100000000" });
+                    }
+                    Some(false) => {
+                        l["multisig"] = Value::Null;
+                        l["perps"] = Value::Null;
+                    }
+                    None => {}
+                }
                 l
             }
+            "rand_getPerps" if self.v080 == Some(true) => json!({ "enabled": true,
+                "collateral_asset": 1, "max_tier": 18, "max_window_blocks": 64, "max_block_inputs": 24,
+                "min_deposit": "100000000", "engine_hc": h("engine"), "genesis_root": h("perp-genesis"),
+                "markets": [{ "id": 0, "symbol": "BTC-PERP", "lot": 100000, "tick": 100000000,
+                              "max_leverage": 20, "maintenance_bps": 250, "taker_fee_bps": 5, "maker_fee_bps": 2 }],
+                "proved_root": h("perp-root"), "proved_height": 1, "head_height": self.head()["height"],
+                "pending_heights": [2], "medians": [{ "market": 0, "price": "6425000000000" }],
+                "accounts": 1, "pending_withdrawals": 0 }),
+            "rand_getPerps" if self.v080 == Some(false) => json!({ "enabled": false }),
+            "rand_getRandPrice" if self.v080 == Some(true) => json!({ "price_micros_per_rand": "150000",
+                "set_at_height": 2, "nonce": 1, "fresh": true, "max_age_blocks": 72000 }),
+            "rand_getRandPrice" if self.v080 == Some(false) => Value::Null,
+            "rand_getMultisig" if self.v080 == Some(true) => {
+                if p(0).as_str() == Some(MOCK_TREASURY) {
+                    json!({ "enabled": true, "id": MOCK_TREASURY, "signers": ["aa".repeat(16), "bb".repeat(16), "cc".repeat(16)],
+                            "threshold": 2, "nonce": 1, "vault": [{ "asset": 0, "amount": "99998999000000" }] })
+                } else {
+                    Value::Null
+                }
+            }
+            "rand_getMultisig" if self.v080 == Some(false) => json!({ "enabled": false }),
             // RPL-2: a program's vault and its cells, as the node serves them from the ledger —
             // here derived from the committed invokes: the vault is what every invoke's bundle
             // deposited less what its `pays` paid out, per asset; the cells are the latest

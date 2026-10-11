@@ -2,9 +2,10 @@
 
 use chrono::{DateTime, Utc};
 use randscan_core::{
-    BlockSummary, BridgeFeeNote, BridgeGovernanceAction, Bundle, GeoInfo, NetworkStats, Note,
-    Nullifier, PendingStake, ProgramSummary, Receipt, StakingAction, TokenAction,
-    TransactionDetail, TransactionSummary, Transition, TxKind, Validator,
+    AggregateAction, BlockSummary, BridgeFeeNote, BridgeGovernanceAction, Bundle, GeoInfo,
+    MultisigAction, NetworkStats, Note, Nullifier, PendingStake, PerpAction, ProgramSummary,
+    Receipt, StakingAction, TokenAction, TransactionDetail, TransactionSummary, Transition, TxKind,
+    Validator,
 };
 use sqlx::FromRow;
 
@@ -122,6 +123,9 @@ pub struct TxDetailRow {
     pub release_amount: Option<String>,
     pub fee_note: Option<serde_json::Value>,
     pub staking_action: Option<serde_json::Value>,
+    pub perp_action: Option<serde_json::Value>,
+    pub multisig_action: Option<serde_json::Value>,
+    pub aggregate_action: Option<serde_json::Value>,
 }
 
 impl TxDetailRow {
@@ -196,6 +200,15 @@ impl TxDetailRow {
         let staking_action: Option<StakingAction> = self
             .staking_action
             .and_then(|v| serde_json::from_value(v).ok());
+        let perp_action: Option<PerpAction> = self
+            .perp_action
+            .and_then(|v| serde_json::from_value(v).ok());
+        let multisig_action: Option<MultisigAction> = self
+            .multisig_action
+            .and_then(|v| serde_json::from_value(v).ok());
+        let aggregate: Option<AggregateAction> = self
+            .aggregate_action
+            .and_then(|v| serde_json::from_value(v).ok());
         TransactionDetail {
             chain_id: self.chain_id,
             bundle,
@@ -223,6 +236,9 @@ impl TxDetailRow {
             release_amount: self.release_amount,
             fee_note,
             staking_action,
+            perp_action,
+            multisig_action,
+            aggregate,
             summary: self.tx.into(),
         }
     }

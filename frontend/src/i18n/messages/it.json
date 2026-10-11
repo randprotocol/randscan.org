@@ -429,6 +429,54 @@
     "other": {
       "label": "Altro",
       "short": "Altro"
+    },
+    "perp_deposit": {
+      "label": "Deposito Perp",
+      "short": "Deposito Perp"
+    },
+    "perp_order": {
+      "label": "Ordine Perp",
+      "short": "Ordine"
+    },
+    "perp_cancel": {
+      "label": "Ordine Perp annullato",
+      "short": "Annulla ordine"
+    },
+    "perp_withdraw": {
+      "label": "Richiesta di prelievo Perp",
+      "short": "Prelievo Perp"
+    },
+    "perp_oracle": {
+      "label": "Prezzi oracolo Perp",
+      "short": "Oracolo"
+    },
+    "perp_state_proof": {
+      "label": "Prova di stato Perp",
+      "short": "Prova di stato"
+    },
+    "create_multisig": {
+      "label": "Account multisig creato",
+      "short": "Crea multisig"
+    },
+    "multisig_deposit": {
+      "label": "Deposito multisig",
+      "short": "Deposito multisig"
+    },
+    "multisig_pay": {
+      "label": "Pagamento multisig",
+      "short": "Pagamento multisig"
+    },
+    "multisig_rotate": {
+      "label": "Firmatari multisig ruotati",
+      "short": "Ruota firmatari"
+    },
+    "set_rand_price": {
+      "label": "Voto sul prezzo di RAND",
+      "short": "Voto sul prezzo"
+    },
+    "aggregate": {
+      "label": "Prova di aggregazione",
+      "short": "Aggregato"
     }
   },
   "roles": {
@@ -668,6 +716,81 @@
     },
     "unknownKind": {
       "help": "Questo tipo di transazione è più recente di questa versione dell'explorer. È stata indicizzata con il suo hash, bundle, commissione e blocco; i campi decodificati compariranno dopo l'aggiornamento dell'explorer."
+    },
+    "perp": {
+      "account": "Account di trading",
+      "tradingKey": "Chiave di trading",
+      "deposited": "Depositato",
+      "market": "Mercato",
+      "marketId": "mercato #{id}",
+      "side": "Lato",
+      "buy": "Acquisto",
+      "sell": "Vendita",
+      "orderType": "Tipo di ordine",
+      "limit": "Limite",
+      "marketOrder": "A mercato",
+      "gtc": "valido fino ad annullamento",
+      "ioc": "immediato o annullato",
+      "postOnly": "solo post (post-only)",
+      "reduceOnly": "solo riduzione (reduce-only)",
+      "price": "Prezzo",
+      "atMarket": "a mercato",
+      "size": "Dimensione",
+      "nonce": "Nonce dell'account",
+      "cancels": "Annulla",
+      "cancelsValue": "l'ordine con nonce {nonce}",
+      "paidTo": "Pagato a",
+      "prices": "Prezzi",
+      "window": "Blocchi coperti",
+      "newRoot": "Radice di stato del motore",
+      "payouts": "Prelievi pagati",
+      "request": "richiesta",
+      "fees": "Commissioni raccolte",
+      "proofSize": "Dimensione della prova",
+      "collateral": "Collaterale",
+      "depositHelp": "Apre o ricarica l'account di trading di questa chiave con il burn dell'asset collaterale del bundle. Pubblico per scelta progettuale: gli input dell'exchange sono ciò che il suo prover riesegue.",
+      "orderHelp": "Un ordine registrato nel blocco perché il motore dimostrato lo abbini. La chain verifica solo la firma della chiave di trading e il nonce; se venga eseguito lo decide il motore. Senza bundle e senza commissione.",
+      "cancelHelp": "Annulla uno degli ordini di questo account. Firmato dalla chiave di trading; senza bundle e senza commissione.",
+      "withdrawHelp": "Una richiesta di prelievo di collaterale, pagata come nota al destinatario quando viene registrata una prova di stato che la copre. La busta della nota appartiene al destinatario e non viene mostrata.",
+      "oracleHelp": "I prezzi oracolo di un validatore, uno per mercato. Il prezzo di ogni blocco è la mediana degli invii recenti.",
+      "stateProofHelp": "La transizione di stato di un prover su questi blocchi: la nuova radice del motore, i prelievi che paga e le commissioni che ha raccolto, con la prova STARK dell'esecuzione. Non firmata: la prova è l'autorità."
+    },
+    "multisig": {
+      "account": "Account",
+      "threshold": "Soglia",
+      "ofSigners": "{m} di {n} firmatari",
+      "salt": "Salt",
+      "funding": "Finanziamento",
+      "unfunded": "nulla bruciato",
+      "payouts": "Pagamenti",
+      "signedBy": "Firmato da",
+      "newSet": "Nuovo insieme di firmatari",
+      "nonce": "Nonce dell'account",
+      "now": "Account ora",
+      "nowValue": "{m} di {n} firmatari, nonce {nonce}",
+      "emptyVault": "cassaforte vuota",
+      "createHelp": "Crea un account M di N il cui id è derivato dalla chain, dal salt, dalla soglia e dai firmatari in ordine. Il burn del bundle è il suo saldo iniziale; la commissione include la commissione di creazione della chain.",
+      "depositHelp": "Finanzia l'account con il burn del bundle. Chiunque può depositare; nulla viene firmato.",
+      "payHelp": "Paga note dal saldo pubblico dell'account, firmato dalla soglia dei suoi firmatari (indicati per posizione). Ogni parola di ogni nota è pubblica, quindi il destinatario la ricostruisce senza decifrare nulla. L'account paga anche la base del bundle dalla sua riga RAND.",
+      "rotateHelp": "Sostituisce l'insieme di firmatari e la soglia dell'account mantenendo id e saldo, firmato da una soglia del vecchio insieme. Senza commissione."
+    },
+    "price": {
+      "price": "Prezzo",
+      "usdPerRand": "{usd} USD per RAND",
+      "current": "Prezzo attuale",
+      "fresh": "recente",
+      "stale": "obsoleto",
+      "help": "Il voto dell'insieme di validatori sul prezzo RAND/USD al quale viene convertito il sussidio di sigillatura indicizzato al dollaro. Governance, non un oracolo di mercato: lo firmano più di due terzi dello stake votante e il prezzo varia al massimo di un fattore due per aggiornamento."
+    },
+    "aggregate": {
+      "covers": "Bundle coperti",
+      "layout": "Struttura",
+      "flat": "Piatta",
+      "tree": "Albero (passi da 2 a 1)",
+      "payout": "Pagamento all'aggregatore",
+      "aggregator": "Aggregatore",
+      "proofSize": "Dimensione della prova",
+      "help": "Una prova che sostituisce le prove dei bundle dei blocchi che copre. Il ledger paga all'aggregatore esattamente il totale dei pagamenti che ha firmato, oppure rifiuta l'aggregato."
     }
   },
   "note": {
@@ -1190,7 +1313,22 @@
     },
     "latestBlocks": "Ultimi blocchi",
     "latestTransactions": "Ultime transazioni",
-    "viewAll": "Vedi tutto →"
+    "viewAll": "Vedi tutto →",
+    "v080": {
+      "fees": "Commissioni:",
+      "burnBase": "la base del bundle viene bruciata",
+      "burnFloor": "l'intero minimo di commissione viene bruciato",
+      "proposerShare": "il proposer trattiene {percent} della base",
+      "proveBase": "quota di prova {amount} per bundle",
+      "usdSubsidy": "sussidio di sigillatura {usd} USD a blocco, con tetto di {cap}",
+      "price": "prezzo di RAND {usd} USD",
+      "multisig": "Multisig: commissione di creazione {fee}, fino a {signers} firmatari e {payouts} pagamenti",
+      "perps": "Perps: {markets}, prove fino al livello {tier} su al massimo {window} blocchi",
+      "perpsProved": "dimostrato fino a #{height}",
+      "baseFeesBurned": "commissioni base bruciate {amount}",
+      "multisigHeld": "gli account multisig detengono {amount} (emessi {issued})",
+      "perpsHeld": "i Perps detengono {amount}"
+    }
   },
   "blocks": {
     "title": "Blocchi",
@@ -1232,7 +1370,19 @@
       "rotate_pq_guardians_v2": "Rotazione dei guardiani PQ (differita)",
       "rotate_pause_key_v2": "Rotazione della chiave di pausa (differita)",
       "cancel_rotation": "Rotazione annullata",
-      "other": "Altro"
+      "other": "Altro",
+      "perp_deposit": "Deposito Perp",
+      "perp_order": "Ordine Perp",
+      "perp_cancel": "Ordine Perp annullato",
+      "perp_withdraw": "Richiesta di prelievo Perp",
+      "perp_oracle": "Prezzi oracolo Perp",
+      "perp_state_proof": "Prova di stato Perp",
+      "create_multisig": "Account multisig creato",
+      "multisig_deposit": "Deposito multisig",
+      "multisig_pay": "Pagamento multisig",
+      "multisig_rotate": "Firmatari multisig ruotati",
+      "set_rand_price": "Voto sul prezzo di RAND",
+      "aggregate": "Prova di aggregazione"
     },
     "error": "Impossibile caricare le transazioni.",
     "count": {

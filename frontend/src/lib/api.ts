@@ -1,5 +1,8 @@
 import type {
   AdmittedSet,
+  MultisigAccount,
+  PerpsInfo,
+  RandPrice,
   ApprovedToken,
   BridgeAssetActivity,
   NoteEnvelopePage,
@@ -233,6 +236,21 @@ export function getBridgeAssets(): Promise<BridgeAssetActivity[]> {
 /** The tokens the bridge accepts; a static list that does not depend on the node. */
 export function getBridgeTokens(): Promise<ApprovedToken[]> {
   return request<ApprovedToken[]>('/bridge/tokens');
+}
+
+/** 404 on a chain without a `perps` section (fullnode v0.8.0). */
+export function getPerps(): Promise<PerpsInfo> {
+  return request<PerpsInfo>('/perps');
+}
+
+/** 404 on a chain without `fees.usd_subsidy` (fullnode v0.8.0). */
+export function getRandPrice(): Promise<RandPrice> {
+  return request<RandPrice>('/price');
+}
+
+/** One multisig account, read live from the node; 404 for an unknown id. */
+export function getMultisig(id: string): Promise<MultisigAccount> {
+  return request<MultisigAccount>(`/multisig/${encodeURIComponent(id)}`);
 }
 
 /** 404 on a node that serves no supply audit. */

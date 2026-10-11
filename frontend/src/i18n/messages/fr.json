@@ -429,6 +429,54 @@
     "other": {
       "label": "Autre",
       "short": "Autre"
+    },
+    "perp_deposit": {
+      "label": "Dépôt Perp",
+      "short": "Dépôt Perp"
+    },
+    "perp_order": {
+      "label": "Ordre Perp",
+      "short": "Ordre"
+    },
+    "perp_cancel": {
+      "label": "Ordre Perp annulé",
+      "short": "Annuler l'ordre"
+    },
+    "perp_withdraw": {
+      "label": "Demande de retrait Perp",
+      "short": "Retrait Perp"
+    },
+    "perp_oracle": {
+      "label": "Prix oracle Perp",
+      "short": "Oracle"
+    },
+    "perp_state_proof": {
+      "label": "Preuve d'état Perp",
+      "short": "Preuve d'état"
+    },
+    "create_multisig": {
+      "label": "Compte multisig créé",
+      "short": "Créer un multisig"
+    },
+    "multisig_deposit": {
+      "label": "Dépôt multisig",
+      "short": "Dépôt multisig"
+    },
+    "multisig_pay": {
+      "label": "Paiement multisig",
+      "short": "Paiement multisig"
+    },
+    "multisig_rotate": {
+      "label": "Signataires multisig renouvelés",
+      "short": "Renouveler les signataires"
+    },
+    "set_rand_price": {
+      "label": "Vote du prix du RAND",
+      "short": "Vote du prix"
+    },
+    "aggregate": {
+      "label": "Preuve d'agrégation",
+      "short": "Agrégat"
     }
   },
   "roles": {
@@ -668,6 +716,81 @@
     },
     "unknownKind": {
       "help": "Ce type de transaction est plus récent que cette version de l'explorateur. Il a été indexé avec son hachage, son bundle, ses frais et son bloc ; les champs décodés apparaîtront après la mise à jour de l'explorateur."
+    },
+    "perp": {
+      "account": "Compte de trading",
+      "tradingKey": "Clé de trading",
+      "deposited": "Déposé",
+      "market": "Marché",
+      "marketId": "marché #{id}",
+      "side": "Sens",
+      "buy": "Achat",
+      "sell": "Vente",
+      "orderType": "Type d'ordre",
+      "limit": "Limite",
+      "marketOrder": "Au marché",
+      "gtc": "valable jusqu'à annulation",
+      "ioc": "immédiat ou annulé",
+      "postOnly": "post-only (passif uniquement)",
+      "reduceOnly": "reduce-only (réduction uniquement)",
+      "price": "Prix",
+      "atMarket": "au prix du marché",
+      "size": "Taille",
+      "nonce": "Nonce du compte",
+      "cancels": "Annule",
+      "cancelsValue": "l'ordre de nonce {nonce}",
+      "paidTo": "Versé à",
+      "prices": "Prix",
+      "window": "Blocs couverts",
+      "newRoot": "Racine d'état du moteur",
+      "payouts": "Retraits payés",
+      "request": "demande",
+      "fees": "Frais collectés",
+      "proofSize": "Taille de la preuve",
+      "collateral": "Collatéral",
+      "depositHelp": "Ouvre ou réapprovisionne le compte de trading de cette clé avec la destruction (burn) de l'actif de collatéral du lot. Public par conception : les entrées de la plateforme sont ce que rejoue son prouveur.",
+      "orderHelp": "Un ordre enregistré dans le bloc pour que le moteur prouvé l'apparie. La chaîne ne vérifie que la signature de la clé de trading et le nonce ; c'est au moteur de décider s'il est exécuté. Sans lot et sans frais.",
+      "cancelHelp": "Annule l'un des ordres de ce compte. Signé par la clé de trading ; sans lot et sans frais.",
+      "withdrawHelp": "Une demande de retrait de collatéral, payée sous forme de note au destinataire dès qu'une preuve d'état qui la couvre est enregistrée. L'enveloppe de la note appartient au destinataire et n'est pas affichée.",
+      "oracleHelp": "Les prix oracle d'un validateur, un par marché. Le prix de chaque bloc est la médiane des soumissions récentes.",
+      "stateProofHelp": "La transition d'état d'un prouveur sur ces blocs : la nouvelle racine du moteur, les retraits qu'il paie et les frais qu'il a collectés, avec la preuve STARK de l'exécution. Non signé : la preuve fait foi."
+    },
+    "multisig": {
+      "account": "Compte",
+      "threshold": "Seuil",
+      "ofSigners": "{m} signataires sur {n}",
+      "salt": "Sel",
+      "funding": "Approvisionnement",
+      "unfunded": "rien de détruit",
+      "payouts": "Paiements",
+      "signedBy": "Signé par",
+      "newSet": "Nouvel ensemble de signataires",
+      "nonce": "Nonce du compte",
+      "now": "Compte désormais",
+      "nowValue": "{m} signataires sur {n}, nonce {nonce}",
+      "emptyVault": "coffre vide",
+      "createHelp": "Crée un compte M sur N dont l'identifiant est dérivé de la chaîne, du sel, du seuil et des signataires dans l'ordre. La destruction (burn) du lot constitue son solde initial ; les frais incluent les frais de création de la chaîne.",
+      "depositHelp": "Approvisionne le compte avec la destruction (burn) du lot. N'importe qui peut déposer ; rien n'est signé.",
+      "payHelp": "Paie des notes depuis le solde public du compte, signé par le seuil de ses signataires (désignés par leur position). Chaque mot de chaque note est public : le destinataire la reconstruit sans rien déchiffrer. Le compte paie aussi la base du lot depuis sa ligne RAND.",
+      "rotateHelp": "Remplace l'ensemble de signataires et le seuil du compte, avec le même identifiant et le même solde, signé par un seuil de l'ancien ensemble. Sans frais."
+    },
+    "price": {
+      "price": "Prix",
+      "usdPerRand": "{usd} USD par RAND",
+      "current": "Prix actuel",
+      "fresh": "récent",
+      "stale": "périmé",
+      "help": "Le vote de l'ensemble des validateurs sur le prix RAND/USD auquel la subvention de scellement indexée sur le dollar est convertie. Gouvernance, et non oracle de marché : plus des deux tiers de la mise votante le signent, et le prix varie d'un facteur deux au plus par mise à jour."
+    },
+    "aggregate": {
+      "covers": "Lots couverts",
+      "layout": "Structure",
+      "flat": "Plate",
+      "tree": "Arbre (étapes 2 vers 1)",
+      "payout": "Paiement à l'agrégateur",
+      "aggregator": "Agrégateur",
+      "proofSize": "Taille de la preuve",
+      "help": "Une preuve qui tient lieu des preuves de lot des blocs qu'elle couvre. Le registre verse à l'agrégateur exactement le total de paiement qu'il a signé, ou rejette l'agrégat."
     }
   },
   "note": {
@@ -1190,7 +1313,22 @@
     },
     "latestBlocks": "Derniers blocs",
     "latestTransactions": "Dernières transactions",
-    "viewAll": "Tout voir →"
+    "viewAll": "Tout voir →",
+    "v080": {
+      "fees": "Frais :",
+      "burnBase": "la base du lot est détruite",
+      "burnFloor": "la totalité du plancher de frais est détruite",
+      "proposerShare": "le proposeur conserve {percent} de la base",
+      "proveBase": "part de preuve {amount} par lot",
+      "usdSubsidy": "subvention de scellement {usd} USD par bloc, plafonnée à {cap}",
+      "price": "prix du RAND {usd} USD",
+      "multisig": "Multisig : frais de création {fee}, jusqu'à {signers} signataires et {payouts} paiements",
+      "perps": "Perps : {markets}, preuves jusqu'au palier {tier} sur {window} blocs au plus",
+      "perpsProved": "prouvé jusqu'à #{height}",
+      "baseFeesBurned": "frais de base détruits {amount}",
+      "multisigHeld": "les comptes multisig détiennent {amount} (émis {issued})",
+      "perpsHeld": "les Perps détiennent {amount}"
+    }
   },
   "blocks": {
     "title": "Blocs",
@@ -1232,7 +1370,19 @@
       "rotate_pq_guardians_v2": "Renouvellement des gardiens PQ (différé)",
       "rotate_pause_key_v2": "Renouvellement de la clé de pause (différé)",
       "cancel_rotation": "Renouvellement annulé",
-      "other": "Autre"
+      "other": "Autre",
+      "perp_deposit": "Dépôt Perp",
+      "perp_order": "Ordre Perp",
+      "perp_cancel": "Ordre Perp annulé",
+      "perp_withdraw": "Demande de retrait Perp",
+      "perp_oracle": "Prix oracle Perp",
+      "perp_state_proof": "Preuve d'état Perp",
+      "create_multisig": "Compte multisig créé",
+      "multisig_deposit": "Dépôt multisig",
+      "multisig_pay": "Paiement multisig",
+      "multisig_rotate": "Signataires multisig renouvelés",
+      "set_rand_price": "Vote du prix du RAND",
+      "aggregate": "Preuve d'agrégation"
     },
     "error": "Impossible de charger les transactions.",
     "count": {

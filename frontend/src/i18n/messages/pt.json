@@ -429,6 +429,54 @@
     "other": {
       "label": "Outro",
       "short": "Outro"
+    },
+    "perp_deposit": {
+      "label": "Depósito Perp",
+      "short": "Depósito Perp"
+    },
+    "perp_order": {
+      "label": "Ordem Perp",
+      "short": "Ordem"
+    },
+    "perp_cancel": {
+      "label": "Ordem Perp cancelada",
+      "short": "Cancelar ordem"
+    },
+    "perp_withdraw": {
+      "label": "Solicitação de saque Perp",
+      "short": "Saque Perp"
+    },
+    "perp_oracle": {
+      "label": "Preços de oráculo Perp",
+      "short": "Oráculo"
+    },
+    "perp_state_proof": {
+      "label": "Prova de estado Perp",
+      "short": "Prova de estado"
+    },
+    "create_multisig": {
+      "label": "Conta multisig criada",
+      "short": "Criar multisig"
+    },
+    "multisig_deposit": {
+      "label": "Depósito multisig",
+      "short": "Depósito multisig"
+    },
+    "multisig_pay": {
+      "label": "Pagamento multisig",
+      "short": "Pagamento multisig"
+    },
+    "multisig_rotate": {
+      "label": "Signatários multisig rotacionados",
+      "short": "Rotacionar signatários"
+    },
+    "set_rand_price": {
+      "label": "Voto do preço do RAND",
+      "short": "Voto de preço"
+    },
+    "aggregate": {
+      "label": "Prova de agregação",
+      "short": "Agregado"
     }
   },
   "roles": {
@@ -668,6 +716,81 @@
     },
     "unknownKind": {
       "help": "Este tipo de transação é mais novo que esta versão do explorador. Ela foi indexada com seu hash, bundle, taxa e bloco; os campos decodificados aparecerão depois que o explorador for atualizado."
+    },
+    "perp": {
+      "account": "Conta de trading",
+      "tradingKey": "Chave de trading",
+      "deposited": "Depositado",
+      "market": "Mercado",
+      "marketId": "mercado #{id}",
+      "side": "Lado",
+      "buy": "Compra",
+      "sell": "Venda",
+      "orderType": "Tipo de ordem",
+      "limit": "Limite",
+      "marketOrder": "A mercado",
+      "gtc": "válida até cancelar",
+      "ioc": "imediata ou cancelar",
+      "postOnly": "somente post (post-only)",
+      "reduceOnly": "somente redução (reduce-only)",
+      "price": "Preço",
+      "atMarket": "a mercado",
+      "size": "Tamanho",
+      "nonce": "Nonce da conta",
+      "cancels": "Cancela",
+      "cancelsValue": "a ordem com nonce {nonce}",
+      "paidTo": "Pago a",
+      "prices": "Preços",
+      "window": "Blocos cobertos",
+      "newRoot": "Raiz de estado do motor",
+      "payouts": "Saques pagos",
+      "request": "solicitação",
+      "fees": "Taxas arrecadadas",
+      "proofSize": "Tamanho da prova",
+      "collateral": "Colateral",
+      "depositHelp": "Abre ou recarrega a conta de trading desta chave com a queima do ativo de colateral do pacote. Público por projeto: as entradas da exchange são o que seu provador reexecuta.",
+      "orderHelp": "Uma ordem registrada no bloco para o motor provado casar. A chain verifica apenas a assinatura da chave de trading e o nonce; se a ordem é executada é decisão do motor. Sem pacote e sem taxa.",
+      "cancelHelp": "Cancela uma das ordens desta conta. Assinada pela chave de trading; sem pacote e sem taxa.",
+      "withdrawHelp": "Uma solicitação de saque de colateral, paga como uma nota ao destinatário quando uma prova de estado que a cobre é registrada. O envelope da nota pertence ao destinatário e não é exibido.",
+      "oracleHelp": "Os preços de oráculo de um validador, um por mercado. O preço de cada bloco é a mediana dos envios recentes.",
+      "stateProofHelp": "A transição de estado de um provador sobre estes blocos: a nova raiz do motor, os saques que ele paga e as taxas que arrecadou, com a prova STARK da execução. Sem assinatura: a prova é a autoridade."
+    },
+    "multisig": {
+      "account": "Conta",
+      "threshold": "Limiar",
+      "ofSigners": "{m} de {n} signatários",
+      "salt": "Salt",
+      "funding": "Financiamento",
+      "unfunded": "nada queimado",
+      "payouts": "Pagamentos",
+      "signedBy": "Assinado por",
+      "newSet": "Novo conjunto de signatários",
+      "nonce": "Nonce da conta",
+      "now": "Conta agora",
+      "nowValue": "{m} de {n} signatários, nonce {nonce}",
+      "emptyVault": "cofre vazio",
+      "createHelp": "Cria uma conta M de N cujo id é derivado da chain, do salt, do limiar e dos signatários em ordem. A queima do pacote é seu saldo inicial; a taxa inclui a taxa de criação da chain.",
+      "depositHelp": "Financia a conta com a queima do pacote. Qualquer pessoa pode depositar; nada é assinado.",
+      "payHelp": "Paga notas a partir do saldo público da conta, assinado pelo limiar de seus signatários (indicados por posição). Cada palavra de cada nota é pública, então o destinatário a reconstrói sem decifrar nada. A conta também paga a base do pacote a partir de sua linha RAND.",
+      "rotateHelp": "Substitui o conjunto de signatários e o limiar da conta mantendo o mesmo id e saldo, assinado por um limiar do conjunto antigo. Sem taxa."
+    },
+    "price": {
+      "price": "Preço",
+      "usdPerRand": "{usd} USD por RAND",
+      "current": "Preço atual",
+      "fresh": "recente",
+      "stale": "desatualizado",
+      "help": "O voto do conjunto de validadores sobre o preço RAND/USD pelo qual o subsídio de selagem indexado ao dólar é convertido. Governança, não um oráculo de mercado: mais de dois terços do stake votante o assinam, e o preço muda no máximo por um fator de dois a cada atualização."
+    },
+    "aggregate": {
+      "covers": "Pacotes cobertos",
+      "layout": "Estrutura",
+      "flat": "Plana",
+      "tree": "Árvore (passos de 2 para 1)",
+      "payout": "Pagamento ao agregador",
+      "aggregator": "Agregador",
+      "proofSize": "Tamanho da prova",
+      "help": "Uma prova que substitui as provas de pacote dos blocos que ela cobre. O livro-razão paga ao agregador exatamente o total de pagamentos que ele assinou, ou recusa o agregado."
     }
   },
   "note": {
@@ -1190,7 +1313,22 @@
     },
     "latestBlocks": "Últimos blocos",
     "latestTransactions": "Últimas transações",
-    "viewAll": "Ver tudo →"
+    "viewAll": "Ver tudo →",
+    "v080": {
+      "fees": "Taxas:",
+      "burnBase": "a base do pacote é queimada",
+      "burnFloor": "todo o piso de taxa é queimado",
+      "proposerShare": "o proponente fica com {percent} da base",
+      "proveBase": "parcela de prova {amount} por pacote",
+      "usdSubsidy": "subsídio de selagem {usd} USD por bloco, limitado a {cap}",
+      "price": "preço do RAND {usd} USD",
+      "multisig": "Multisig: taxa de criação {fee}, até {signers} signatários e {payouts} pagamentos",
+      "perps": "Perps: {markets}, provas até o nível {tier} sobre no máximo {window} blocos",
+      "perpsProved": "provado até #{height}",
+      "baseFeesBurned": "taxas base queimadas {amount}",
+      "multisigHeld": "as contas multisig mantêm {amount} (emitido {issued})",
+      "perpsHeld": "os Perps mantêm {amount}"
+    }
   },
   "blocks": {
     "title": "Blocos",
@@ -1232,7 +1370,19 @@
       "rotate_pq_guardians_v2": "Rotação de guardiões PQ (com atraso)",
       "rotate_pause_key_v2": "Rotação da chave de pausa (com atraso)",
       "cancel_rotation": "Rotação cancelada",
-      "other": "Outro"
+      "other": "Outro",
+      "perp_deposit": "Depósito Perp",
+      "perp_order": "Ordem Perp",
+      "perp_cancel": "Ordem Perp cancelada",
+      "perp_withdraw": "Solicitação de saque Perp",
+      "perp_oracle": "Preços de oráculo Perp",
+      "perp_state_proof": "Prova de estado Perp",
+      "create_multisig": "Conta multisig criada",
+      "multisig_deposit": "Depósito multisig",
+      "multisig_pay": "Pagamento multisig",
+      "multisig_rotate": "Signatários multisig rotacionados",
+      "set_rand_price": "Voto do preço do RAND",
+      "aggregate": "Prova de agregação"
     },
     "error": "Não foi possível carregar as transações.",
     "count": {

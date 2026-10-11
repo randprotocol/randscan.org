@@ -425,6 +425,54 @@
     "other": {
       "label": "其他",
       "short": "其他"
+    },
+    "perp_deposit": {
+      "label": "永續合約存入",
+      "short": "永續存入"
+    },
+    "perp_order": {
+      "label": "永續合約訂單",
+      "short": "訂單"
+    },
+    "perp_cancel": {
+      "label": "永續合約訂單已取消",
+      "short": "取消訂單"
+    },
+    "perp_withdraw": {
+      "label": "永續合約提取請求",
+      "short": "永續提取"
+    },
+    "perp_oracle": {
+      "label": "永續合約預言機價格",
+      "short": "預言機"
+    },
+    "perp_state_proof": {
+      "label": "永續合約狀態證明",
+      "short": "狀態證明"
+    },
+    "create_multisig": {
+      "label": "多重簽署帳戶已建立",
+      "short": "建立多簽"
+    },
+    "multisig_deposit": {
+      "label": "多簽存入",
+      "short": "多簽存入"
+    },
+    "multisig_pay": {
+      "label": "多簽支付",
+      "short": "多簽支付"
+    },
+    "multisig_rotate": {
+      "label": "多簽簽署者已輪換",
+      "short": "輪換簽署者"
+    },
+    "set_rand_price": {
+      "label": "RAND 價格投票",
+      "short": "價格投票"
+    },
+    "aggregate": {
+      "label": "聚合證明",
+      "short": "聚合"
     }
   },
   "roles": {
@@ -658,6 +706,81 @@
     },
     "unknownKind": {
       "help": "此交易類型比目前的瀏覽器版本更新。它已連同哈希、捆綁包、費用及區塊一併索引;瀏覽器更新後將顯示解碼後的欄位。"
+    },
+    "perp": {
+      "account": "交易帳戶",
+      "tradingKey": "交易密鑰",
+      "deposited": "存入金額",
+      "market": "市場",
+      "marketId": "市場 #{id}",
+      "side": "方向",
+      "buy": "買入",
+      "sell": "賣出",
+      "orderType": "訂單類型",
+      "limit": "限價",
+      "marketOrder": "市價",
+      "gtc": "撤銷前有效",
+      "ioc": "立即成交或取消",
+      "postOnly": "只掛單",
+      "reduceOnly": "只減倉",
+      "price": "價格",
+      "atMarket": "按市價",
+      "size": "數量",
+      "nonce": "帳戶 Nonce",
+      "cancels": "取消對象",
+      "cancelsValue": "Nonce 為 {nonce} 的訂單",
+      "paidTo": "支付予",
+      "prices": "價格",
+      "window": "涵蓋區塊",
+      "newRoot": "引擎狀態根",
+      "payouts": "已支付提取",
+      "request": "請求",
+      "fees": "已收取費用",
+      "proofSize": "證明大小",
+      "collateral": "抵押品",
+      "depositHelp": "以捆綁包中銷毀的抵押資產，為此密鑰開立交易帳戶或為其增值。按設計公開：交易所的輸入正是其證明者所重放的內容。",
+      "orderHelp": "記錄於區塊中、供已證明的引擎撮合的訂單。鏈上只檢查交易密鑰的簽署和 Nonce；是否成交由引擎決定。無捆綁包，無費用。",
+      "cancelHelp": "取消此帳戶的一張訂單。由交易密鑰簽署；無捆綁包，無費用。",
+      "withdrawHelp": "提取抵押品的請求；當涵蓋該請求的狀態證明上鏈後，以票據形式支付予收款人。票據的信封屬於收款人，不會顯示。",
+      "oracleHelp": "驗證者提交的預言機價格，每個市場一個。每個區塊的價格取最新提交價格的中位數。",
+      "stateProofHelp": "證明者對這些區塊的狀態轉換：引擎的新根、其支付的提取和收取的費用，並附本次運行的 STARK 證明。無簽署：證明即為授權。"
+    },
+    "multisig": {
+      "account": "帳戶",
+      "threshold": "門檻",
+      "ofSigners": "{n} 位簽署者中的 {m} 位",
+      "salt": "鹽值",
+      "funding": "注資",
+      "unfunded": "未銷毀任何資金",
+      "payouts": "支付",
+      "signedBy": "簽署者",
+      "newSet": "新簽署者集合",
+      "nonce": "帳戶 Nonce",
+      "now": "帳戶現況",
+      "nowValue": "{n} 位簽署者中的 {m} 位，Nonce {nonce}",
+      "emptyVault": "空金庫",
+      "createHelp": "建立一個 M-of-N 帳戶，其 ID 由鏈、鹽值、門檻和按次序排列的簽署者推導而成。捆綁包銷毀的金額即為其初始結餘；費用包含鏈的建立費。",
+      "depositHelp": "以捆綁包銷毀的金額為帳戶注資。任何人均可存入；無需簽署。",
+      "payHelp": "從帳戶的公開結餘中支付票據，由達到門檻的簽署者簽署（按位置標示）。每張票據的所有欄位均公開，因此收款人無需解密即可重建。帳戶亦從其 RAND 行支付捆綁包基本費用。",
+      "rotateHelp": "在 ID 和結餘不變的情況下，替換帳戶的簽署者集合和門檻，由舊集合中達到門檻的簽署者簽署。無費用。"
+    },
+    "price": {
+      "price": "價格",
+      "usdPerRand": "每 RAND {usd} USD",
+      "current": "目前價格",
+      "fresh": "最新",
+      "stale": "已過期",
+      "help": "驗證者集合對 RAND/USD 價格的投票，以美元計價的封存補貼按此價格換算。這是治理而非市場預言機：需超過三分之二的投票質押簽署，且每次更新價格最多變動兩倍。"
+    },
+    "aggregate": {
+      "covers": "涵蓋的捆綁包",
+      "layout": "結構",
+      "flat": "扁平",
+      "tree": "樹狀（2 合 1 步驟）",
+      "payout": "支付予聚合者的金額",
+      "aggregator": "聚合者",
+      "proofSize": "證明大小",
+      "help": "一個證明，取代其涵蓋區塊的各捆綁包證明。帳本恰好向聚合者支付其所簽署的支付總額，否則拒絕該聚合。"
     }
   },
   "note": {
@@ -1158,7 +1281,22 @@
     },
     "latestBlocks": "最新區塊",
     "latestTransactions": "最新交易",
-    "viewAll": "查看全部 →"
+    "viewAll": "查看全部 →",
+    "v080": {
+      "fees": "費用：",
+      "burnBase": "捆綁包基本費用被銷毀",
+      "burnFloor": "全部費用下限被銷毀",
+      "proposerShare": "提議者保留基本費用的 {percent}",
+      "proveBase": "證明份額：每個捆綁包 {amount}",
+      "usdSubsidy": "封存補貼：每區塊 {usd} USD，上限 {cap}",
+      "price": "RAND 價格 {usd} USD",
+      "multisig": "多簽：建立費 {fee}，最多 {signers} 位簽署者和 {payouts} 筆支付",
+      "perps": "永續合約：{markets}，證明最高至 {tier} 級，最多涵蓋 {window} 個區塊",
+      "perpsProved": "已證明至 #{height}",
+      "baseFeesBurned": "已銷毀基本費用 {amount}",
+      "multisigHeld": "多簽帳戶持有 {amount}（已發行 {issued}）",
+      "perpsHeld": "永續合約持有 {amount}"
+    }
   },
   "blocks": {
     "title": "區塊",
@@ -1198,7 +1336,19 @@
       "rotate_pq_guardians_v2": "PQ 守護者輪換(延遲)",
       "rotate_pause_key_v2": "暫停密鑰輪換(延遲)",
       "cancel_rotation": "輪換已取消",
-      "other": "其他"
+      "other": "其他",
+      "perp_deposit": "永續合約存入",
+      "perp_order": "永續合約訂單",
+      "perp_cancel": "永續合約訂單已取消",
+      "perp_withdraw": "永續合約提取請求",
+      "perp_oracle": "永續合約預言機價格",
+      "perp_state_proof": "永續合約狀態證明",
+      "create_multisig": "多重簽署帳戶已建立",
+      "multisig_deposit": "多簽存入",
+      "multisig_pay": "多簽支付",
+      "multisig_rotate": "多簽簽署者已輪換",
+      "set_rand_price": "RAND 價格投票",
+      "aggregate": "聚合證明"
     },
     "error": "無法載入交易。",
     "count": {

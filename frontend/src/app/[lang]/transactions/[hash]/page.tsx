@@ -6,7 +6,7 @@ import { KindBadge } from '@/components/KindBadge';
 import { TransactionOpener } from '@/components/TransactionOpener';
 import { DetailSkeleton } from '@/components/Loading';
 import { DetailRow, ErrorState, NotFoundState, PageHeader, Panel } from '@/components/States';
-import { isNotFound, useTokens, useTransaction } from '@/hooks/useApi';
+import { isNotFound, useMultisig, usePerps, useRandPrice, useTokens, useTransaction } from '@/hooks/useApi';
 import { formatBridgeAddress, knownBridgeChainName, resolveToken } from '@/lib/utils';
 import { L, useFmt, useT } from '@/i18n/client';
 import type { BridgeFeeNote, Bundle, Payout, ProgramCell, Receipt, TokenInfo, TransactionDetail } from '@/types';
@@ -772,6 +772,55 @@ function KindPanel({ tx, tokens }: { tx: TransactionDetail; tokens: TokenInfo[] 
     );
   }
 
+  if (tx.kind.startsWith('perp_')) {
+    return <PerpPanel tx={tx} tokens={tokens} title={title} />;
+  }
+
+  if (tx.kind === 'create_multisig' || tx.kind.startsWith('multisig_')) {
+    return <MultisigPanel tx={tx} tokens={tokens} title={title} />;
+  }
+
+  if (tx.kind === 'set_rand_price') {
+    return <RandPricePanel tx={tx} title={title} />;
+  }
+
+  if (tx.kind === 'aggregate') {
+    const a = tx.aggregate ?? null;
+    return (
+      <Panel title={title}>
+        <DetailRow label={t('tx.aggregate.covers')}>
+          <span className="font-mono">{a ? fmt.number(a.covers) : '—'}</span>
+        </DetailRow>
+        <DetailRow label={t('tx.aggregate.layout')}>
+          {a?.layout === 'tree' ? (
+            <span className="badge badge-accent">{t('tx.aggregate.tree')}</span>
+          ) : a?.layout === 'flat' ? (
+            <span>{t('tx.aggregate.flat')}</span>
+          ) : (
+            <span className="text-mute">—</span>
+          )}
+        </DetailRow>
+        <DetailRow label={t('tx.aggregate.payout')}>
+          {a?.payout_total != null ? (
+            <span className="text-base font-semibold text-strong">{fmt.amount(a.payout_total)}</span>
+          ) : (
+            <span className="text-mute">—</span>
+          )}
+        </DetailRow>
+        <DetailRow label={t('tx.aggregate.aggregator')}>
+          {a ? <Hash value={a.aggregator} full /> : <span className="text-mute">—</span>}
+        </DetailRow>
+        <DetailRow label={t('tx.aggregate.proofSize')}>
+          <span className="font-mono">{a ? fmt.bytes(a.proof_len) : '—'}</span>
+        </DetailRow>
+        <DetailRow label={t('tx.nonce')}>
+          <span className="font-mono">{a ? fmt.number(a.nonce) : '—'}</span>
+        </DetailRow>
+        <p className="px-4 py-3 text-xs text-mute">{t('tx.aggregate.help')}</p>
+      </Panel>
+    );
+  }
+
   if (tx.kind === 'admit_validator' || tx.kind === 'slash_equivocation') {
     const action = tx.staking_action;
     return (
@@ -822,6 +871,345 @@ function KindPanel({ tx, tokens }: { tx: TransactionDetail; tokens: TokenInfo[] 
   return (
     <Panel title={title}>
       <p className="px-4 py-3 text-sm text-mute">{t('tx.unknownKind.help')}</p>
+    </Panel>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Fullnode v0.8.0: perps, multisig accounts, the RAND price vote
+// ---------------------------------------------------------------------------
+
+/** Signers named by their position in an account's (or the guardian set's) list. */
+function Positions({ list }: { list: number[] }) {
+  return <span className="font-mono">{list.length ? list.map((i) => `#${i}`).join(', ') : '—'}</span>;
+}
+
+/** A collateral amount: in the perps collateral asset's own units when the chain says which,
+ * else the bare units. */
+function useCollateral(tokens: TokenInfo[]) {
+  const fmt = useFmt();
+  const { data: perps } = usePerps();
+  const asset = perps?.collateral_asset;
+  return {
+    perps,
+    asset,
+    amount: (units: string) => (asset === undefined ? fmt.units(units, 0) : fmt.tokenAmount(units, asset, tokens)),
+  };
+}
+
+function PerpPanel({ tx, tokens, title }: { tx: TransactionDetail; tokens: TokenInfo[]; title: string }) {
+  const { t } = useT();
+  const fmt = useFmt();
+  const { perps, asset, amount } = useCollateral(tokens);
+  const a = tx.perp_action ?? null;
+  const market = (id: number) => perps?.markets.find((m) => m.id === id)?.symbol ?? t('tx.perp.marketId', { id });
+  const help =
+    a?.kind === 'perp_deposit'
+      ? t('tx.perp.depositHelp')
+      : a?.kind === 'perp_order'
+        ? t('tx.perp.orderHelp')
+        : a?.kind === 'perp_cancel'
+          ? t('tx.perp.cancelHelp')
+          : a?.kind === 'perp_withdraw'
+            ? t('tx.perp.withdrawHelp')
+            : a?.kind === 'perp_oracle'
+              ? t('tx.perp.oracleHelp')
+              : t('tx.perp.stateProofHelp');
+  const account = a && 'account' in a ? a.account : null;
+  return (
+    <Panel title={title}>
+      {account && (
+        <DetailRow label={t('tx.perp.account')}>
+          <Hash value={account} full />
+        </DetailRow>
+      )}
+      {a?.kind === 'perp_deposit' && (
+        <>
+          <DetailRow label={t('tx.perp.tradingKey')}>
+            <Hash value={a.trading_key} start={16} end={8} />
+          </DetailRow>
+          <DetailRow label={t('tx.perp.deposited')}>
+            {tx.bundle && tx.bundle.burn_a !== '0' ? (
+              <span className="text-base font-semibold text-strong">
+                {fmt.tokenAmount(tx.bundle.burn_a, tx.bundle.burn_asset, tokens)}
+              </span>
+            ) : tx.bundle && tx.bundle.burn_r !== '0' ? (
+              <span className="text-base font-semibold text-strong">{fmt.amount(tx.bundle.burn_r)}</span>
+            ) : (
+              <span className="text-mute">—</span>
+            )}
+          </DetailRow>
+        </>
+      )}
+      {a?.kind === 'perp_order' && (
+        <>
+          <DetailRow label={t('tx.perp.market')}>
+            <span className="font-mono">{market(a.body.market)}</span>
+          </DetailRow>
+          <DetailRow label={t('tx.perp.side')}>
+            <span className={a.body.side === 0 ? 'badge badge-mint' : 'badge badge-bridge'}>
+              {a.body.side === 0 ? t('tx.perp.buy') : t('tx.perp.sell')}
+            </span>
+          </DetailRow>
+          <DetailRow label={t('tx.perp.orderType')}>
+            <span>
+              {a.body.kind === 0 ? t('tx.perp.limit') : t('tx.perp.marketOrder')} ·{' '}
+              {a.body.tif === 0 ? t('tx.perp.gtc') : a.body.tif === 1 ? t('tx.perp.ioc') : t('tx.perp.postOnly')}
+              {a.body.reduce_only && <> · {t('tx.perp.reduceOnly')}</>}
+            </span>
+          </DetailRow>
+          <DetailRow label={t('tx.perp.price')}>
+            {a.body.kind === 1 ? (
+              <span className="text-mute">{t('tx.perp.atMarket')}</span>
+            ) : (
+              <span className="font-semibold text-strong">{amount(a.body.price)}</span>
+            )}
+          </DetailRow>
+          <DetailRow label={t('tx.perp.size')}>
+            <span className="font-mono">{fmt.units(a.body.size, 0)}</span>
+          </DetailRow>
+          <DetailRow label={t('tx.perp.nonce')}>
+            <span className="font-mono">{fmt.number(a.body.nonce)}</span>
+          </DetailRow>
+        </>
+      )}
+      {a?.kind === 'perp_cancel' && (
+        <>
+          <DetailRow label={t('tx.perp.cancels')}>
+            <span>{t('tx.perp.cancelsValue', { nonce: fmt.number(a.target) })}</span>
+          </DetailRow>
+          <DetailRow label={t('tx.perp.nonce')}>
+            <span className="font-mono">{fmt.number(a.nonce)}</span>
+          </DetailRow>
+        </>
+      )}
+      {a?.kind === 'perp_withdraw' && (
+        <>
+          <DetailRow label={t('tx.amount')}>
+            <span className="text-base font-semibold text-strong">{amount(a.amount)}</span>
+          </DetailRow>
+          <DetailRow label={t('tx.perp.paidTo')}>
+            <Hash value={a.recipient} start={12} end={8} />
+          </DetailRow>
+          <DetailRow label={t('tx.noteTime')}>
+            <L href={`/blocks/${a.time}`} className="link font-mono">
+              #{fmt.number(a.time)}
+            </L>
+          </DetailRow>
+          <DetailRow label={t('tx.perp.nonce')}>
+            <span className="font-mono">{fmt.number(a.nonce)}</span>
+          </DetailRow>
+        </>
+      )}
+      {a?.kind === 'perp_oracle' && (
+        <>
+          <ValidatorRow label={t('tx.staking.validator')} address={a.validator} />
+          <DetailRow label={t('tx.perp.prices')}>
+            <ul className="space-y-1">
+              {a.prices.map((p) => (
+                <li key={p.market}>
+                  <span className="font-mono">{market(p.market)}</span>{' '}
+                  <span className="font-semibold text-strong">{amount(p.price)}</span>
+                </li>
+              ))}
+            </ul>
+          </DetailRow>
+          <DetailRow label={t('tx.nonce')}>
+            <span className="font-mono">{fmt.number(a.nonce)}</span>
+          </DetailRow>
+        </>
+      )}
+      {a?.kind === 'perp_state_proof' && (
+        <>
+          <DetailRow label={t('tx.perp.window')}>
+            <span className="inline-flex flex-wrap items-center gap-1 font-mono">
+              <L href={`/blocks/${a.from_height + 1}`} className="link">
+                #{fmt.number(a.from_height + 1)}
+              </L>
+              <span className="text-mute">→</span>
+              <L href={`/blocks/${a.to_height}`} className="link">
+                #{fmt.number(a.to_height)}
+              </L>
+            </span>
+          </DetailRow>
+          <DetailRow label={t('tx.perp.newRoot')}>
+            <Hash value={a.new_root} full />
+          </DetailRow>
+          <DetailRow label={t('tx.perp.payouts')}>
+            {a.payouts.length === 0 ? (
+              <span className="text-mute">{t('tx.invoke.none')}</span>
+            ) : (
+              <ul className="space-y-1">
+                {a.payouts.map((p) => (
+                  <li key={p.request} className="inline-flex flex-wrap items-center gap-2">
+                    <span className="font-semibold text-strong">{amount(p.amount)}</span>
+                    <span className="text-xs text-mute">{t('tx.perp.request')}</span>
+                    <Hash value={p.request} start={10} end={6} className="text-xs" />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </DetailRow>
+          <DetailRow label={t('tx.perp.fees')}>
+            <span>{amount(a.fees)}</span>
+          </DetailRow>
+          <DetailRow label={t('tx.perp.proofSize')}>
+            <span className="font-mono">{fmt.bytes(a.proof_bytes)}</span>
+          </DetailRow>
+        </>
+      )}
+      {asset !== undefined && asset !== 0 && (
+        <DetailRow label={t('tx.perp.collateral')}>
+          <AssetLink index={asset} tokens={tokens} />
+        </DetailRow>
+      )}
+      <p className="px-4 py-3 text-xs text-mute">{help}</p>
+    </Panel>
+  );
+}
+
+function MultisigPanel({ tx, tokens, title }: { tx: TransactionDetail; tokens: TokenInfo[]; title: string }) {
+  const { t } = useT();
+  const fmt = useFmt();
+  const a = tx.multisig_action ?? null;
+  const id = a && 'account' in a ? a.account : null;
+  const { data: account } = useMultisig(id);
+  const funded = tx.bundle && (tx.bundle.burn_r !== '0' || tx.bundle.burn_a !== '0');
+  const help =
+    a?.kind === 'create_multisig'
+      ? t('tx.multisig.createHelp')
+      : a?.kind === 'multisig_deposit'
+        ? t('tx.multisig.depositHelp')
+        : a?.kind === 'multisig_pay'
+          ? t('tx.multisig.payHelp')
+          : t('tx.multisig.rotateHelp');
+  return (
+    <Panel title={title}>
+      {id && (
+        <DetailRow label={t('tx.multisig.account')}>
+          <Hash value={id} full />
+        </DetailRow>
+      )}
+      {a?.kind === 'create_multisig' && (
+        <>
+          <DetailRow label={t('tx.multisig.threshold')}>
+            <span className="font-mono">{t('tx.multisig.ofSigners', { m: fmt.number(a.threshold), n: fmt.number(a.signer_count) })}</span>
+          </DetailRow>
+          <DetailRow label={t('tx.multisig.salt')}>
+            <Hash value={a.salt} start={10} end={6} />
+          </DetailRow>
+        </>
+      )}
+      {(a?.kind === 'create_multisig' || a?.kind === 'multisig_deposit') && (
+        <DetailRow label={t('tx.multisig.funding')}>
+          {funded && tx.bundle ? (
+            <span className="font-semibold text-strong">
+              {tx.bundle.burn_r !== '0' && fmt.amount(tx.bundle.burn_r)}
+              {tx.bundle.burn_r !== '0' && tx.bundle.burn_a !== '0' && ` ${t('tx.invoke.and')} `}
+              {tx.bundle.burn_a !== '0' && fmt.tokenAmount(tx.bundle.burn_a, tx.bundle.burn_asset, tokens)}
+            </span>
+          ) : (
+            <span className="text-mute">{t('tx.multisig.unfunded')}</span>
+          )}
+        </DetailRow>
+      )}
+      {a?.kind === 'multisig_pay' && (
+        <>
+          <DetailRow label={t('tx.multisig.payouts')}>
+            <PayoutList payouts={a.pays} tokens={tokens} />
+          </DetailRow>
+          <DetailRow label={t('tx.multisig.signedBy')}>
+            <Positions list={a.signers} />
+          </DetailRow>
+          <DetailRow label={t('tx.noteTime')}>
+            <L href={`/blocks/${a.time}`} className="link font-mono">
+              #{fmt.number(a.time)}
+            </L>
+          </DetailRow>
+        </>
+      )}
+      {a?.kind === 'multisig_rotate' && (
+        <>
+          <DetailRow label={t('tx.multisig.newSet')}>
+            <span className="font-mono">{t('tx.multisig.ofSigners', { m: fmt.number(a.threshold), n: fmt.number(a.signer_count) })}</span>
+          </DetailRow>
+          <DetailRow label={t('tx.multisig.signedBy')}>
+            <Positions list={a.signed_by} />
+          </DetailRow>
+        </>
+      )}
+      {(a?.kind === 'multisig_pay' || a?.kind === 'multisig_rotate') && (
+        <DetailRow label={t('tx.multisig.nonce')}>
+          <span className="font-mono">{fmt.number(a.nonce)}</span>
+        </DetailRow>
+      )}
+      {account && (
+        <DetailRow label={t('tx.multisig.now')}>
+          <span className="flex flex-col gap-1">
+            <span>
+              {t('tx.multisig.nowValue', {
+                m: fmt.number(account.threshold),
+                n: fmt.number(account.signers.length),
+                nonce: fmt.number(account.nonce),
+              })}
+            </span>
+            <span className="text-xs text-mute">
+              {account.vault.length === 0
+                ? t('tx.multisig.emptyVault')
+                : account.vault.map((v) => fmt.tokenAmount(v.amount, v.asset, tokens)).join(' · ')}
+            </span>
+          </span>
+        </DetailRow>
+      )}
+      <p className="px-4 py-3 text-xs text-mute">{help}</p>
+    </Panel>
+  );
+}
+
+function RandPricePanel({ tx, title }: { tx: TransactionDetail; title: string }) {
+  const { t, tp } = useT();
+  const fmt = useFmt();
+  const { data: current } = useRandPrice();
+  const a = tx.staking_action?.kind === 'set_rand_price' ? tx.staking_action : null;
+  return (
+    <Panel title={title}>
+      <DetailRow label={t('tx.price.price')}>
+        {a ? (
+          <span className="text-base font-semibold text-strong">
+            {t('tx.price.usdPerRand', { usd: fmt.units(a.price_micros_per_rand, 6) })}
+          </span>
+        ) : (
+          <span className="text-mute">—</span>
+        )}
+      </DetailRow>
+      <DetailRow label={t('tx.nonce')}>
+        <span className="font-mono">{tx.action_nonce === null ? '—' : fmt.number(tx.action_nonce)}</span>
+      </DetailRow>
+      {a && (
+        <>
+          <DetailRow label={t('tx.admit.voters')}>
+            <span className="font-mono">{tp('tx.admit.validators', a.voters.length)}</span>
+          </DetailRow>
+          <DetailRow label={t('tx.admit.votedBy')}>
+            <span className="flex flex-col gap-1">
+              {a.voters.map((v) => (
+                <Hash key={v} value={v} href={`/validators/${v}`} start={10} end={6} />
+              ))}
+            </span>
+          </DetailRow>
+        </>
+      )}
+      {current && (
+        <DetailRow label={t('tx.price.current')}>
+          <span>
+            {t('tx.price.usdPerRand', { usd: fmt.units(current.price_micros_per_rand, 6) })}{' '}
+            <span className="text-xs text-mute">
+              · {current.fresh ? t('tx.price.fresh') : t('tx.price.stale')} · #{fmt.number(current.set_at_height)}
+            </span>
+          </span>
+        </DetailRow>
+      )}
+      <p className="px-4 py-3 text-xs text-mute">{t('tx.price.help')}</p>
     </Panel>
   );
 }

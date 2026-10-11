@@ -1,8 +1,11 @@
 use crate::{error::AppError, state::AppState, ApiResult};
-use axum::{extract::State, Json};
+use axum::{
+    extract::{Path, State},
+    Json,
+};
 use randscan_core::{
-    approved_token, ApprovedToken, BridgeAsset, BridgeAssetActivity, BridgeState, Supply,
-    APPROVED_TOKENS,
+    approved_token, ApprovedToken, BridgeAsset, BridgeAssetActivity, BridgeState, MultisigAccount,
+    PerpsInfo, RandPrice, Supply, APPROVED_TOKENS,
 };
 use randscan_db::{BridgeAssetFlowRow, BridgeBackingBurnRow};
 
@@ -124,6 +127,53 @@ pub async fn get_supply(State(state): State<AppState>) -> ApiResult<Json<Supply>
         .await
         .map(Json)
         .ok_or_else(|| AppError::NotFound("supply audit".into()))
+}
+
+/// GET /api/v1/perps — the perps exchange's public state (RPL-3, fullnode v0.8.0): markets,
+/// collateral asset, the proved root and height, the oracle medians. 404 on a chain without a
+/// `perps` section.
+pub async fn get_perps(State(state): State<AppState>) -> ApiResult<Json<PerpsInfo>> {
+    state
+        .indexer
+        .perps()
+        .await
+        .map(Json)
+        .ok_or_else(|| AppError::NotFound("perps".into()))
+}
+
+/// GET /api/v1/multisig/:id — one multisig account as the node holds it now (fullnode v0.8.0):
+/// signers, threshold, nonce and vault. Read live: an account is public register state, like a
+/// program's vault. 404 for an unknown id and on a chain without the section; 400 for an id that
+/// is not 64 hex characters.
+pub async fn get_multisig(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> ApiResult<Json<MultisigAccount>> {
+    let id = id.trim_start_matches("0x").to_ascii_lowercase();
+    if id.len() != 64 || !id.bytes().all(|b| b.is_ascii_hexdigit()) {
+        return Err(AppError::BadRequest(
+            "a multisig id is 64 hex characters".into(),
+        ));
+    }
+    state
+        .indexer
+        .rpc()
+        .multisig(&id)
+        .await
+        .map_err(|e| AppError::Internal(format!("multisig account: {e:#}")))?
+        .map(Json)
+        .ok_or_else(|| AppError::NotFound(format!("multisig account {id}")))
+}
+
+/// GET /api/v1/price — the validator set's voted RAND/USD price (fullnode v0.8.0,
+/// `fees.usd_subsidy`). 404 on a chain without one.
+pub async fn get_rand_price(State(state): State<AppState>) -> ApiResult<Json<RandPrice>> {
+    state
+        .indexer
+        .rand_price()
+        .await
+        .map(Json)
+        .ok_or_else(|| AppError::NotFound("RAND price".into()))
 }
 
 #[cfg(test)]

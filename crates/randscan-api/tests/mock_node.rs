@@ -804,7 +804,9 @@ async fn indexes_every_shielded_kind_and_survives_hard_forks() {
         "max_gas_price": null, "max_byte_price": null, "byte_load": null, "admission_by_vote": false,
         "testnet": false, "slashing": null, "binding_domain": null, "proof_window_blocks": null,
         // Fee feedback: the mock serves `null`, a chain without a `fees` section.
-        "fee_rules": null })
+        "fee_rules": null,
+        // Fullnode v0.8.0's groups, absent from this (older) mock's reply: `null`.
+        "multisig": null, "perps": null })
     );
     // Off `rand_status`, refreshed every commit: the auth guest, and the tip's live prices (one
     // 12.5% step above the genesis prices the limits report — a dynamic chain moves them).

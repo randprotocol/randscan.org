@@ -3,7 +3,7 @@
 
 use crate::{BlockProcessor, Broadcaster, IndexerConfig, NodeTracker, RpcClient};
 use anyhow::Result;
-use randscan_core::{BridgeState, NetworkStats, NodeInfo, Supply, TokenList};
+use randscan_core::{BridgeState, NetworkStats, NodeInfo, PerpsInfo, RandPrice, Supply, TokenList};
 use randscan_db::{self as db, DbPool, NewValidator, StatsUpdate};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -45,6 +45,11 @@ pub struct IndexerService {
     /// token any one caller cares about (unlike `rand_getToken`), and a token list page is what
     /// a wallet's own `resolve_asset` reads through.
     tokens: RwLock<Option<TokenList>>,
+    /// Fullnode v0.8.0: the perps exchange's public state (`rand_getPerps`) and the voted RAND/USD
+    /// price (`rand_getRandPrice`), refreshed with the stats. `None` on a chain without the
+    /// section, or a node without the method.
+    perps: RwLock<Option<PerpsInfo>>,
+    rand_price: RwLock<Option<RandPrice>>,
     nodes: Arc<NodeTracker>,
 }
 
@@ -74,6 +79,8 @@ impl IndexerService {
             bridge: RwLock::new(None),
             supply: RwLock::new(None),
             tokens: RwLock::new(None),
+            perps: RwLock::new(None),
+            rand_price: RwLock::new(None),
             nodes,
         }
     }
@@ -106,6 +113,17 @@ impl IndexerService {
     /// The supply audit as last read from the node (`None` on a node without it).
     pub async fn supply(&self) -> Option<Supply> {
         self.supply.read().await.clone()
+    }
+
+    /// The perps exchange as last read from the node: `None` on a chain without a `perps`
+    /// section (the node's `{"enabled": false}`) and on a node predating the method.
+    pub async fn perps(&self) -> Option<PerpsInfo> {
+        self.perps.read().await.clone()
+    }
+
+    /// The validator set's voted RAND/USD price: `None` on a chain without `fees.usd_subsidy`.
+    pub async fn rand_price(&self) -> Option<RandPrice> {
+        self.rand_price.read().await.clone()
     }
 
     pub async fn get_state(&self) -> IndexerState {
@@ -200,6 +218,8 @@ impl IndexerService {
         *self.bridge.write().await = None;
         *self.supply.write().await = None;
         *self.tokens.write().await = None;
+        *self.perps.write().await = None;
+        *self.rand_price.write().await = None;
         self.state.write().await.current_height = -1;
         Ok(true)
     }
@@ -353,6 +373,14 @@ impl IndexerService {
         match self.rpc.tokens_all().await {
             Ok(t) => *self.tokens.write().await = Some(t),
             Err(e) => warn!("token registry refresh failed: {:#}", e),
+        }
+        match self.rpc.perps().await {
+            Ok(p) => *self.perps.write().await = p,
+            Err(e) => warn!("perps refresh failed: {:#}", e),
+        }
+        match self.rpc.rand_price().await {
+            Ok(p) => *self.rand_price.write().await = p,
+            Err(e) => warn!("RAND price refresh failed: {:#}", e),
         }
         match self.refresh_stats().await {
             Ok(stats) => self.broadcaster.stats(stats),

@@ -35,6 +35,18 @@ export type TransactionKind =
   | 'rotate_pq_guardians_v2'
   | 'rotate_pause_key_v2'
   | 'cancel_rotation'
+  | 'perp_deposit'
+  | 'perp_order'
+  | 'perp_cancel'
+  | 'perp_withdraw'
+  | 'perp_oracle'
+  | 'perp_state_proof'
+  | 'create_multisig'
+  | 'multisig_deposit'
+  | 'multisig_pay'
+  | 'multisig_rotate'
+  | 'set_rand_price'
+  | 'aggregate'
   | 'other';
 
 export type HealthStatus = 'healthy' | 'degraded' | 'unhealthy';
@@ -239,9 +251,12 @@ export type BridgeGovernanceAction =
   | { kind: 'rotate_pause_key_v2'; new_pause_key: string; nonce: number; pq_signers: number[] }
   | { kind: 'cancel_rotation'; rotation_kind: 'pq_guardians' | 'pause_key' | string; nonce: number };
 
-/** Audit v6's validator-set actions (v0.6.8): bundle-less and fee-less. */
+/** Audit v6's validator-set actions (v0.6.8) and the RAND/USD price vote (fullnode v0.8.0):
+ * bundle-less and fee-less. */
 export type StakingAction =
   | { kind: 'admit_validator'; candidate: string; candidate_key: string; voters: string[] }
+  /** micro-dollars per RAND, decimal string */
+  | { kind: 'set_rand_price'; price_micros_per_rand: string; nonce: number; voters: string[] }
   | {
       kind: 'slash_equivocation';
       offender: string;
@@ -249,6 +264,100 @@ export type StakingAction =
       first: { hash: string; height: number };
       second: { hash: string; height: number };
     };
+
+/** An order as its trader signed it (RPL-3): `side` 0 buy / 1 sell, `kind` 0 limit / 1 market,
+ * `tif` 0 GTC / 1 IOC / 2 post-only. `price` in collateral units ("0" on a market order), `size`
+ * a multiple of the market's lot. */
+export interface PerpOrderBody {
+  nonce: number;
+  market: number;
+  side: number;
+  kind: number;
+  tif: number;
+  reduce_only: boolean;
+  price: string;
+  size: string;
+}
+
+/** RPL-3 perps (fullnode v0.8.0, genesis `perps`). Amounts are in the collateral asset's units
+ * (`limits.perps.collateral_asset`; zUSD on chain 21), not RAND's. */
+export type PerpAction =
+  | { kind: 'perp_deposit'; trading_key: string; account: string }
+  | { kind: 'perp_order'; account: string; body: PerpOrderBody }
+  | { kind: 'perp_cancel'; account: string; nonce: number; target: number }
+  | { kind: 'perp_withdraw'; account: string; nonce: number; amount: string; recipient: string; time: number }
+  | { kind: 'perp_oracle'; validator: string; prices: Array<{ market: number; price: string }>; nonce: number }
+  | {
+      kind: 'perp_state_proof';
+      from_height: number;
+      to_height: number;
+      new_root: string;
+      payouts: Array<{ request: string; amount: string }>;
+      fees: string;
+      proof_bytes: number;
+    };
+
+/** Multisig accounts (fullnode v0.8.0, genesis `multisig`): signers named by their position in
+ * the account's list. */
+export type MultisigAction =
+  | { kind: 'create_multisig'; salt: string; threshold: number; signer_count: number }
+  | { kind: 'multisig_deposit'; account: string }
+  | { kind: 'multisig_pay'; account: string; nonce: number; time: number; pays: Payout[]; signers: number[] }
+  | { kind: 'multisig_rotate'; account: string; nonce: number; threshold: number; signer_count: number; signed_by: number[] };
+
+/** Block aggregation's aggregate; `payout_total` (RAND units) and `layout` from fullnode v0.8.0. */
+export interface AggregateAction {
+  covers: number;
+  proof_len: number;
+  aggregator: string;
+  nonce: number;
+  time: number;
+  payout_total: string | null;
+  layout: 'flat' | 'tree' | string | null;
+}
+
+/** `GET /multisig/:id`: one account as the node holds it now. */
+export interface MultisigAccount {
+  id: string;
+  signers: string[];
+  threshold: number;
+  nonce: number;
+  vault: Array<{ asset: number; amount: string }>;
+}
+
+/** `GET /perps`: the perps exchange's public state (RPL-3); 404 on a chain without it. */
+export interface PerpsInfo {
+  enabled: boolean;
+  collateral_asset: number;
+  markets: Array<{
+    id: number;
+    symbol: string;
+    lot: string;
+    tick: string;
+    max_leverage: number;
+    maintenance_bps: number;
+    taker_fee_bps: number;
+    maker_fee_bps: number;
+  }>;
+  engine_hc: string | null;
+  proved_root: string | null;
+  proved_height: number | null;
+  head_height: number | null;
+  pending_heights: number[];
+  medians: Array<{ market: number; price: string }>;
+  accounts: number;
+  pending_withdrawals: number;
+}
+
+/** `GET /price`: the validator set's voted RAND/USD price; 404 on a chain without one. */
+export interface RandPrice {
+  /** micro-dollars per RAND, decimal string */
+  price_micros_per_rand: string;
+  set_at_height: number;
+  nonce: number;
+  fresh: boolean;
+  max_age_blocks: number;
+}
 
 /** A bridge fee note (v0.6.8, genesis `bridge.fees`): every word but its owner (the fee
  * recipient). An extra leaf with no envelope. */
@@ -348,8 +457,14 @@ export interface TransactionDetail extends TransactionSummary {
   release_amount?: string | null;
   /** bridge_attest / bridge_burn (v0.6.8): the fee note, null without `bridge.fees`. */
   fee_note?: BridgeFeeNote | null;
-  /** admit_validator / slash_equivocation. */
+  /** admit_validator / slash_equivocation / set_rand_price. */
   staking_action?: StakingAction | null;
+  /** perp_* (fullnode v0.8.0). */
+  perp_action?: PerpAction | null;
+  /** create_multisig / multisig_deposit / multisig_pay / multisig_rotate (fullnode v0.8.0). */
+  multisig_action?: MultisigAction | null;
+  /** aggregate. */
+  aggregate?: AggregateAction | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -680,6 +795,19 @@ export interface Supply {
    * (register side); "0" without the section, absent on an older API. */
   program_rand_out?: string | null;
   program_rand_held?: string | null;
+  /** Fee feedback: bundle bases burned under `fees.burn_base`; "0" without the flag. */
+  base_fees_burned?: string | null;
+  /** Multisig accounts (fullnode v0.8.0): genesis issuance into accounts, RAND in from creates
+   * and deposits, RAND paid out as notes, bases paid to proposers, and what the accounts hold;
+   * "0" without the section, absent from an older node. */
+  multisig_issued?: string | null;
+  multisig_rand_in?: string | null;
+  multisig_rand_out?: string | null;
+  multisig_base_out?: string | null;
+  multisig_rand_held?: string | null;
+  /** RPL-3 perps: RAND paid out of the exchange and what it holds; "0" on a token collateral. */
+  perps_rand_out?: string | null;
+  perps_rand_held?: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -862,6 +990,32 @@ export interface ChainLimits {
   binding_domain?: number | null;
   /** Issue #118: anchor and time window in blocks; null = 256. */
   proof_window_blocks?: number | null;
+  /** The genesis `fees` section (fullnode v0.8.0 adds the split and the dollar subsidy); null
+   * without one. */
+  fee_rules?: {
+    burn_base: boolean;
+    subsidy_net_of_fees: boolean;
+    burn_floor: boolean;
+    proposer_share_bps?: number | null;
+    /** RAND units every bundle's floor rises by, decimal string */
+    prove_base?: string | null;
+    usd_subsidy?: {
+      usd_micros_per_sealed_block: string;
+      max_subsidy_per_block: string;
+      price_max_age_blocks: number;
+    } | null;
+  } | null;
+  /** Multisig accounts (fullnode v0.8.0); null without the section. */
+  multisig?: { create_fee: string; max_signers: number; max_payouts: number } | null;
+  /** RPL-3 perps (fullnode v0.8.0); null without the section. */
+  perps?: {
+    collateral_asset: number;
+    max_tier: number;
+    max_window_blocks: number;
+    max_payouts: number;
+    max_block_inputs: number;
+    min_deposit: string;
+  } | null;
 }
 
 /** `GET /validators/admitted` (audit v6, STAKE-2). */

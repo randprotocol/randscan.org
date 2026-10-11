@@ -304,6 +304,40 @@ impl RpcClient {
             .await
     }
 
+    /// RPL-3 (fullnode v0.8.0): the perps exchange's public state. `None` on a chain without a
+    /// `perps` section (`{"enabled": false}`) and on a node without the method.
+    pub async fn perps(&self) -> Result<Option<randscan_core::PerpsInfo>> {
+        let p: Option<randscan_core::PerpsInfo> = self
+            .call_optional_method("rand_getPerps", serde_json::json!([]))
+            .await?;
+        Ok(p.filter(|p| p.enabled))
+    }
+
+    /// Fullnode v0.8.0: one multisig account by its 64-hex id. `None` for an id the register does
+    /// not hold, on a chain without the section (`{"enabled": false}`), and on a node without
+    /// the method.
+    pub async fn multisig(&self, id: &str) -> Result<Option<randscan_core::MultisigAccount>> {
+        let v: Option<serde_json::Value> = self
+            .call_optional_method("rand_getMultisig", serde_json::json!([id]))
+            .await?;
+        match v {
+            Some(v) if v.get("id").is_some() => Ok(Some(serde_json::from_value(v)?)),
+            _ => Ok(None),
+        }
+    }
+
+    /// Fullnode v0.8.0: the validator set's voted RAND/USD price. `None` on a chain without
+    /// `fees.usd_subsidy` (the node answers `null`) and on a node without the method.
+    pub async fn rand_price(&self) -> Result<Option<randscan_core::RandPrice>> {
+        let v: Option<serde_json::Value> = self
+            .call_optional_method("rand_getRandPrice", serde_json::json!([]))
+            .await?;
+        match v {
+            Some(v @ serde_json::Value::Object(_)) => Ok(Some(serde_json::from_value(v)?)),
+            _ => Ok(None),
+        }
+    }
+
     /// The node's build (v0.3). `None` on a node without the method.
     pub async fn version(&self) -> Result<Option<RpcVersion>> {
         self.call_optional_method("rand_getVersion", serde_json::json!([]))
@@ -657,8 +691,48 @@ pub enum RpcAction {
     },
     /// Audit v6, BRG-14 (32).
     CancelRotation { rotation_kind: String, nonce: u64 },
+    /// RPL-3 perps (fullnode v0.8.0, tags 34–39), parsed straight into the explorer's own type:
+    /// the node's `tx_json` and `randscan_core::PerpAction` share every tag and field.
+    Perp(randscan_core::PerpAction),
+    /// Multisig accounts (fullnode v0.8.0, tags 40–43), likewise.
+    Multisig(randscan_core::MultisigAction),
+    /// The validator set's RAND/USD price vote (fullnode v0.8.0, tag 44).
+    SetRandPrice {
+        price_micros_per_rand: Units,
+        nonce: u64,
+        voters: Vec<String>,
+    },
+    /// Block aggregation: one proof over `covers` bundles (`payout_total` and `layout` from
+    /// fullnode v0.8.0).
+    Aggregate(randscan_core::AggregateAction),
     /// A kind this build does not decode; `kind` is the node's tag.
     Unknown { kind: String },
+}
+
+/// The node's `perp_*` tags, every one a [`randscan_core::PerpAction`] variant.
+const PERP_TAGS: &[&str] = &[
+    "perp_deposit",
+    "perp_order",
+    "perp_cancel",
+    "perp_withdraw",
+    "perp_oracle",
+    "perp_state_proof",
+];
+
+/// The node's multisig tags, every one a [`randscan_core::MultisigAction`] variant.
+const MULTISIG_TAGS: &[&str] = &[
+    "create_multisig",
+    "multisig_deposit",
+    "multisig_pay",
+    "multisig_rotate",
+];
+
+#[derive(Deserialize)]
+struct SetRandPriceBody {
+    price_micros_per_rand: Units,
+    nonce: u64,
+    #[serde(default)]
+    voters: Vec<String>,
 }
 
 /// An invoke's transition as the node renders it — the shape `randscan_core::Transition` keeps,
@@ -998,6 +1072,35 @@ impl<'de> Deserialize<'de> for RpcAction {
             .and_then(|t| t.as_str())
             .ok_or_else(|| serde::de::Error::missing_field("kind"))?
             .to_string();
+        // Fullnode v0.8.0's kinds parse into the explorer's own types; a malformed body of one
+        // of them is an error, as for every other known kind.
+        let custom = serde::de::Error::custom;
+        if PERP_TAGS.contains(&tag.as_str()) {
+            return serde_json::from_value(value)
+                .map(RpcAction::Perp)
+                .map_err(custom);
+        }
+        if MULTISIG_TAGS.contains(&tag.as_str()) {
+            return serde_json::from_value(value)
+                .map(RpcAction::Multisig)
+                .map_err(custom);
+        }
+        match tag.as_str() {
+            "set_rand_price" => {
+                let b: SetRandPriceBody = serde_json::from_value(value).map_err(custom)?;
+                return Ok(RpcAction::SetRandPrice {
+                    price_micros_per_rand: b.price_micros_per_rand,
+                    nonce: b.nonce,
+                    voters: b.voters,
+                });
+            }
+            "aggregate" => {
+                return serde_json::from_value(value)
+                    .map(RpcAction::Aggregate)
+                    .map_err(custom);
+            }
+            _ => {}
+        }
         match serde_json::from_value::<KnownAction>(value) {
             Ok(k) => Ok(match k {
                 KnownAction::None => RpcAction::None,
@@ -1933,5 +2036,223 @@ mod tests {
         assert_eq!(s.notes, 41);
         assert_eq!(s.address, None);
         assert_eq!(s.active_validator, None);
+    }
+
+    /// Fullnode v0.8.0's twelve renderings, field for field as `tx_json` writes them at 37c4fdd3
+    /// (`crates/randprotocol-node/src/rpc.rs`; its tests
+    /// `tx_json_renders_the_perp_actions_and_compact_blocks_attribute_payouts` and the multisig
+    /// one pin the same shapes).
+    pub(crate) fn v080_actions() -> Vec<serde_json::Value> {
+        let w = |b: &str| b.repeat(32);
+        vec![
+            serde_json::json!({ "kind": "perp_deposit", "trading_key": "ab".repeat(40), "account": w("01") }),
+            serde_json::json!({ "kind": "perp_order", "account": w("01"),
+                "body": { "nonce": 3, "market": 0, "side": 1, "kind": 0, "tif": 2, "reduce_only": false,
+                          "price": "6425000000000", "size": "100000" } }),
+            serde_json::json!({ "kind": "perp_cancel", "account": w("01"), "nonce": 5, "target": 4 }),
+            serde_json::json!({ "kind": "perp_withdraw", "account": w("01"), "nonce": 6, "amount": "2000000",
+                "recipient": "rand1qq", "time": 41 }),
+            serde_json::json!({ "kind": "perp_oracle", "validator": "2nRd",
+                "prices": [{ "market": 0, "price": "6425000000000" }], "nonce": 9 }),
+            serde_json::json!({ "kind": "perp_state_proof", "from_height": 120, "to_height": 131, "new_root": w("02"),
+                "payouts": [{ "request": w("03"), "amount": "2000000" }], "fees": "1500", "proof_bytes": 412345 }),
+            serde_json::json!({ "kind": "create_multisig", "salt": w("05"), "threshold": 2, "signer_count": 3 }),
+            serde_json::json!({ "kind": "multisig_deposit", "account": w("06") }),
+            serde_json::json!({ "kind": "multisig_pay", "account": w("06"), "nonce": 0, "time": 77,
+                "pays": [{ "asset": 0, "amount": "1000000000", "recipient": "rand1qq", "time": 77, "r": w("07"), "cm": w("08") },
+                         { "asset": 1, "amount": "250", "recipient": "rand1zz", "time": 77, "r": w("09"), "cm": w("0a") }],
+                "signers": [0, 2] }),
+            serde_json::json!({ "kind": "multisig_rotate", "account": w("06"), "nonce": 1, "threshold": 3,
+                "signer_count": 3, "signed_by": [1, 2] }),
+            serde_json::json!({ "kind": "set_rand_price", "price_micros_per_rand": "150000", "nonce": 3,
+                "voters": ["2nRd", "3xQa"] }),
+            serde_json::json!({ "kind": "aggregate", "covers": 8, "proof_len": 1234567, "aggregator": "2nRd",
+                "nonce": 2, "time": 200, "payout_total": "300000000", "layout": "tree" }),
+        ]
+    }
+
+    #[test]
+    fn parses_fullnode_v080s_kinds() {
+        use randscan_core::{MultisigAction as M, PerpAction as P};
+        let parsed: Vec<RpcAction> = v080_actions()
+            .into_iter()
+            .map(|v| serde_json::from_value(v).unwrap())
+            .collect();
+        assert!(
+            matches!(&parsed[0], RpcAction::Perp(P::PerpDeposit { account, .. }) if account == &"01".repeat(32))
+        );
+        let RpcAction::Perp(P::PerpOrder { body, .. }) = &parsed[1] else {
+            panic!("{:?}", parsed[1])
+        };
+        assert_eq!(
+            (
+                body.nonce,
+                body.side,
+                body.kind,
+                body.tif,
+                body.price.as_str(),
+                body.size.as_str()
+            ),
+            (3, 1, 0, 2, "6425000000000", "100000"),
+            "the order's own `kind` is nested under `body`"
+        );
+        assert!(matches!(
+            &parsed[2],
+            RpcAction::Perp(P::PerpCancel {
+                nonce: 5,
+                target: 4,
+                ..
+            })
+        ));
+        assert!(
+            matches!(&parsed[3], RpcAction::Perp(P::PerpWithdraw { amount, time: 41, .. }) if amount == "2000000")
+        );
+        assert!(
+            matches!(&parsed[4], RpcAction::Perp(P::PerpOracle { prices, nonce: 9, .. }) if prices[0].price == "6425000000000")
+        );
+        assert!(
+            matches!(&parsed[5], RpcAction::Perp(P::PerpStateProof { payouts, fees, proof_bytes: 412345, .. }) if payouts.len() == 1 && fees == "1500")
+        );
+        assert!(matches!(
+            &parsed[6],
+            RpcAction::Multisig(M::CreateMultisig {
+                threshold: 2,
+                signer_count: 3,
+                ..
+            })
+        ));
+        assert!(matches!(
+            &parsed[7],
+            RpcAction::Multisig(M::MultisigDeposit { .. })
+        ));
+        let RpcAction::Multisig(M::MultisigPay { pays, signers, .. }) = &parsed[8] else {
+            panic!("{:?}", parsed[8])
+        };
+        assert_eq!(
+            (pays.len(), pays[1].asset, signers.as_slice()),
+            (2, 1, &[0, 2][..])
+        );
+        assert!(
+            matches!(&parsed[9], RpcAction::Multisig(M::MultisigRotate { signed_by, .. }) if signed_by == &[1, 2])
+        );
+        assert!(
+            matches!(&parsed[10], RpcAction::SetRandPrice { price_micros_per_rand, nonce: 3, voters } if price_micros_per_rand.0 == "150000" && voters.len() == 2)
+        );
+        let RpcAction::Aggregate(a) = &parsed[11] else {
+            panic!("{:?}", parsed[11])
+        };
+        assert_eq!(
+            (a.covers, a.payout_total.as_deref(), a.layout.as_deref()),
+            (8, Some("300000000"), Some("tree"))
+        );
+        // An aggregate from a node before v0.8.0 (no `payout_total`, no `layout`) still parses.
+        let old: RpcAction =
+            serde_json::from_value(serde_json::json!({ "kind": "aggregate", "covers": 2,
+            "proof_len": 9, "aggregator": "2nRd", "nonce": 0, "time": 5 }))
+            .unwrap();
+        assert!(
+            matches!(old, RpcAction::Aggregate(a) if a.layout.is_none() && a.payout_total.is_none())
+        );
+        // A malformed body of a v0.8.0 kind is an error, as for every known kind.
+        assert!(
+            serde_json::from_str::<RpcAction>(r#"{"kind":"perp_cancel","account":"01"}"#).is_err()
+        );
+        assert!(
+            serde_json::from_str::<RpcAction>(r#"{"kind":"multisig_pay","account":"01"}"#).is_err()
+        );
+    }
+
+    /// v0.8.0's `rand_getLimits` and `rand_getSupply` on a chain with every section (chain 21's
+    /// shape) and on one without any (chain 20 after the roll): the new groups read, and absent
+    /// or `null` stays `None`.
+    #[test]
+    fn reads_v080s_limits_and_supply_with_and_without_the_sections() {
+        let with: randscan_core::ChainLimits = serde_json::from_value(serde_json::json!({
+            "max_program_words": 65535, "max_proof_bytes": 4194304, "max_block_bytes": 20971520,
+            "max_call_envelope_bytes": 65536, "max_program_public_words": 32768,
+            "fee_rules": { "burn_base": true, "subsidy_net_of_fees": false, "burn_floor": false,
+                           "proposer_share_bps": 4000, "prove_base": "600000",
+                           "usd_subsidy": { "usd_micros_per_sealed_block": "4791", "max_subsidy_per_block": "300000000",
+                                            "price_max_age_blocks": 72000 } },
+            "multisig": { "create_fee": "1000000000", "max_signers": 10, "max_payouts": 4 },
+            "perps": { "collateral_asset": 1, "max_tier": 18, "max_window_blocks": 64, "max_payouts": 8,
+                       "max_block_inputs": 24, "min_deposit": "100000000" }
+        }))
+        .unwrap();
+        let fr = with.fee_rules.as_ref().unwrap();
+        assert_eq!(
+            (fr.proposer_share_bps, fr.prove_base.as_deref()),
+            (Some(4000), Some("600000"))
+        );
+        assert_eq!(fr.usd_subsidy.as_ref().unwrap().price_max_age_blocks, 72000);
+        assert_eq!(with.multisig.as_ref().unwrap().create_fee, "1000000000");
+        let p = with.perps.as_ref().unwrap();
+        assert_eq!(
+            (
+                p.collateral_asset,
+                p.max_block_inputs,
+                p.min_deposit.as_str()
+            ),
+            (1, 24, "100000000")
+        );
+        // Chain 20 after the roll: the keys are there, every one `null`.
+        let without: randscan_core::ChainLimits = serde_json::from_value(serde_json::json!({
+            "max_program_words": 65535, "max_proof_bytes": 4194304, "max_block_bytes": 20971520,
+            "max_call_envelope_bytes": 65536, "max_program_public_words": 32768,
+            "fee_rules": null, "multisig": null, "perps": null
+        }))
+        .unwrap();
+        assert!(
+            without.fee_rules.is_none() && without.multisig.is_none() && without.perps.is_none()
+        );
+
+        let supply = |extra: serde_json::Value| -> randscan_core::Supply {
+            let mut v = serde_json::json!({ "height": 9, "genesis_deposited": "1", "genesis_staked": "2",
+                "faucet_minted": "0", "withdraw_deposited": "0", "fees_paid": "0", "burned": "0",
+                "pool_value": "1", "register_total": "2", "total_supply": "3", "invariant_holds": true });
+            v.as_object_mut()
+                .unwrap()
+                .extend(extra.as_object().unwrap().clone());
+            serde_json::from_value(v).unwrap()
+        };
+        let s = supply(
+            serde_json::json!({ "base_fees_burned": "1000000", "multisig_issued": "100000000000000",
+            "multisig_rand_in": "0", "multisig_rand_out": "1000000000", "multisig_base_out": "1000000",
+            "multisig_rand_held": "99998999000000", "perps_rand_out": "0", "perps_rand_held": "0" }),
+        );
+        assert_eq!(s.multisig_issued.as_deref(), Some("100000000000000"));
+        assert_eq!(s.multisig_rand_held.as_deref(), Some("99998999000000"));
+        assert_eq!(s.perps_rand_held.as_deref(), Some("0"));
+        let old = supply(serde_json::json!({}));
+        assert!(
+            old.multisig_issued.is_none()
+                && old.perps_rand_out.is_none()
+                && old.base_fees_burned.is_none()
+        );
+    }
+
+    /// `rand_getPerps` on a chain without the section is `{"enabled": false}`; with it, the
+    /// markets and medians read.
+    #[test]
+    fn reads_rand_get_perps() {
+        let off: randscan_core::PerpsInfo =
+            serde_json::from_value(serde_json::json!({ "enabled": false })).unwrap();
+        assert!(!off.enabled && off.markets.is_empty());
+        let on: randscan_core::PerpsInfo = serde_json::from_value(serde_json::json!({ "enabled": true,
+            "collateral_asset": 1, "max_tier": 18, "max_window_blocks": 64, "max_block_inputs": 24, "min_deposit": "100000000",
+            "engine_hc": "f286", "genesis_root": "aa",
+            "markets": [{ "id": 0, "symbol": "BTC-PERP", "lot": 100000, "tick": 100000000,
+                          "max_leverage": 20, "maintenance_bps": 250, "taker_fee_bps": 5, "maker_fee_bps": 2 }],
+            "proved_root": "bb", "proved_height": 120, "head_height": 131, "pending_heights": [121, 122],
+            "medians": [{ "market": 0, "price": "6425000000000" }], "accounts": 3, "pending_withdrawals": 1 }))
+        .unwrap();
+        assert_eq!(
+            (on.markets[0].symbol.as_str(), on.markets[0].lot.as_str()),
+            ("BTC-PERP", "100000")
+        );
+        assert_eq!(
+            (on.pending_heights.len(), on.medians[0].price.as_str()),
+            (2, "6425000000000")
+        );
     }
 }

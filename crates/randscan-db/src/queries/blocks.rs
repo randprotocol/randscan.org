@@ -103,14 +103,15 @@ pub async fn max_block_height(pool: &PgPool) -> Result<Option<i64>> {
 
 /// Average block interval over the last `n` blocks, in milliseconds.
 pub async fn avg_block_time_ms(pool: &PgPool, n: i64) -> Result<f64> {
-    let row: Option<(i64, i64, i64)> = sqlx::query_as(
+    // MIN and MAX are NULL over an empty table, so they decode as `Option`.
+    let row: Option<(Option<i64>, Option<i64>, i64)> = sqlx::query_as(
         "SELECT MIN(timestamp_ms), MAX(timestamp_ms), COUNT(*) FROM (SELECT timestamp_ms FROM blocks ORDER BY height DESC LIMIT $1) t",
     )
     .bind(n)
     .fetch_optional(pool)
     .await?;
     Ok(match row {
-        Some((min, max, count)) if count > 1 => (max - min) as f64 / (count - 1) as f64,
+        Some((Some(min), Some(max), count)) if count > 1 => (max - min) as f64 / (count - 1) as f64,
         _ => 0.0,
     })
 }

@@ -497,7 +497,7 @@ async fn create_pool_connects_with_the_configured_url() {
         .unwrap();
     assert_eq!(one, 1);
     let wrapped: db::DbPool = pool.into();
-    assert_eq!(wrapped.inner().size() > 0, true);
+    assert!(wrapped.inner().size() > 0);
     let via_deref: i32 = sqlx::query_scalar("SELECT 2")
         .fetch_one(&*wrapped)
         .await

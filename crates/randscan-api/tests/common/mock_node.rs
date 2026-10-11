@@ -100,6 +100,11 @@ pub struct MockChain {
     pub program_state: bool,
     /// What `rand_getPeers` answers (`{peer_id, addrs, connected_secs}` rows); none by default.
     pub peers: Vec<Value>,
+    /// Methods that answer a JSON-RPC server error (-32000), for every call (`None`) or only
+    /// those whose first parameter is the given string: a node that is up but failing.
+    pub fail: Vec<(String, Option<String>)>,
+    /// Methods that answer `null`, the same way: a node that does not know the thing asked for.
+    pub null: Vec<(String, Option<String>)>,
 }
 
 impl MockChain {
@@ -123,6 +128,8 @@ impl MockChain {
             pq_guardians: vec![],
             program_state: false,
             peers: Vec::new(),
+            fail: Vec::new(),
+            null: Vec::new(),
         };
         c.push_block(vec![]);
         c
@@ -244,6 +251,20 @@ impl MockChain {
     fn dispatch(&mut self, method: &str, params: &Value) -> Result<Value, (i64, String)> {
         self.calls.push(method.to_string());
         let p = |i: usize| params.get(i).cloned().unwrap_or(Value::Null);
+        let hit = |list: &[(String, Option<String>)]| {
+            list.iter().any(|(m, first)| {
+                m == method
+                    && first
+                        .as_ref()
+                        .is_none_or(|f| p(0).as_str() == Some(f.as_str()))
+            })
+        };
+        if hit(&self.fail) {
+            return Err((-32000, format!("{method} is failing")));
+        }
+        if hit(&self.null) {
+            return Ok(Value::Null);
+        }
         Ok(match method {
             "rand_chainId" => json!(self.chain_id),
             "rand_tokenInfo" => json!({ "symbol": "RAND", "decimals": 9 }),

@@ -431,6 +431,54 @@
     "other": {
       "label": "Inne",
       "short": "Inne"
+    },
+    "perp_deposit": {
+      "label": "Wpłata na konto perp",
+      "short": "Wpłata perp"
+    },
+    "perp_order": {
+      "label": "Zlecenie perp",
+      "short": "Zlecenie"
+    },
+    "perp_cancel": {
+      "label": "Zlecenie perp anulowane",
+      "short": "Anulowanie zlecenia"
+    },
+    "perp_withdraw": {
+      "label": "Żądanie wypłaty z konta perp",
+      "short": "Wypłata perp"
+    },
+    "perp_oracle": {
+      "label": "Ceny wyroczni dla perp",
+      "short": "Wyrocznia"
+    },
+    "perp_state_proof": {
+      "label": "Dowód stanu perp",
+      "short": "Dowód stanu"
+    },
+    "create_multisig": {
+      "label": "Konto multisig utworzone",
+      "short": "Utworzenie multisig"
+    },
+    "multisig_deposit": {
+      "label": "Wpłata na konto multisig",
+      "short": "Wpłata multisig"
+    },
+    "multisig_pay": {
+      "label": "Płatność z konta multisig",
+      "short": "Płatność multisig"
+    },
+    "multisig_rotate": {
+      "label": "Sygnatariusze multisig zrotowani",
+      "short": "Rotacja sygnatariuszy"
+    },
+    "set_rand_price": {
+      "label": "Głos na cenę RAND",
+      "short": "Głos na cenę"
+    },
+    "aggregate": {
+      "label": "Dowód zagregowany",
+      "short": "Agregat"
     }
   },
   "roles": {
@@ -673,6 +721,81 @@
     },
     "unknownKind": {
       "help": "Ten rodzaj transakcji jest nowszy niż ta wersja eksploratora. Zindeksowano go z jego hashem, pakietem, opłatą i blokiem; zdekodowane pola pojawią się po aktualizacji eksploratora."
+    },
+    "perp": {
+      "account": "Konto handlowe",
+      "tradingKey": "Klucz handlowy",
+      "deposited": "Wpłacono",
+      "market": "Rynek",
+      "marketId": "rynek #{id}",
+      "side": "Strona",
+      "buy": "Kupno",
+      "sell": "Sprzedaż",
+      "orderType": "Typ zlecenia",
+      "limit": "Limit",
+      "marketOrder": "Rynkowe",
+      "gtc": "ważne do anulowania",
+      "ioc": "natychmiast lub anuluj",
+      "postOnly": "tylko bierne",
+      "reduceOnly": "tylko redukcja pozycji",
+      "price": "Cena",
+      "atMarket": "po cenie rynkowej",
+      "size": "Wielkość",
+      "nonce": "Nonce konta",
+      "cancels": "Anuluje",
+      "cancelsValue": "zlecenie z nonce {nonce}",
+      "paidTo": "Wypłacono do",
+      "prices": "Ceny",
+      "window": "Objęte bloki",
+      "newRoot": "Korzeń stanu silnika",
+      "payouts": "Wypłacone wypłaty",
+      "request": "żądanie",
+      "fees": "Pobrane opłaty",
+      "proofSize": "Rozmiar dowodu",
+      "collateral": "Zabezpieczenie",
+      "depositHelp": "Otwiera lub zasila konto handlowe tego klucza spaleniem aktywa zabezpieczenia w pakiecie. Jawne z założenia: dane wejściowe giełdy to to, co odtwarza jej prover.",
+      "orderHelp": "Zlecenie zapisane w bloku, które ma zestawić dowodzony silnik. Łańcuch sprawdza tylko podpis klucza handlowego i nonce; to, czy zlecenie zostanie zrealizowane, rozstrzyga silnik. Bez pakietu i bez opłaty.",
+      "cancelHelp": "Anuluje jedno ze zleceń tego konta. Podpisane kluczem handlowym; bez pakietu i bez opłaty.",
+      "withdrawHelp": "Żądanie wypłaty zabezpieczenia, wypłacanej jako notatka odbiorcy, gdy zostanie zatwierdzony obejmujący je dowód stanu. Koperta notatki należy do odbiorcy i nie jest pokazywana.",
+      "oracleHelp": "Ceny wyroczni od walidatora, po jednej na rynek. Cena każdego bloku jest medianą świeżych zgłoszeń.",
+      "stateProofHelp": "Przejście stanu udowodnione przez provera dla tych bloków: nowy korzeń silnika, wypłaty, które realizuje, i pobrane opłaty, wraz z dowodem STARK przebiegu. Bez podpisu: autorytetem jest dowód."
+    },
+    "multisig": {
+      "account": "Konto",
+      "threshold": "Próg",
+      "ofSigners": "{m} z {n} sygnatariuszy",
+      "salt": "Sól",
+      "funding": "Zasilenie",
+      "unfunded": "nic nie spalono",
+      "payouts": "Wypłaty",
+      "signedBy": "Podpisali",
+      "newSet": "Nowy zestaw sygnatariuszy",
+      "nonce": "Nonce konta",
+      "now": "Konto obecnie",
+      "nowValue": "{m} z {n} sygnatariuszy, nonce {nonce}",
+      "emptyVault": "pusty skarbiec",
+      "createHelp": "Tworzy konto M z N, którego identyfikator wynika z łańcucha, soli, progu i sygnatariuszy w podanej kolejności. Spalenie w pakiecie to saldo początkowe; opłata obejmuje opłatę łańcucha za utworzenie.",
+      "depositHelp": "Zasila konto spaleniem w pakiecie. Wpłacić może każdy; nic nie jest podpisywane.",
+      "payHelp": "Wypłaca notatki z jawnego salda konta, podpisane przez próg sygnatariuszy (wskazanych pozycją). Każde słowo każdej notatki jest jawne, więc odbiorca odtwarza ją bez deszyfrowania. Konto pokrywa też bazę pakietu ze swojego wiersza RAND.",
+      "rotateHelp": "Zastępuje zestaw sygnatariuszy i próg konta przy tym samym identyfikatorze i saldzie; podpisuje próg sygnatariuszy starego zestawu. Bez opłaty."
+    },
+    "price": {
+      "price": "Cena",
+      "usdPerRand": "{usd} USD za RAND",
+      "current": "Bieżąca cena",
+      "fresh": "aktualna",
+      "stale": "nieaktualna",
+      "help": "Głos zbioru walidatorów na cenę RAND/USD, po której przelicza się powiązana z dolarem dotacja za zapieczętowanie. To zarządzanie, a nie rynkowa wyrocznia: podpisuje ją ponad dwie trzecie głosującego stake'u, a cena zmienia się najwyżej dwukrotnie w jednej aktualizacji."
+    },
+    "aggregate": {
+      "covers": "Objęte pakiety",
+      "layout": "Układ",
+      "flat": "Płaski",
+      "tree": "Drzewo (kroki 2 do 1)",
+      "payout": "Wypłata dla agregatora",
+      "aggregator": "Agregator",
+      "proofSize": "Rozmiar dowodu",
+      "help": "Jeden dowód zastępujący dowody pakietów z obejmowanych bloków. Księga wypłaca agregatorowi dokładnie sumę wypłaty, którą podpisał, albo odrzuca agregat."
     }
   },
   "note": {
@@ -1206,7 +1329,22 @@
     },
     "latestBlocks": "Najnowsze bloki",
     "latestTransactions": "Najnowsze transakcje",
-    "viewAll": "Zobacz wszystkie →"
+    "viewAll": "Zobacz wszystkie →",
+    "v080": {
+      "fees": "Opłaty:",
+      "burnBase": "baza pakietu jest spalana",
+      "burnFloor": "spalany jest cały próg opłaty",
+      "proposerShare": "proponujący zatrzymuje {percent} bazy",
+      "proveBase": "udział za dowód {amount} za pakiet",
+      "usdSubsidy": "dotacja za zapieczętowanie {usd} USD za blok, maksymalnie {cap}",
+      "price": "cena RAND {usd} USD",
+      "multisig": "Multisig: opłata za utworzenie {fee}, do {signers} sygnatariuszy i {payouts} wypłat",
+      "perps": "Perp: {markets}, dowody do poziomu {tier} na co najwyżej {window} blokach",
+      "perpsProved": "dowiedzione do #{height}",
+      "baseFeesBurned": "spalone opłaty bazowe {amount}",
+      "multisigHeld": "konta multisig przechowują {amount} (wyemitowano {issued})",
+      "perpsHeld": "perp przechowują {amount}"
+    }
   },
   "blocks": {
     "title": "Bloki",
@@ -1249,7 +1387,19 @@
       "rotate_pq_guardians_v2": "Rotacja strażników PQ (z opóźnieniem)",
       "rotate_pause_key_v2": "Rotacja klucza wstrzymania (z opóźnieniem)",
       "cancel_rotation": "Rotacja anulowana",
-      "other": "Inne"
+      "other": "Inne",
+      "perp_deposit": "Wpłata na konto perp",
+      "perp_order": "Zlecenie perp",
+      "perp_cancel": "Zlecenie perp anulowane",
+      "perp_withdraw": "Żądanie wypłaty z konta perp",
+      "perp_oracle": "Ceny wyroczni dla perp",
+      "perp_state_proof": "Dowód stanu perp",
+      "create_multisig": "Konto multisig utworzone",
+      "multisig_deposit": "Wpłata na konto multisig",
+      "multisig_pay": "Płatność z konta multisig",
+      "multisig_rotate": "Sygnatariusze multisig zrotowani",
+      "set_rand_price": "Głos na cenę RAND",
+      "aggregate": "Dowód zagregowany"
     },
     "error": "Nie udało się wczytać transakcji.",
     "count": {

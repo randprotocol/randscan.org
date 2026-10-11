@@ -5,7 +5,7 @@ import { StatsCard, StatsCardSkeleton, StatsRow } from '@/components/StatsCard';
 import { BlocksTable, TransactionsTable } from '@/components/Tables';
 import { Hash } from '@/components/Hash';
 import { LiveIndicator, SectionHeading } from '@/components/States';
-import { useLatestBlocks, useLatestTransactions, useStats } from '@/hooks/useApi';
+import { useLatestBlocks, useLatestTransactions, usePerps, useRandPrice, useStats, useSupply } from '@/hooks/useApi';
 import { useNewBlocks, useNewTransactions, useStatsUpdates } from '@/hooks/useWebSocket';
 import { TOKEN_SYMBOL } from '@/lib/utils';
 import { L, useFmt, useT } from '@/i18n/client';
@@ -15,6 +15,9 @@ const LATEST_LIMIT = 10;
 
 export default function DashboardPage() {
   const { data: fetchedStats, isLoading: statsLoading } = useStats();
+  const { data: supply } = useSupply();
+  const { data: perps } = usePerps();
+  const { data: price } = useRandPrice();
   const { t, tp, rich } = useT();
   const fmt = useFmt();
   const { data: fetchedBlocks, isLoading: blocksLoading } = useLatestBlocks(LATEST_LIMIT);
@@ -275,6 +278,89 @@ export default function DashboardPage() {
                 payouts: fmt.number(stats.limits.program_state.max_payouts),
               })}
             </span>
+          )}
+        </p>
+      )}
+
+      {/* Fullnode v0.8.0's genesis sections: each line only on a chain that carries it. */}
+      {stats?.limits && (stats.limits.fee_rules || stats.limits.multisig || stats.limits.perps) && (
+        <p className="flex flex-wrap items-center gap-x-2 text-xs text-mute">
+          {stats.limits.fee_rules && (
+            <span>
+              {t('home.v080.fees')}{' '}
+              {[
+                stats.limits.fee_rules.burn_floor
+                  ? t('home.v080.burnFloor')
+                  : stats.limits.fee_rules.burn_base
+                    ? t('home.v080.burnBase')
+                    : null,
+                stats.limits.fee_rules.proposer_share_bps != null
+                  ? t('home.v080.proposerShare', {
+                      percent: fmt.percentage(stats.limits.fee_rules.proposer_share_bps / 100),
+                    })
+                  : null,
+                stats.limits.fee_rules.prove_base
+                  ? t('home.v080.proveBase', { amount: fmt.amount(stats.limits.fee_rules.prove_base) })
+                  : null,
+                stats.limits.fee_rules.usd_subsidy
+                  ? t('home.v080.usdSubsidy', {
+                      usd: fmt.units(stats.limits.fee_rules.usd_subsidy.usd_micros_per_sealed_block, 6),
+                      cap: fmt.amount(stats.limits.fee_rules.usd_subsidy.max_subsidy_per_block),
+                    })
+                  : null,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+            </span>
+          )}
+          {price && (
+            <span>
+              ·{' '}
+              {t('home.v080.price', { usd: fmt.units(price.price_micros_per_rand, 6) })}{' '}
+              ({price.fresh ? t('tx.price.fresh') : t('tx.price.stale')})
+            </span>
+          )}
+          {stats.limits.multisig && (
+            <span>
+              ·{' '}
+              {t('home.v080.multisig', {
+                fee: fmt.amount(stats.limits.multisig.create_fee),
+                signers: fmt.number(stats.limits.multisig.max_signers),
+                payouts: fmt.number(stats.limits.multisig.max_payouts),
+              })}
+            </span>
+          )}
+          {stats.limits.perps && (
+            <span>
+              ·{' '}
+              {t('home.v080.perps', {
+                markets: perps?.markets.map((m) => m.symbol).join(', ') || '—',
+                window: fmt.number(stats.limits.perps.max_window_blocks),
+                tier: fmt.number(stats.limits.perps.max_tier),
+              })}
+              {perps?.proved_height != null && (
+                <> · {t('home.v080.perpsProved', { height: fmt.number(perps.proved_height) })}</>
+              )}
+            </span>
+          )}
+          {supply && (
+            <>
+              {stats.limits.fee_rules?.burn_base && supply.base_fees_burned != null && (
+                <span>· {t('home.v080.baseFeesBurned', { amount: fmt.amount(supply.base_fees_burned) })}</span>
+              )}
+              {stats.limits.multisig && supply.multisig_rand_held != null && (
+                <span>
+                  ·{' '}
+                  {t('home.v080.multisigHeld', {
+                    amount: fmt.amount(supply.multisig_rand_held),
+                    issued: fmt.amount(supply.multisig_issued ?? '0'),
+                  })}
+                </span>
+              )}
+              {stats.limits.perps && stats.limits.perps.collateral_asset === 0 && supply.perps_rand_held != null && (
+                <span>· {t('home.v080.perpsHeld', { amount: fmt.amount(supply.perps_rand_held) })}</span>
+              )}
+            </>
           )}
         </p>
       )}

@@ -427,6 +427,54 @@
     "other": {
       "label": "Sonstige",
       "short": "Sonstige"
+    },
+    "perp_deposit": {
+      "label": "Perp-Einzahlung",
+      "short": "Perp-Einzahlung"
+    },
+    "perp_order": {
+      "label": "Perp-Order",
+      "short": "Order"
+    },
+    "perp_cancel": {
+      "label": "Perp-Order storniert",
+      "short": "Order stornieren"
+    },
+    "perp_withdraw": {
+      "label": "Perp-Auszahlungsanfrage",
+      "short": "Perp-Auszahlung"
+    },
+    "perp_oracle": {
+      "label": "Perp-Orakelpreise",
+      "short": "Orakel"
+    },
+    "perp_state_proof": {
+      "label": "Perp-Zustandsbeweis",
+      "short": "Zustandsbeweis"
+    },
+    "create_multisig": {
+      "label": "Multisig-Account erstellt",
+      "short": "Multisig erstellen"
+    },
+    "multisig_deposit": {
+      "label": "Multisig-Einzahlung",
+      "short": "Multisig-Einzahlung"
+    },
+    "multisig_pay": {
+      "label": "Multisig-Zahlung",
+      "short": "Multisig-Zahlung"
+    },
+    "multisig_rotate": {
+      "label": "Multisig-Signer rotiert",
+      "short": "Signer rotieren"
+    },
+    "set_rand_price": {
+      "label": "RAND-Preisabstimmung",
+      "short": "Preisabstimmung"
+    },
+    "aggregate": {
+      "label": "Aggregationsbeweis",
+      "short": "Aggregat"
     }
   },
   "roles": {
@@ -663,6 +711,81 @@
     },
     "unknownKind": {
       "help": "Diese Transaktionsart ist neuer als dieser Explorer-Build. Sie wurde mit Hash, Bundle, Gebühr und Block indexiert; dekodierte Felder erscheinen, sobald der Explorer aktualisiert wird."
+    },
+    "perp": {
+      "account": "Handelskonto",
+      "tradingKey": "Handelsschlüssel",
+      "deposited": "Eingezahlt",
+      "market": "Markt",
+      "marketId": "Markt #{id}",
+      "side": "Seite",
+      "buy": "Kauf",
+      "sell": "Verkauf",
+      "orderType": "Ordertyp",
+      "limit": "Limit",
+      "marketOrder": "Market",
+      "gtc": "gültig bis Stornierung",
+      "ioc": "sofort oder stornieren",
+      "postOnly": "nur Maker (Post-only)",
+      "reduceOnly": "nur reduzierend (Reduce-only)",
+      "price": "Preis",
+      "atMarket": "zum Marktpreis",
+      "size": "Größe",
+      "nonce": "Account-Nonce",
+      "cancels": "Storniert",
+      "cancelsValue": "die Order mit Nonce {nonce}",
+      "paidTo": "Ausgezahlt an",
+      "prices": "Preise",
+      "window": "Abgedeckte Blöcke",
+      "newRoot": "Zustandswurzel der Engine",
+      "payouts": "Ausgezahlte Auszahlungen",
+      "request": "Anfrage",
+      "fees": "Eingenommene Gebühren",
+      "proofSize": "Beweisgröße",
+      "collateral": "Sicherheit (Collateral)",
+      "depositHelp": "Eröffnet oder stockt das Handelskonto dieses Schlüssels auf, und zwar mit dem Burn des Collateral-Assets im Bundle. Bewusst öffentlich: Die Eingaben der Börse sind das, was ihr Prover nachvollzieht.",
+      "orderHelp": "Eine im Block festgehaltene Order, die die bewiesene Engine matcht. Die Chain prüft nur die Signatur des Handelsschlüssels und die Nonce; ob die Order ausgeführt wird, entscheidet die Engine. Ohne Bundle und ohne Gebühr.",
+      "cancelHelp": "Storniert eine Order dieses Accounts. Vom Handelsschlüssel signiert; ohne Bundle und ohne Gebühr.",
+      "withdrawHelp": "Eine Anfrage, Collateral auszuzahlen. Die Auszahlung erfolgt als Note an den Empfänger, sobald ein Zustandsbeweis sie abdeckt. Der Umschlag (Envelope) der Note gehört dem Empfänger und wird nicht angezeigt.",
+      "oracleHelp": "Die Orakelpreise eines Validators, einer pro Markt. Der Preis jedes Blocks ist der Median der aktuellen Einreichungen.",
+      "stateProofHelp": "Der Zustandsübergang eines Provers über diese Blöcke: die neue Wurzel der Engine, die ausgezahlten Auszahlungen und die eingenommenen Gebühren, samt dem STARK-Beweis des Laufs. Unsigniert: Der Beweis ist die Autorität."
+    },
+    "multisig": {
+      "account": "Account",
+      "threshold": "Schwellenwert",
+      "ofSigners": "{m} von {n} Signern",
+      "salt": "Salt",
+      "funding": "Einzahlung",
+      "unfunded": "nichts verbrannt",
+      "payouts": "Auszahlungen",
+      "signedBy": "Signiert von",
+      "newSet": "Neue Signer-Menge",
+      "nonce": "Account-Nonce",
+      "now": "Account jetzt",
+      "nowValue": "{m} von {n} Signern, Nonce {nonce}",
+      "emptyVault": "leerer Tresor",
+      "createHelp": "Erstellt einen M-von-N-Account, dessen ID aus der Chain, dem Salt, dem Schwellenwert und den Signern in ihrer Reihenfolge abgeleitet wird. Der Burn des Bundles ist sein Anfangsguthaben; die Gebühr enthält die Erstellungsgebühr der Chain.",
+      "depositHelp": "Füllt den Account mit dem Burn des Bundles auf. Jeder darf einzahlen; es wird nichts signiert.",
+      "payHelp": "Zahlt Notes aus dem öffentlichen Guthaben des Accounts aus, signiert vom Schwellenwert seiner Signer (nach Position benannt). Jedes Wort jeder Note ist öffentlich, sodass der Empfänger sie ohne Entschlüsselung nachbaut. Der Account zahlt außerdem die Bundle-Basisgebühr aus seiner RAND-Zeile.",
+      "rotateHelp": "Ersetzt Signer-Menge und Schwellenwert des Accounts bei gleicher ID und gleichem Guthaben, signiert von einem Schwellenwert der alten Menge. Gebührenfrei."
+    },
+    "price": {
+      "price": "Preis",
+      "usdPerRand": "{usd} USD pro RAND",
+      "current": "Aktueller Preis",
+      "fresh": "aktuell",
+      "stale": "veraltet",
+      "help": "Die Abstimmung der Validator-Menge über den RAND/USD-Preis, zu dem die dollarindexierte Sealing-Subvention umgerechnet wird. Governance, kein Marktorakel: Mehr als zwei Drittel des abstimmenden Stakes signieren ihn, und der Preis ändert sich pro Update höchstens um den Faktor zwei."
+    },
+    "aggregate": {
+      "covers": "Abgedeckte Bundles",
+      "layout": "Aufbau",
+      "flat": "Flach",
+      "tree": "Baum (2-zu-1-Schritte)",
+      "payout": "Auszahlung an den Aggregator",
+      "aggregator": "Aggregator",
+      "proofSize": "Beweisgröße",
+      "help": "Ein Beweis, der die Bundle-Beweise der abgedeckten Blöcke ersetzt. Das Ledger zahlt dem Aggregator genau die Auszahlungssumme, die er signiert hat, oder lehnt das Aggregat ab."
     }
   },
   "note": {
@@ -1174,7 +1297,22 @@
     },
     "latestBlocks": "Neueste Blöcke",
     "latestTransactions": "Neueste Transaktionen",
-    "viewAll": "Alle anzeigen →"
+    "viewAll": "Alle anzeigen →",
+    "v080": {
+      "fees": "Gebühren:",
+      "burnBase": "die Bundle-Basisgebühr wird verbrannt",
+      "burnFloor": "die gesamte Mindestgebühr wird verbrannt",
+      "proposerShare": "der Proposer behält {percent} der Basisgebühr",
+      "proveBase": "Beweisanteil {amount} pro Bundle",
+      "usdSubsidy": "Sealing-Subvention {usd} USD pro Block, begrenzt auf {cap}",
+      "price": "RAND-Preis {usd} USD",
+      "multisig": "Multisig: Erstellungsgebühr {fee}, bis zu {signers} Signer und {payouts} Auszahlungen",
+      "perps": "Perps: {markets}, Beweise bis Stufe {tier} über höchstens {window} Blöcke",
+      "perpsProved": "bewiesen bis #{height}",
+      "baseFeesBurned": "verbrannte Basisgebühren {amount}",
+      "multisigHeld": "Multisig-Accounts halten {amount} (ausgegeben {issued})",
+      "perpsHeld": "Perps halten {amount}"
+    }
   },
   "blocks": {
     "title": "Blöcke",
@@ -1215,7 +1353,19 @@
       "rotate_pq_guardians_v2": "PQ-Guardian-Rotation (verzögert)",
       "rotate_pause_key_v2": "Pause-Schlüssel-Rotation (verzögert)",
       "cancel_rotation": "Rotation abgebrochen",
-      "other": "Sonstige"
+      "other": "Sonstige",
+      "perp_deposit": "Perp-Einzahlung",
+      "perp_order": "Perp-Order",
+      "perp_cancel": "Perp-Order storniert",
+      "perp_withdraw": "Perp-Auszahlungsanfrage",
+      "perp_oracle": "Perp-Orakelpreise",
+      "perp_state_proof": "Perp-Zustandsbeweis",
+      "create_multisig": "Multisig-Account erstellt",
+      "multisig_deposit": "Multisig-Einzahlung",
+      "multisig_pay": "Multisig-Zahlung",
+      "multisig_rotate": "Multisig-Signer rotiert",
+      "set_rand_price": "RAND-Preisabstimmung",
+      "aggregate": "Aggregationsbeweis"
     },
     "error": "Transaktionen konnten nicht geladen werden.",
     "count": {

@@ -425,6 +425,54 @@
     "other": {
       "label": "Lain-lain",
       "short": "Lain-lain"
+    },
+    "perp_deposit": {
+      "label": "Deposit perp",
+      "short": "Deposit perp"
+    },
+    "perp_order": {
+      "label": "Pesanan perp",
+      "short": "Pesanan"
+    },
+    "perp_cancel": {
+      "label": "Pesanan perp dibatalkan",
+      "short": "Batal pesanan"
+    },
+    "perp_withdraw": {
+      "label": "Permintaan pengeluaran perp",
+      "short": "Keluarkan perp"
+    },
+    "perp_oracle": {
+      "label": "Harga oracle perp",
+      "short": "Oracle"
+    },
+    "perp_state_proof": {
+      "label": "Bukti keadaan perp",
+      "short": "Bukti keadaan"
+    },
+    "create_multisig": {
+      "label": "Akaun multisig dicipta",
+      "short": "Cipta multisig"
+    },
+    "multisig_deposit": {
+      "label": "Deposit multisig",
+      "short": "Deposit multisig"
+    },
+    "multisig_pay": {
+      "label": "Pembayaran multisig",
+      "short": "Bayar multisig"
+    },
+    "multisig_rotate": {
+      "label": "Penandatangan multisig diputar",
+      "short": "Putar penandatangan"
+    },
+    "set_rand_price": {
+      "label": "Undi harga RAND",
+      "short": "Undi harga"
+    },
+    "aggregate": {
+      "label": "Bukti agregat",
+      "short": "Agregat"
     }
   },
   "roles": {
@@ -658,6 +706,81 @@
     },
     "unknownKind": {
       "help": "Jenis transaksi ini lebih baharu daripada binaan peneroka ini. Ia diindeks dengan hash, bundle, yuran dan bloknya; medan yang dinyahkod akan dipaparkan selepas peneroka dikemas kini."
+    },
+    "perp": {
+      "account": "Akaun dagangan",
+      "tradingKey": "Kunci dagangan",
+      "deposited": "Didepositkan",
+      "market": "Pasaran",
+      "marketId": "pasaran #{id}",
+      "side": "Pihak",
+      "buy": "Beli",
+      "sell": "Jual",
+      "orderType": "Jenis pesanan",
+      "limit": "Had",
+      "marketOrder": "Pasaran",
+      "gtc": "sah sehingga dibatalkan",
+      "ioc": "serta-merta atau batal",
+      "postOnly": "hanya siar",
+      "reduceOnly": "hanya kurangkan kedudukan",
+      "price": "Harga",
+      "atMarket": "pada harga pasaran",
+      "size": "Saiz",
+      "nonce": "Nonce akaun",
+      "cancels": "Membatalkan",
+      "cancelsValue": "pesanan dengan nonce {nonce}",
+      "paidTo": "Dibayar kepada",
+      "prices": "Harga",
+      "window": "Blok yang diliputi",
+      "newRoot": "Punca keadaan enjin",
+      "payouts": "Pengeluaran dibayar",
+      "request": "permintaan",
+      "fees": "Yuran dikutip",
+      "proofSize": "Saiz bukti",
+      "collateral": "Cagaran",
+      "depositHelp": "Membuka atau menambah akaun dagangan bagi kunci ini dengan pembakaran aset cagaran dalam bundel. Awam secara reka bentuk: input bursa ialah apa yang dimainkan semula oleh prover-nya.",
+      "orderHelp": "Pesanan yang direkodkan dalam blok untuk dipadankan oleh enjin yang dibuktikan. Rantaian hanya menyemak tandatangan kunci dagangan dan nonce; sama ada pesanan dipenuhi diputuskan oleh enjin. Tanpa bundel dan tanpa yuran.",
+      "cancelHelp": "Membatalkan salah satu pesanan akaun ini. Ditandatangani oleh kunci dagangan; tanpa bundel dan tanpa yuran.",
+      "withdrawHelp": "Permintaan untuk mengeluarkan cagaran, dibayar sebagai nota kepada penerima apabila bukti keadaan yang meliputinya diterima. Sampul nota milik penerima dan tidak dipaparkan.",
+      "oracleHelp": "Harga oracle daripada pengesah, satu bagi setiap pasaran. Harga setiap blok ialah median bagi penghantaran yang terkini.",
+      "stateProofHelp": "Peralihan keadaan yang dibuktikan oleh prover ke atas blok-blok ini: punca baharu enjin, pengeluaran yang dibayarnya dan yuran yang dikutipnya, bersama bukti STARK bagi larian itu. Tanpa tandatangan: buktilah yang berautoriti."
+    },
+    "multisig": {
+      "account": "Akaun",
+      "threshold": "Ambang",
+      "ofSigners": "{m} daripada {n} penandatangan",
+      "salt": "Salt",
+      "funding": "Pembiayaan",
+      "unfunded": "tiada yang dibakar",
+      "payouts": "Pembayaran keluar",
+      "signedBy": "Ditandatangani oleh",
+      "newSet": "Set penandatangan baharu",
+      "nonce": "Nonce akaun",
+      "now": "Akaun sekarang",
+      "nowValue": "{m} daripada {n} penandatangan, nonce {nonce}",
+      "emptyVault": "peti besi kosong",
+      "createHelp": "Mencipta akaun M-daripada-N yang ID-nya diterbitkan daripada rantaian, salt, ambang dan penandatangan mengikut urutan. Pembakaran bundel ialah baki permulaannya; yuran termasuk yuran cipta rantaian.",
+      "depositHelp": "Membiayai akaun dengan pembakaran bundel. Sesiapa sahaja boleh membuat deposit; tiada apa yang ditandatangani.",
+      "payHelp": "Membayar nota keluar daripada baki awam akaun, ditandatangani oleh ambang penandatangannya (dinamakan mengikut kedudukan). Setiap perkataan bagi setiap nota adalah awam, maka penerima membinanya semula tanpa penyahsulitan. Akaun juga membayar asas bundel daripada baris RAND miliknya.",
+      "rotateHelp": "Menggantikan set penandatangan dan ambang akaun dengan ID dan baki yang sama, ditandatangani oleh ambang daripada set lama. Tanpa yuran."
+    },
+    "price": {
+      "price": "Harga",
+      "usdPerRand": "{usd} USD setiap RAND",
+      "current": "Harga semasa",
+      "fresh": "terkini",
+      "stale": "lapuk",
+      "help": "Undi set pengesah mengenai harga RAND/USD yang digunakan untuk menukar subsidi pemeteraian berindeks dolar. Ini tadbir urus, bukan oracle pasaran: lebih daripada dua pertiga pertaruhan yang mengundi menandatanganinya, dan harga berubah paling banyak dua kali ganda bagi setiap kemas kini."
+    },
+    "aggregate": {
+      "covers": "Bundel yang diliputi",
+      "layout": "Susun atur",
+      "flat": "Rata",
+      "tree": "Pokok (langkah 2-ke-1)",
+      "payout": "Bayaran kepada pengagregat",
+      "aggregator": "Pengagregat",
+      "proofSize": "Saiz bukti",
+      "help": "Satu bukti yang menggantikan bukti bundel bagi blok yang diliputinya. Lejar membayar pengagregat tepat sebanyak jumlah bayaran yang ditandatanganinya, atau menolak agregat itu."
     }
   },
   "note": {
@@ -1158,7 +1281,22 @@
     },
     "latestBlocks": "Blok terkini",
     "latestTransactions": "Transaksi terkini",
-    "viewAll": "Lihat semua →"
+    "viewAll": "Lihat semua →",
+    "v080": {
+      "fees": "Yuran:",
+      "burnBase": "asas bundel dibakar",
+      "burnFloor": "seluruh lantai yuran dibakar",
+      "proposerShare": "pencadang menyimpan {percent} daripada asas",
+      "proveBase": "bahagian pembuktian {amount} setiap bundel",
+      "usdSubsidy": "subsidi pemeteraian {usd} USD setiap blok, had {cap}",
+      "price": "harga RAND {usd} USD",
+      "multisig": "Multisig: yuran cipta {fee}, sehingga {signers} penandatangan dan {payouts} pembayaran keluar",
+      "perps": "Perp: {markets}, bukti sehingga peringkat {tier} merentasi paling banyak {window} blok",
+      "perpsProved": "dibuktikan sehingga #{height}",
+      "baseFeesBurned": "yuran asas dibakar {amount}",
+      "multisigHeld": "akaun multisig memegang {amount} (diterbitkan {issued})",
+      "perpsHeld": "perp memegang {amount}"
+    }
   },
   "blocks": {
     "title": "Blok",
@@ -1198,7 +1336,19 @@
       "rotate_pq_guardians_v2": "Putaran penjaga PQ (tertunda)",
       "rotate_pause_key_v2": "Putaran kunci jeda (tertunda)",
       "cancel_rotation": "Putaran dibatalkan",
-      "other": "Lain-lain"
+      "other": "Lain-lain",
+      "perp_deposit": "Deposit perp",
+      "perp_order": "Pesanan perp",
+      "perp_cancel": "Pesanan perp dibatalkan",
+      "perp_withdraw": "Permintaan pengeluaran perp",
+      "perp_oracle": "Harga oracle perp",
+      "perp_state_proof": "Bukti keadaan perp",
+      "create_multisig": "Akaun multisig dicipta",
+      "multisig_deposit": "Deposit multisig",
+      "multisig_pay": "Pembayaran multisig",
+      "multisig_rotate": "Penandatangan multisig diputar",
+      "set_rand_price": "Undi harga RAND",
+      "aggregate": "Bukti agregat"
     },
     "error": "Tidak dapat memuatkan transaksi.",
     "count": {

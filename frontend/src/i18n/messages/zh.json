@@ -425,6 +425,54 @@
     "other": {
       "label": "其他",
       "short": "其他"
+    },
+    "perp_deposit": {
+      "label": "永续合约存入",
+      "short": "永续存入"
+    },
+    "perp_order": {
+      "label": "永续合约订单",
+      "short": "订单"
+    },
+    "perp_cancel": {
+      "label": "永续合约订单已取消",
+      "short": "取消订单"
+    },
+    "perp_withdraw": {
+      "label": "永续合约提取请求",
+      "short": "永续提取"
+    },
+    "perp_oracle": {
+      "label": "永续合约预言机价格",
+      "short": "预言机"
+    },
+    "perp_state_proof": {
+      "label": "永续合约状态证明",
+      "short": "状态证明"
+    },
+    "create_multisig": {
+      "label": "多签账户已创建",
+      "short": "创建多签"
+    },
+    "multisig_deposit": {
+      "label": "多签存入",
+      "short": "多签存入"
+    },
+    "multisig_pay": {
+      "label": "多签支付",
+      "short": "多签支付"
+    },
+    "multisig_rotate": {
+      "label": "多签签名者已轮换",
+      "short": "轮换签名者"
+    },
+    "set_rand_price": {
+      "label": "RAND 价格投票",
+      "short": "价格投票"
+    },
+    "aggregate": {
+      "label": "聚合证明",
+      "short": "聚合"
     }
   },
   "roles": {
@@ -658,6 +706,81 @@
     },
     "unknownKind": {
       "help": "此交易类型比当前浏览器版本更新。已按其哈希、捆绑包、手续费和区块建立索引;浏览器更新后将显示解码字段。"
+    },
+    "perp": {
+      "account": "交易账户",
+      "tradingKey": "交易密钥",
+      "deposited": "存入金额",
+      "market": "市场",
+      "marketId": "市场 #{id}",
+      "side": "方向",
+      "buy": "买入",
+      "sell": "卖出",
+      "orderType": "订单类型",
+      "limit": "限价",
+      "marketOrder": "市价",
+      "gtc": "撤销前有效",
+      "ioc": "立即成交或取消",
+      "postOnly": "只做挂单",
+      "reduceOnly": "只减仓",
+      "price": "价格",
+      "atMarket": "按市价",
+      "size": "数量",
+      "nonce": "账户 Nonce",
+      "cancels": "取消对象",
+      "cancelsValue": "Nonce 为 {nonce} 的订单",
+      "paidTo": "支付给",
+      "prices": "价格",
+      "window": "覆盖区块",
+      "newRoot": "引擎状态根",
+      "payouts": "已支付提取",
+      "request": "请求",
+      "fees": "已收取手续费",
+      "proofSize": "证明大小",
+      "collateral": "抵押品",
+      "depositHelp": "用捆绑包中销毁的抵押资产，为该密钥开设交易账户或为其充值。按设计公开：交易所的输入正是其证明者所重放的内容。",
+      "orderHelp": "记录在区块中、供已证明的引擎撮合的订单。链上只检查交易密钥的签名和 Nonce；是否成交由引擎决定。无捆绑包，无手续费。",
+      "cancelHelp": "取消该账户的一笔订单。由交易密钥签名；无捆绑包，无手续费。",
+      "withdrawHelp": "提取抵押品的请求；当涵盖该请求的状态证明上链后，以票据形式支付给接收方。票据的信封属于接收方，不予显示。",
+      "oracleHelp": "验证者提交的预言机价格，每个市场一个。每个区块的价格取最新提交价格的中位数。",
+      "stateProofHelp": "证明者对这些区块的状态转换：引擎的新根、其支付的提取和收取的手续费，并附本次运行的 STARK 证明。无签名：证明即为授权。"
+    },
+    "multisig": {
+      "account": "账户",
+      "threshold": "阈值",
+      "ofSigners": "{n} 位签名者中的 {m} 位",
+      "salt": "盐值",
+      "funding": "注资",
+      "unfunded": "未销毁任何资金",
+      "payouts": "支出",
+      "signedBy": "签名者",
+      "newSet": "新签名者集合",
+      "nonce": "账户 Nonce",
+      "now": "账户当前状态",
+      "nowValue": "{n} 位签名者中的 {m} 位，Nonce {nonce}",
+      "emptyVault": "空金库",
+      "createHelp": "创建一个 M-of-N 账户，其 ID 由链、盐值、阈值和按顺序排列的签名者派生。捆绑包销毁的金额即为其初始余额；手续费包含链的创建费。",
+      "depositHelp": "用捆绑包销毁的金额为账户注资。任何人都可以存入；无需签名。",
+      "payHelp": "从账户的公开余额中支付票据，由达到阈值的签名者签名（按位置标识）。每张票据的所有字段均公开，因此接收方无需解密即可重建。账户还从其 RAND 行支付捆绑包基础费用。",
+      "rotateHelp": "在 ID 和余额不变的前提下，替换账户的签名者集合和阈值，由旧集合中达到阈值的签名者签名。无手续费。"
+    },
+    "price": {
+      "price": "价格",
+      "usdPerRand": "每 RAND {usd} USD",
+      "current": "当前价格",
+      "fresh": "最新",
+      "stale": "已过期",
+      "help": "验证者集合对 RAND/USD 价格的投票，美元计价的封存补贴按此价格换算。这是治理而非市场预言机：需超过三分之二的投票质押签名，且每次更新价格最多变动两倍。"
+    },
+    "aggregate": {
+      "covers": "涵盖的捆绑包",
+      "layout": "结构",
+      "flat": "扁平",
+      "tree": "树状（2 合 1 步骤）",
+      "payout": "支付给聚合者的金额",
+      "aggregator": "聚合者",
+      "proofSize": "证明大小",
+      "help": "一个证明，代替其涵盖区块的各捆绑包证明。账本恰好向聚合者支付其所签署的支付总额，否则拒绝该聚合。"
     }
   },
   "note": {
@@ -1158,7 +1281,22 @@
     },
     "latestBlocks": "最新区块",
     "latestTransactions": "最新交易",
-    "viewAll": "查看全部 →"
+    "viewAll": "查看全部 →",
+    "v080": {
+      "fees": "手续费：",
+      "burnBase": "捆绑包基础费用被销毁",
+      "burnFloor": "全部手续费下限被销毁",
+      "proposerShare": "提议者保留基础费用的 {percent}",
+      "proveBase": "证明份额：每个捆绑包 {amount}",
+      "usdSubsidy": "封存补贴：每区块 {usd} USD，上限 {cap}",
+      "price": "RAND 价格 {usd} USD",
+      "multisig": "多签：创建费 {fee}，最多 {signers} 位签名者和 {payouts} 笔支出",
+      "perps": "永续合约：{markets}，证明最高至 {tier} 档，最多覆盖 {window} 个区块",
+      "perpsProved": "已证明至 #{height}",
+      "baseFeesBurned": "已销毁基础费用 {amount}",
+      "multisigHeld": "多签账户持有 {amount}（已发行 {issued}）",
+      "perpsHeld": "永续合约持有 {amount}"
+    }
   },
   "blocks": {
     "title": "区块",
@@ -1198,7 +1336,19 @@
       "rotate_pq_guardians_v2": "PQ 守护者轮换(延迟)",
       "rotate_pause_key_v2": "暂停密钥轮换(延迟)",
       "cancel_rotation": "轮换已取消",
-      "other": "其他"
+      "other": "其他",
+      "perp_deposit": "永续合约存入",
+      "perp_order": "永续合约订单",
+      "perp_cancel": "永续合约订单已取消",
+      "perp_withdraw": "永续合约提取请求",
+      "perp_oracle": "永续合约预言机价格",
+      "perp_state_proof": "永续合约状态证明",
+      "create_multisig": "多签账户已创建",
+      "multisig_deposit": "多签存入",
+      "multisig_pay": "多签支付",
+      "multisig_rotate": "多签签名者已轮换",
+      "set_rand_price": "RAND 价格投票",
+      "aggregate": "聚合证明"
     },
     "error": "无法加载交易。",
     "count": {

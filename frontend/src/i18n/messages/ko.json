@@ -425,6 +425,54 @@
     "other": {
       "label": "기타",
       "short": "기타"
+    },
+    "perp_deposit": {
+      "label": "무기한 선물 입금",
+      "short": "선물 입금"
+    },
+    "perp_order": {
+      "label": "무기한 선물 주문",
+      "short": "주문"
+    },
+    "perp_cancel": {
+      "label": "무기한 선물 주문 취소됨",
+      "short": "주문 취소"
+    },
+    "perp_withdraw": {
+      "label": "무기한 선물 출금 요청",
+      "short": "선물 출금"
+    },
+    "perp_oracle": {
+      "label": "무기한 선물 오라클 가격",
+      "short": "오라클"
+    },
+    "perp_state_proof": {
+      "label": "무기한 선물 상태 증명",
+      "short": "상태 증명"
+    },
+    "create_multisig": {
+      "label": "멀티시그 계정 생성됨",
+      "short": "멀티시그 생성"
+    },
+    "multisig_deposit": {
+      "label": "멀티시그 입금",
+      "short": "멀티시그 입금"
+    },
+    "multisig_pay": {
+      "label": "멀티시그 지급",
+      "short": "멀티시그 지급"
+    },
+    "multisig_rotate": {
+      "label": "멀티시그 서명자 교체됨",
+      "short": "서명자 교체"
+    },
+    "set_rand_price": {
+      "label": "RAND 가격 투표",
+      "short": "가격 투표"
+    },
+    "aggregate": {
+      "label": "집계 증명",
+      "short": "집계"
     }
   },
   "roles": {
@@ -658,6 +706,81 @@
     },
     "unknownKind": {
       "help": "이 트랜잭션 종류는 현재 익스플로러 빌드보다 새로운 것입니다. 해시, 번들, 수수료, 블록만 색인되었으며, 디코딩된 필드는 익스플로러가 업데이트된 후에 표시됩니다."
+    },
+    "perp": {
+      "account": "거래 계정",
+      "tradingKey": "거래 키",
+      "deposited": "입금액",
+      "market": "마켓",
+      "marketId": "마켓 #{id}",
+      "side": "방향",
+      "buy": "매수",
+      "sell": "매도",
+      "orderType": "주문 유형",
+      "limit": "지정가",
+      "marketOrder": "시장가",
+      "gtc": "취소 시까지 유효",
+      "ioc": "즉시 체결 또는 취소",
+      "postOnly": "메이커 전용",
+      "reduceOnly": "포지션 감소 전용",
+      "price": "가격",
+      "atMarket": "시장가",
+      "size": "수량",
+      "nonce": "계정 논스",
+      "cancels": "취소 대상",
+      "cancelsValue": "논스가 {nonce}인 주문",
+      "paidTo": "지급 대상",
+      "prices": "가격",
+      "window": "포함된 블록",
+      "newRoot": "엔진 상태 루트",
+      "payouts": "지급된 출금",
+      "request": "요청",
+      "fees": "징수된 수수료",
+      "proofSize": "증명 크기",
+      "collateral": "담보",
+      "depositHelp": "번들에서 소각된 담보 자산으로 이 키의 거래 계정을 개설하거나 충전합니다. 설계상 공개입니다. 거래소의 입력은 증명자가 재실행하는 대상입니다.",
+      "orderHelp": "증명된 엔진이 체결할 수 있도록 블록에 기록된 주문입니다. 체인은 거래 키의 서명과 논스만 확인하며, 체결 여부는 엔진이 결정합니다. 번들과 수수료가 없습니다.",
+      "cancelHelp": "이 계정의 주문 하나를 취소합니다. 거래 키로 서명하며, 번들과 수수료가 없습니다.",
+      "withdrawHelp": "담보 출금 요청이며, 이를 포함하는 상태 증명이 반영되면 수신자에게 노트로 지급됩니다. 노트의 봉투는 수신자의 것이므로 표시되지 않습니다.",
+      "oracleHelp": "검증자가 제출한 오라클 가격으로, 마켓마다 하나씩입니다. 각 블록의 가격은 최신 제출값의 중앙값입니다.",
+      "stateProofHelp": "이 블록들에 대한 증명자의 상태 전이입니다. 엔진의 새 루트, 엔진이 지급한 출금과 징수한 수수료, 그리고 실행에 대한 STARK 증명을 담습니다. 서명이 없으며, 증명이 곧 권한입니다."
+    },
+    "multisig": {
+      "account": "계정",
+      "threshold": "임계값",
+      "ofSigners": "서명자 {n}명 중 {m}명",
+      "salt": "솔트",
+      "funding": "자금 조달",
+      "unfunded": "소각 없음",
+      "payouts": "지급",
+      "signedBy": "서명자",
+      "newSet": "새 서명자 집합",
+      "nonce": "계정 논스",
+      "now": "현재 계정 상태",
+      "nowValue": "서명자 {n}명 중 {m}명, 논스 {nonce}",
+      "emptyVault": "빈 금고",
+      "createHelp": "체인, 솔트, 임계값, 순서대로 나열된 서명자로부터 ID가 도출되는 M-of-N 계정을 생성합니다. 번들에서 소각된 금액이 초기 잔액이며, 수수료에는 체인의 생성 수수료가 포함됩니다.",
+      "depositHelp": "번들에서 소각된 금액으로 계정에 자금을 넣습니다. 누구나 입금할 수 있으며, 서명은 필요하지 않습니다.",
+      "payHelp": "계정의 공개 잔액에서 노트를 지급하며, 임계값 이상의 서명자(위치로 지정)가 서명합니다. 각 노트의 모든 필드가 공개되므로 수신자는 복호화 없이 노트를 재구성할 수 있습니다. 계정은 번들 기본 수수료도 자신의 RAND 행에서 지불합니다.",
+      "rotateHelp": "ID와 잔액은 그대로 두고 계정의 서명자 집합과 임계값을 교체하며, 기존 집합의 임계값 이상 서명자가 서명합니다. 수수료가 없습니다."
+    },
+    "price": {
+      "price": "가격",
+      "usdPerRand": "RAND당 {usd} USD",
+      "current": "현재 가격",
+      "fresh": "최신",
+      "stale": "오래됨",
+      "help": "달러 연동 실링 보조금이 환산에 사용하는 RAND/USD 가격에 대한 검증자 집합의 투표입니다. 시장 오라클이 아닌 거버넌스이며, 투표 스테이크의 3분의 2 초과가 서명하고 가격은 업데이트마다 최대 2배까지만 변동합니다."
+    },
+    "aggregate": {
+      "covers": "포함된 번들",
+      "layout": "구조",
+      "flat": "플랫",
+      "tree": "트리 (2-to-1 단계)",
+      "payout": "집계자 지급액",
+      "aggregator": "집계자",
+      "proofSize": "증명 크기",
+      "help": "포함하는 블록들의 번들 증명을 대신하는 하나의 증명입니다. 원장은 집계자가 서명한 지급 총액을 정확히 지급하며, 그렇지 않으면 집계를 거부합니다."
     }
   },
   "note": {
@@ -1158,7 +1281,22 @@
     },
     "latestBlocks": "최신 블록",
     "latestTransactions": "최신 트랜잭션",
-    "viewAll": "모두 보기 →"
+    "viewAll": "모두 보기 →",
+    "v080": {
+      "fees": "수수료:",
+      "burnBase": "번들 기본 수수료 소각",
+      "burnFloor": "수수료 하한 전액 소각",
+      "proposerShare": "제안자가 기본 수수료의 {percent} 보유",
+      "proveBase": "증명 몫: 번들당 {amount}",
+      "usdSubsidy": "실링 보조금: 블록당 {usd} USD, 최대 {cap}",
+      "price": "RAND 가격 {usd} USD",
+      "multisig": "멀티시그: 생성 수수료 {fee}, 서명자 최대 {signers}명, 지급 최대 {payouts}건",
+      "perps": "무기한 선물: {markets}, 증명 최대 티어 {tier}, 최대 {window}개 블록 범위",
+      "perpsProved": "#{height}까지 증명됨",
+      "baseFeesBurned": "소각된 기본 수수료 {amount}",
+      "multisigHeld": "멀티시그 계정 보유액 {amount} (발행 {issued})",
+      "perpsHeld": "무기한 선물 보유액 {amount}"
+    }
   },
   "blocks": {
     "title": "블록",
@@ -1198,7 +1336,19 @@
       "rotate_pq_guardians_v2": "PQ 가디언 교체 (지연)",
       "rotate_pause_key_v2": "일시 중지 키 교체 (지연)",
       "cancel_rotation": "교체 취소됨",
-      "other": "기타"
+      "other": "기타",
+      "perp_deposit": "무기한 선물 입금",
+      "perp_order": "무기한 선물 주문",
+      "perp_cancel": "무기한 선물 주문 취소됨",
+      "perp_withdraw": "무기한 선물 출금 요청",
+      "perp_oracle": "무기한 선물 오라클 가격",
+      "perp_state_proof": "무기한 선물 상태 증명",
+      "create_multisig": "멀티시그 계정 생성됨",
+      "multisig_deposit": "멀티시그 입금",
+      "multisig_pay": "멀티시그 지급",
+      "multisig_rotate": "멀티시그 서명자 교체됨",
+      "set_rand_price": "RAND 가격 투표",
+      "aggregate": "집계 증명"
     },
     "error": "트랜잭션을 불러오지 못했습니다.",
     "count": {

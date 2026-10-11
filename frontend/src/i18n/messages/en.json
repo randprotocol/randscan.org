@@ -427,6 +427,54 @@
     "other": {
       "label": "Other",
       "short": "Other"
+    },
+    "perp_deposit": {
+      "label": "Perp deposit",
+      "short": "Perp deposit"
+    },
+    "perp_order": {
+      "label": "Perp order",
+      "short": "Order"
+    },
+    "perp_cancel": {
+      "label": "Perp order cancelled",
+      "short": "Cancel order"
+    },
+    "perp_withdraw": {
+      "label": "Perp withdrawal request",
+      "short": "Perp withdraw"
+    },
+    "perp_oracle": {
+      "label": "Perp oracle prices",
+      "short": "Oracle"
+    },
+    "perp_state_proof": {
+      "label": "Perp state proof",
+      "short": "State proof"
+    },
+    "create_multisig": {
+      "label": "Multisig account created",
+      "short": "Create multisig"
+    },
+    "multisig_deposit": {
+      "label": "Multisig deposit",
+      "short": "Multisig deposit"
+    },
+    "multisig_pay": {
+      "label": "Multisig payment",
+      "short": "Multisig pay"
+    },
+    "multisig_rotate": {
+      "label": "Multisig signers rotated",
+      "short": "Rotate signers"
+    },
+    "set_rand_price": {
+      "label": "RAND price vote",
+      "short": "Price vote"
+    },
+    "aggregate": {
+      "label": "Aggregate proof",
+      "short": "Aggregate"
     }
   },
   "roles": {
@@ -663,6 +711,81 @@
     },
     "unknownKind": {
       "help": "This transaction kind is newer than this explorer build. It was indexed with its hash, bundle, fee and block; decoded fields will appear after the explorer is updated."
+    },
+    "perp": {
+      "account": "Trading account",
+      "tradingKey": "Trading key",
+      "deposited": "Deposited",
+      "market": "Market",
+      "marketId": "market #{id}",
+      "side": "Side",
+      "buy": "Buy",
+      "sell": "Sell",
+      "orderType": "Order type",
+      "limit": "Limit",
+      "marketOrder": "Market",
+      "gtc": "good till cancelled",
+      "ioc": "immediate or cancel",
+      "postOnly": "post only",
+      "reduceOnly": "reduce only",
+      "price": "Price",
+      "atMarket": "at market",
+      "size": "Size",
+      "nonce": "Account nonce",
+      "cancels": "Cancels",
+      "cancelsValue": "the order with nonce {nonce}",
+      "paidTo": "Paid to",
+      "prices": "Prices",
+      "window": "Blocks covered",
+      "newRoot": "Engine state root",
+      "payouts": "Withdrawals paid",
+      "request": "request",
+      "fees": "Fees collected",
+      "proofSize": "Proof size",
+      "collateral": "Collateral",
+      "depositHelp": "Opens or tops up the trading account of this key with the bundle's burn of the collateral asset. Public by design: the exchange's inputs are what its prover replays.",
+      "orderHelp": "An order recorded in the block for the proved engine to match. The chain checks only the trading key's signature and the nonce; whether it fills is the engine's to decide. Bundle-less and fee-less.",
+      "cancelHelp": "Cancels one of this account's orders. Signed by the trading key; bundle-less and fee-less.",
+      "withdrawHelp": "A request to withdraw collateral, paid as a note to the recipient when a state proof covering it lands. The note's envelope is the recipient's and is not shown.",
+      "oracleHelp": "A validator's oracle prices, one per market. Each block's price is the median of the fresh submissions.",
+      "stateProofHelp": "A prover's state transition over these blocks: the engine's new root, the withdrawals it pays and the fees it collected, with the STARK proof of the run. Unsigned: the proof is the authority."
+    },
+    "multisig": {
+      "account": "Account",
+      "threshold": "Threshold",
+      "ofSigners": "{m} of {n} signers",
+      "salt": "Salt",
+      "funding": "Funding",
+      "unfunded": "nothing burned",
+      "payouts": "Payouts",
+      "signedBy": "Signed by",
+      "newSet": "New signer set",
+      "nonce": "Account nonce",
+      "now": "Account now",
+      "nowValue": "{m} of {n} signers, nonce {nonce}",
+      "emptyVault": "empty vault",
+      "createHelp": "Creates an M-of-N account whose id is derived from the chain, the salt, the threshold and the signers in order. The bundle's burn is its opening balance; the fee includes the chain's create fee.",
+      "depositHelp": "Funds the account with the bundle's burn. Anyone may deposit; nothing is signed.",
+      "payHelp": "Pays notes out of the account's public balance, signed by its threshold of signers (named by position). Every word of each note is public, so the recipient rebuilds it with nothing decrypted. The account also pays the bundle base from its RAND row.",
+      "rotateHelp": "Replaces the account's signer set and threshold under the same id and balance, signed by a threshold of the old set. Fee-less."
+    },
+    "price": {
+      "price": "Price",
+      "usdPerRand": "{usd} USD per RAND",
+      "current": "Current price",
+      "fresh": "fresh",
+      "stale": "stale",
+      "help": "The validator set's vote on the RAND/USD price the dollar-indexed sealing subsidy converts at. Governance, not a market oracle: more than two thirds of the voting stake sign it, and the price moves by at most a factor of two per update."
+    },
+    "aggregate": {
+      "covers": "Bundles covered",
+      "layout": "Layout",
+      "flat": "Flat",
+      "tree": "Tree (2-to-1 steps)",
+      "payout": "Payout to the aggregator",
+      "aggregator": "Aggregator",
+      "proofSize": "Proof size",
+      "help": "One proof standing in for the bundle proofs of the blocks it covers. The ledger pays the aggregator exactly the payout total it signed, or refuses the aggregate."
     }
   },
   "note": {
@@ -1174,7 +1297,22 @@
     },
     "latestBlocks": "Latest blocks",
     "latestTransactions": "Latest transactions",
-    "viewAll": "View all →"
+    "viewAll": "View all →",
+    "v080": {
+      "fees": "Fees:",
+      "burnBase": "the bundle base is burned",
+      "burnFloor": "the whole fee floor is burned",
+      "proposerShare": "proposer keeps {percent} of the base",
+      "proveBase": "proving share {amount} a bundle",
+      "usdSubsidy": "sealing subsidy {usd} USD a block, capped at {cap}",
+      "price": "RAND price {usd} USD",
+      "multisig": "Multisig: create fee {fee}, up to {signers} signers and {payouts} payouts",
+      "perps": "Perps: {markets}, proofs up to tier {tier} over at most {window} blocks",
+      "perpsProved": "proved to #{height}",
+      "baseFeesBurned": "base fees burned {amount}",
+      "multisigHeld": "multisig accounts hold {amount} (issued {issued})",
+      "perpsHeld": "perps hold {amount}"
+    }
   },
   "blocks": {
     "title": "Blocks",
@@ -1215,7 +1353,19 @@
       "rotate_pq_guardians_v2": "PQ guardian rotation (delayed)",
       "rotate_pause_key_v2": "Pause key rotation (delayed)",
       "cancel_rotation": "Rotation cancelled",
-      "other": "Other"
+      "other": "Other",
+      "perp_deposit": "Perp deposit",
+      "perp_order": "Perp order",
+      "perp_cancel": "Perp order cancelled",
+      "perp_withdraw": "Perp withdrawal request",
+      "perp_oracle": "Perp oracle prices",
+      "perp_state_proof": "Perp state proof",
+      "create_multisig": "Multisig account created",
+      "multisig_deposit": "Multisig deposit",
+      "multisig_pay": "Multisig payment",
+      "multisig_rotate": "Multisig signers rotated",
+      "set_rand_price": "RAND price vote",
+      "aggregate": "Aggregate proof"
     },
     "error": "Could not load transactions.",
     "count": {

@@ -4,6 +4,9 @@ import useSWR, { type SWRConfiguration, type SWRResponse } from 'swr';
 import * as api from '@/lib/api';
 import type {
   AdmittedSet,
+  MultisigAccount,
+  PerpsInfo,
+  RandPrice,
   ApiKey,
   BlockDetail,
   BlockSummary,
@@ -208,6 +211,45 @@ export function useSupply(config?: SWRConfiguration): SWRResponse<Supply | null>
       }
     },
     { ...defaultConfig, refreshInterval: 30_000, ...config }
+  );
+}
+
+/** A read that 404s on a chain without the section answers `null` instead of an error. */
+function orNull<T>(fetch: () => Promise<T>): () => Promise<T | null> {
+  return async () => {
+    try {
+      return await fetch();
+    } catch (err) {
+      if (api.isNotFoundError(err)) return null;
+      throw err;
+    }
+  };
+}
+
+/** The perps exchange (fullnode v0.8.0); `null` on a chain without a `perps` section. */
+export function usePerps(config?: SWRConfiguration): SWRResponse<PerpsInfo | null> {
+  return useSWR<PerpsInfo | null>('perps', orNull(api.getPerps), {
+    ...defaultConfig,
+    refreshInterval: 30_000,
+    ...config,
+  });
+}
+
+/** The voted RAND/USD price (fullnode v0.8.0); `null` on a chain without `fees.usd_subsidy`. */
+export function useRandPrice(config?: SWRConfiguration): SWRResponse<RandPrice | null> {
+  return useSWR<RandPrice | null>('price', orNull(api.getRandPrice), {
+    ...defaultConfig,
+    refreshInterval: 30_000,
+    ...config,
+  });
+}
+
+/** One multisig account as the node holds it now; `null` for an unknown id. */
+export function useMultisig(id: string | null, config?: SWRConfiguration): SWRResponse<MultisigAccount | null> {
+  return useSWR<MultisigAccount | null>(
+    id ? ['multisig', id] : null,
+    orNull(() => api.getMultisig(id as string)),
+    { ...defaultConfig, ...config }
   );
 }
 

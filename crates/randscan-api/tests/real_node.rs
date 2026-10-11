@@ -21,6 +21,8 @@ use std::time::Duration;
 
 const WAIT: Duration = Duration::from_secs(90);
 const CHAIN_ID: u64 = 7701;
+/// The genesis treasury's balance, 100 RAND in units.
+const MULTISIG_TREASURY_BALANCE: &str = "100000000000";
 
 struct Node {
     child: Child,
@@ -28,6 +30,9 @@ struct Node {
     dir: tempfile::TempDir,
     /// The genesis has a `program_state` section (a build with `--program-state-cell-fee`).
     rpl2: bool,
+    /// Fullnode v0.8.0 (a build with `--multisig`): the genesis seeds a 1-of-1 treasury account,
+    /// by its id, with the signer's key file.
+    treasury: Option<(String, PathBuf)>,
 }
 
 impl Drop for Node {
@@ -213,7 +218,41 @@ async fn start_node(bin: &PathBuf, cli: &PathBuf) -> (Node, String, String) {
             .map(str::to_string),
         );
     }
-    run(bin, &args.iter().map(String::as_str).collect::<Vec<_>>());
+    // Fullnode v0.8.0 (chain 21's cut carries it): a `multisig` section seeding a 1-of-1 treasury
+    // with 100 RAND of new issuance, so the explorer meets a multisig payment (bundle-less, signed
+    // offline, no proof) and a create (one bundle proof), and the supply's multisig counters. An
+    // older build has no `--multisig` and keeps the plain genesis.
+    let multisig = help.contains("--multisig");
+    let signer = dir.path().join("treasury-signer.key.json");
+    if multisig {
+        run(bin, &["keygen", "--out", signer.to_str().unwrap()]);
+        let pk = serde_json::from_str::<Value>(&std::fs::read_to_string(&signer).unwrap()).unwrap()
+            ["public_key"]
+            .as_str()
+            .unwrap()
+            .to_string();
+        let cfg = dir.path().join("multisig.json");
+        std::fs::write(
+            &cfg,
+            json!({ "create_fee": "1000000000", "accounts": [{ "salt": "5e".repeat(32), "signers": [pk],
+                    "threshold": 1, "balance": MULTISIG_TREASURY_BALANCE }] })
+            .to_string(),
+        )
+        .unwrap();
+        args.extend(["--multisig".into(), cfg.to_str().unwrap().to_string()]);
+    }
+    let genesis_out = run(bin, &args.iter().map(String::as_str).collect::<Vec<_>>());
+    // `  multisig <id> 100 RAND, 1 of 1 signers`, the id the signers spend from.
+    let treasury = multisig.then(|| {
+        let id = genesis_out
+            .lines()
+            .find_map(|l| l.trim().strip_prefix("multisig "))
+            .and_then(|r| r.split(' ').next())
+            .filter(|id| id.len() == 64)
+            .unwrap_or_else(|| panic!("no treasury id in the genesis output: {genesis_out}"))
+            .to_string();
+        (id, signer.clone())
+    });
     run(
         bin,
         &[
@@ -224,7 +263,11 @@ async fn start_node(bin: &PathBuf, cli: &PathBuf) -> (Node, String, String) {
             genesis.to_str().unwrap(),
         ],
     );
-    let port = free_port();
+    // `RAND_NODE_RPC_PORT` pins the RPC port, for a machine that hands each session its own range.
+    let port = std::env::var("RAND_NODE_RPC_PORT")
+        .ok()
+        .and_then(|p| p.parse().ok())
+        .unwrap_or_else(free_port);
     let url = format!("http://127.0.0.1:{port}");
     // 500 ms blocks: a bundle's anchor is valid for 256 blocks, so the wallet has about two
     // minutes to prove under the test profile before an honest transfer would be refused
@@ -261,6 +304,7 @@ async fn start_node(bin: &PathBuf, cli: &PathBuf) -> (Node, String, String) {
         url: url.clone(),
         dir,
         rpl2,
+        treasury,
     };
     let client = reqwest::Client::new();
     let start = std::time::Instant::now();
@@ -716,7 +760,221 @@ async fn explorer_agrees_with_a_real_shielded_node() {
         None
     };
     consumer_contract(&live, &client, &node, &mint_hash, &mint["cm"], token_index).await;
+    if node.treasury.is_some() {
+        multisig_round_trip(&live, &client, &node, &bin, &cli, wallet, &wallet2_addr).await;
+    } else {
+        eprintln!(
+            "skipping the multisig round trip: this rand-node has no --multisig (pre-v0.8.0)"
+        );
+    }
     drop(node);
+}
+
+/// Fullnode v0.8.0 multisig on a chain whose genesis seeds a 1-of-1 treasury: a payment out of it
+/// (`rand-node multisig pay prepare|sign|submit`, bundle-less) and a new account (`rand multisig
+/// create`, one bundle proof). Then the explorer's view against the node's: both kinds with their
+/// detail, the payment's payout leaf linked to it, the account read live, the limits' `multisig`
+/// group and the supply's multisig counters.
+async fn multisig_round_trip(
+    live: &LiveApp,
+    client: &reqwest::Client,
+    node: &Node,
+    bin: &PathBuf,
+    cli: &PathBuf,
+    wallet: &str,
+    payee: &str,
+) {
+    let (treasury, signer) = node.treasury.clone().unwrap();
+    let proposal = node.dir.path().join("pay.json");
+    run(
+        bin,
+        &[
+            "multisig",
+            "pay",
+            "prepare",
+            "--account",
+            &treasury,
+            "--to",
+            payee,
+            "--amount",
+            "1.5",
+            "--out",
+            proposal.to_str().unwrap(),
+            "--rpc",
+            &node.url,
+        ],
+    );
+    let signature = run(
+        bin,
+        &[
+            "multisig",
+            "pay",
+            "sign",
+            "--proposal",
+            proposal.to_str().unwrap(),
+            "--key",
+            signer.to_str().unwrap(),
+        ],
+    )
+    .trim()
+    .to_string();
+    let out = run(
+        bin,
+        &[
+            "multisig",
+            "pay",
+            "submit",
+            "--proposal",
+            proposal.to_str().unwrap(),
+            "--signature",
+            &signature,
+            "--rpc",
+            &node.url,
+        ],
+    );
+    // `submitted payment of 1 payout(s) from account <id> <hash>`
+    let pay_hash = out
+        .lines()
+        .find(|l| l.starts_with("submitted payment"))
+        .and_then(|l| l.split(' ').next_back())
+        .unwrap_or_else(|| panic!("no `submitted payment` line in: {out}"))
+        .to_string();
+    let node_pay = rpc(client, &node.url, "rand_getTransaction", json!([pay_hash])).await;
+    let action = &node_pay["tx"]["action"];
+    assert_eq!(action["kind"], "multisig_pay", "{node_pay}");
+    let pay = live
+        .wait_for(&format!("/api/v1/transactions/{pay_hash}"), WAIT, |t| {
+            t["kind"] == "multisig_pay"
+        })
+        .await;
+    assert_eq!(pay["has_bundle"], false);
+    assert_eq!(pay["action_nonce"], action["nonce"]);
+    let m = &pay["multisig_action"];
+    assert_eq!(m["account"], treasury);
+    assert_eq!(m["signers"], action["signers"]);
+    assert_eq!(m["pays"][0]["amount"], "1500000000");
+    assert_eq!(m["pays"][0]["recipient"], payee);
+    assert_eq!(m["pays"][0]["cm"], action["pays"][0]["cm"]);
+    let cm = action["pays"][0]["cm"].as_str().unwrap();
+    let note = live
+        .wait_for(&format!("/api/v1/notes/{cm}"), WAIT, |n| {
+            n["tx_hash"].is_string()
+        })
+        .await;
+    assert_eq!(
+        note["tx_hash"], pay_hash,
+        "the payout leaf links to the payment"
+    );
+
+    // A new 2-of-2 account, created and funded by the wallet's bundle.
+    let pk = serde_json::from_str::<Value>(&std::fs::read_to_string(&signer).unwrap()).unwrap()
+        ["public_key"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let second = node.dir.path().join("second-signer.key.json");
+    run(bin, &["keygen", "--out", second.to_str().unwrap()]);
+    let pk2 = serde_json::from_str::<Value>(&std::fs::read_to_string(&second).unwrap()).unwrap()
+        ["public_key"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let out = run(
+        cli,
+        &[
+            "multisig",
+            "create",
+            "--signer",
+            &pk,
+            "--signer",
+            &pk2,
+            "--threshold",
+            "2",
+            "--fund",
+            "2",
+            "--key",
+            wallet,
+            "--rpc",
+            &node.url,
+        ],
+    );
+    let create_hash = submitted_hash(&out, "multisig create");
+    let node_create = rpc(
+        client,
+        &node.url,
+        "rand_getTransaction",
+        json!([create_hash]),
+    )
+    .await;
+    let create = live
+        .wait_for(&format!("/api/v1/transactions/{create_hash}"), WAIT, |t| {
+            t["kind"] == "create_multisig"
+        })
+        .await;
+    assert_eq!(create["has_bundle"], true);
+    assert_eq!(
+        create["multisig_action"]["salt"],
+        node_create["tx"]["action"]["salt"]
+    );
+    assert_eq!(create["multisig_action"]["threshold"], 2);
+    assert_eq!(create["multisig_action"]["signer_count"], 2);
+    assert_eq!(
+        create["bundle"]["burn_r"], "2000000000",
+        "the create's funding"
+    );
+
+    // The account, read live, against the node's.
+    let node_account = rpc(client, &node.url, "rand_getMultisig", json!([treasury])).await;
+    let (status, _, account) = call(
+        &live.app,
+        json_req("GET", &format!("/api/v1/multisig/{treasury}"), None, None),
+    )
+    .await;
+    assert_eq!(status, 200, "{account}");
+    assert_eq!(account["nonce"], node_account["nonce"]);
+    assert_eq!(account["signers"], node_account["signers"]);
+    assert_eq!(account["vault"], node_account["vault"]);
+
+    // The limits' `multisig` group and the supply's counters, as the node serves them.
+    let node_limits = rpc(client, &node.url, "rand_getLimits", json!([])).await;
+    let stats = live
+        .wait_for("/api/v1/stats", WAIT, |s| {
+            s["limits"]["multisig"].is_object()
+        })
+        .await;
+    assert_eq!(stats["limits"]["multisig"], node_limits["multisig"]);
+    assert!(stats["limits"]["perps"].is_null(), "no perps section here");
+    let head = rpc(client, &node.url, "rand_getHead", json!([])).await["height"]
+        .as_i64()
+        .unwrap();
+    let supply = live
+        .wait_for("/api/v1/supply", WAIT, |s| {
+            s["height"].as_i64().unwrap_or(0) >= head && s["multisig_rand_in"] != "0"
+        })
+        .await;
+    assert_eq!(supply["multisig_issued"], MULTISIG_TREASURY_BALANCE);
+    assert_eq!(supply["multisig_rand_in"], "2000000000");
+    assert_eq!(supply["multisig_rand_out"], "1500000000");
+    assert_eq!(supply["invariant_holds"], true);
+    let node_supply = rpc(client, &node.url, "rand_getSupply", json!([])).await;
+    if node_supply["height"] == supply["height"] {
+        for k in [
+            "multisig_issued",
+            "multisig_rand_in",
+            "multisig_rand_out",
+            "multisig_base_out",
+            "multisig_rand_held",
+            "base_fees_burned",
+            "perps_rand_out",
+            "perps_rand_held",
+        ] {
+            assert_eq!(supply[k], node_supply[k], "{k}");
+        }
+    }
+    eprintln!(
+        "multisig: pay {pay_hash} (leaf linked), create {create_hash}, treasury nonce {}, issued {}, held {}",
+        account["nonce"], supply["multisig_issued"], supply["multisig_rand_held"]
+    );
 }
 
 /// RPL-2 on a chain with the `program_state` section: deploy the counter guest, register its

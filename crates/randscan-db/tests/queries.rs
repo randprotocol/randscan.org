@@ -520,7 +520,6 @@ async fn create_pool_connects_with_the_configured_url() {
 }
 
 #[tokio::test]
-#[ignore = "BUG: avg_block_time_ms errors on an empty blocks table (MIN/MAX are NULL but decoded as i64); it should answer 0.0"]
 async fn the_average_block_time_of_no_blocks_is_zero() {
     let Some((pool, _g)) = clean_pool().await else {
         return;

@@ -330,13 +330,21 @@ async fn read_endpoints_serve_what_the_indexer_stored() {
         .unwrap();
     assert!(addrless["ip"].is_null() && addrless["geo"].is_null());
 
-    // ----- provers: every known one is listed, polled or not ---------------------------------
+    // ----- provers: the live pool (descriptor) or the pinned members, polled or not ----------
     let (status, provers) = get(&live.app, "/api/v1/provers").await;
     assert_eq!(status, StatusCode::OK);
     let provers = provers.as_array().unwrap();
-    assert_eq!(provers.len(), KNOWN_PROVERS.len());
-    for (view, known) in provers.iter().zip(KNOWN_PROVERS) {
-        assert_eq!(view["url"], known.url);
-        assert_eq!(view["fingerprint"], known.fingerprint);
+    // The descriptor is read from the network when reachable, else the pinned list is served; the
+    // test holds in both cases, so it checks the shape rather than the exact members.
+    assert!(!provers.is_empty());
+    for view in provers {
+        assert!(view["url"].as_str().unwrap().starts_with("https://"));
+        assert!(!view["fingerprint"].as_str().unwrap().is_empty());
+        assert!(view["members"].is_array() && view.get("up").is_some());
+    }
+    for known in KNOWN_PROVERS {
+        if let Some(v) = provers.iter().find(|v| v["url"] == known.url) {
+            assert_eq!(v["fingerprint"], known.fingerprint, "{}", known.url);
+        }
     }
 }

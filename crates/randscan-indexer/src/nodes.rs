@@ -3,8 +3,8 @@
 use crate::rpc::RpcClient;
 use anyhow::Result;
 use randscan_core::{
-    is_private_ip, parse_multiaddr, NodeInfo, ProverInfoReply, ProverMember, ProverView,
-    KNOWN_PROVERS,
+    is_private_ip, parse_multiaddr, NodeInfo, PoolDescriptor, ProverInfoReply, ProverMember,
+    ProverView, KNOWN_PROVERS, POOL_DESCRIPTOR_URL,
 };
 use randscan_db::{self as db, DbPool};
 use serde::Deserialize;
@@ -208,6 +208,17 @@ impl NodeTracker {
     /// Poll every known prover's `prover_info` and place its members. A prover that does not
     /// answer keeps its last reply (and `last_up_ms`), marked down with the error.
     async fn refresh_provers(&self) -> Result<()> {
+        // The live pool from its descriptor; the pinned list when it cannot be read.
+        let targets = match self.pool_descriptor().await {
+            Ok(t) => t,
+            Err(e) => {
+                warn!(
+                    "pool descriptor unavailable, using the pinned members: {:#}",
+                    e
+                );
+                KNOWN_PROVERS.iter().map(ProverView::unpolled).collect()
+            }
+        };
         let ips: Vec<String> = KNOWN_PROVERS
             .iter()
             .flat_map(|p| p.members.iter().map(|m| m.ip.to_string()))
@@ -215,33 +226,37 @@ impl NodeTracker {
         let cache = self.geolocate(&ips).await?;
         let previous = self.provers().await;
         let now = chrono_now().timestamp_millis();
-        let mut out = Vec::with_capacity(KNOWN_PROVERS.len());
-        for p in KNOWN_PROVERS {
+        let mut out = Vec::with_capacity(targets.len());
+        for t in targets {
             let mut v = previous
                 .iter()
-                .find(|v| v.url == p.url)
+                .find(|v| v.url == t.url)
                 .cloned()
-                .unwrap_or_else(|| ProverView::unpolled(p));
-            v.members = p
-                .members
+                .unwrap_or_else(|| t.clone());
+            // The listed identity is the current one (a rotated key is a changed descriptor).
+            v.name = t.name.clone();
+            v.fingerprint = t.fingerprint.clone();
+            v.members = KNOWN_PROVERS
                 .iter()
+                .filter(|p| p.url == t.url)
+                .flat_map(|p| p.members.iter())
                 .map(|m| ProverMember {
                     label: m.label.into(),
                     geo: cache.get(m.ip).and_then(|r| r.geo()),
                 })
                 .collect();
             v.checked_at_ms = Some(now);
-            match self.prover_info(p.url).await {
+            match self.prover_info(&t.url).await {
                 Ok(info) => {
                     v.fingerprint_matches =
-                        info.kem_fingerprint.as_deref().map(|f| f == p.fingerprint);
+                        info.kem_fingerprint.as_deref().map(|f| f == t.fingerprint);
                     v.up = true;
                     v.error = None;
                     v.last_up_ms = Some(now);
                     v.info = Some(info);
                 }
                 Err(e) => {
-                    debug!("prover {} did not answer: {:#}", p.url, e);
+                    debug!("prover {} did not answer: {:#}", t.url, e);
                     v.up = false;
                     v.error = Some(format!("{e:#}"));
                 }
@@ -250,6 +265,19 @@ impl NodeTracker {
         }
         *self.provers.write().await = out;
         Ok(())
+    }
+
+    /// The pool's members from `/.well-known/rand-prover-pool.json`, as unpolled views.
+    async fn pool_descriptor(&self) -> Result<Vec<ProverView>> {
+        let d: PoolDescriptor = self
+            .http
+            .get(POOL_DESCRIPTOR_URL)
+            .send()
+            .await?
+            .error_for_status()?
+            .json()
+            .await?;
+        d.views().map_err(|e| anyhow::anyhow!(e))
     }
 
     /// One `prover_info` call (no `Origin` header: a server-side caller is served without CORS).

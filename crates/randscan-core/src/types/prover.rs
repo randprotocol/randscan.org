@@ -34,39 +34,78 @@ pub struct KnownProver {
     pub members: &'static [KnownProverMember],
 }
 
-/// The provers this explorer shows. The validators' pool (fullnode `deploy/prover/README.md`,
-/// live 2026-10-01): five validator-fleet hosts behind `prover.randprotocol.org`, each proving
-/// one bundle at a time; the list matches the router's `PROVER_BACKENDS` tunnels on the web
-/// droplet, in its order. Add a prover by adding an entry; the page and the API pick it up.
-pub const KNOWN_PROVERS: &[KnownProver] = &[KnownProver {
-    name: "RandProtocol prover pool",
-    url: "https://prover.randprotocol.org",
-    operator: "Rand Protocol validators",
-    fingerprint: "RGTF-7HKJ-XZFV-GQ1J",
-    pairing_url: Some("https://prover.randprotocol.org/.well-known/rand-prover.json"),
-    members: &[
-        KnownProverMember {
-            label: "rand-node-a",
-            ip: "139.59.238.151",
-        },
-        KnownProverMember {
-            label: "rand-archive-2",
-            ip: "206.81.29.236",
-        },
-        KnownProverMember {
-            label: "rand-guardian-1",
-            ip: "104.248.5.129",
-        },
-        KnownProverMember {
-            label: "rand-guardian-2",
-            ip: "137.184.12.108",
-        },
-        KnownProverMember {
-            label: "rand-guardian-5",
-            ip: "209.97.179.217",
-        },
-    ],
-}];
+/// Where the pool publishes its member list (fullnode `docs/prover.md`): one entry per member
+/// with its own URL (`/m/<name>`) and its own pairing-key fingerprint. The explorer reads it on
+/// every poll, so a member added or rotated shows up without a release.
+pub const POOL_DESCRIPTOR_URL: &str =
+    "https://prover.randprotocol.org/.well-known/rand-prover-pool.json";
+
+/// The pool's members pinned at build time (the clients' `trusted-prover-pool.json`, 2026-10-27),
+/// shown when the descriptor cannot be fetched or parsed. The pool's members are the hosts' own
+/// tunnels (`/m/a`, `/m/b`), so their addresses are not public and no member host is placed on
+/// the map; `members` is empty. Add a prover by adding an entry; the page and the API pick it up.
+pub const KNOWN_PROVERS: &[KnownProver] = &[
+    KnownProver {
+        name: "RandProtocol prover a",
+        url: "https://prover.randprotocol.org/m/a",
+        operator: "Rand Protocol validators",
+        fingerprint: "4SK4-P64N-XWEN-ZSZZ",
+        pairing_url: None,
+        members: &[],
+    },
+    KnownProver {
+        name: "RandProtocol prover b",
+        url: "https://prover.randprotocol.org/m/b",
+        operator: "Rand Protocol validators",
+        fingerprint: "0XZX-NZ1J-SPMB-GWZN",
+        pairing_url: None,
+        members: &[],
+    },
+];
+
+/// The operator shown for the pool's members.
+pub const POOL_OPERATOR: &str = "Rand Protocol validators";
+
+/// One member of the pool descriptor (the wallet's pairing `link` and anything else is ignored,
+/// and never served: it carries a bearer token).
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct PoolMember {
+    pub name: String,
+    pub url: String,
+    pub fingerprint: String,
+}
+
+/// `/.well-known/rand-prover-pool.json`.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct PoolDescriptor {
+    pub members: Vec<PoolMember>,
+}
+
+impl PoolDescriptor {
+    /// The members as prover views, in the descriptor's order. A member whose URL is not https or
+    /// whose fingerprint is empty is dropped; an empty result is an error (use the pinned list).
+    pub fn views(&self) -> Result<Vec<ProverView>, String> {
+        let out: Vec<ProverView> = self
+            .members
+            .iter()
+            .filter(|m| m.url.starts_with("https://") && !m.fingerprint.is_empty())
+            .map(|m| {
+                ProverView::new(
+                    format!("RandProtocol prover {}", m.name),
+                    m.url.trim_end_matches('/').to_string(),
+                    POOL_OPERATOR.into(),
+                    m.fingerprint.clone(),
+                    None,
+                )
+            })
+            .collect();
+        if out.is_empty() {
+            Err("the pool descriptor lists no usable member".into())
+        } else {
+            Ok(out)
+        }
+    }
+}
 
 /// `prover_info.queue`: jobs waiting, the most that may wait, and jobs being proved. Behind a
 /// pool router these are the sums over the members that answered its last poll.
@@ -135,29 +174,48 @@ pub struct ProverView {
 }
 
 impl ProverView {
-    /// The view of `p` before its first poll.
-    pub fn unpolled(p: &KnownProver) -> Self {
+    /// The view of a prover before its first poll.
+    pub fn new(
+        name: String,
+        url: String,
+        operator: String,
+        fingerprint: String,
+        pairing_url: Option<String>,
+    ) -> Self {
         ProverView {
-            name: p.name.into(),
-            url: p.url.into(),
-            operator: p.operator.into(),
-            fingerprint: p.fingerprint.into(),
-            pairing_url: p.pairing_url.map(str::to_string),
+            name,
+            url,
+            operator,
+            fingerprint,
+            pairing_url,
             up: false,
             info: None,
             fingerprint_matches: None,
             error: None,
             checked_at_ms: None,
             last_up_ms: None,
-            members: p
-                .members
-                .iter()
-                .map(|m| ProverMember {
-                    label: m.label.into(),
-                    geo: None,
-                })
-                .collect(),
+            members: Vec::new(),
         }
+    }
+
+    /// The view of `p` before its first poll.
+    pub fn unpolled(p: &KnownProver) -> Self {
+        let mut v = Self::new(
+            p.name.into(),
+            p.url.into(),
+            p.operator.into(),
+            p.fingerprint.into(),
+            p.pairing_url.map(str::to_string),
+        );
+        v.members = p
+            .members
+            .iter()
+            .map(|m| ProverMember {
+                label: m.label.into(),
+                geo: None,
+            })
+            .collect();
+        v
     }
 }
 
@@ -170,7 +228,7 @@ mod tests {
     #[test]
     fn prover_info_parses_the_wire_shape_and_drops_the_key() {
         let r: ProverInfoReply = serde_json::from_value(serde_json::json!({
-            "version": "0.6.7", "kem_fingerprint": "RGTF-7HKJ-XZFV-GQ1J", "kem_ek": "c9d9…",
+            "version": "0.8.1", "kem_fingerprint": "4SK4-P64N-XWEN-ZSZZ", "kem_ek": "c9d9…",
             "hc_bundles": ["60af"], "profiles": ["test", "production"], "backend": "cpu",
             "witness_kinds": ["viewing_key"], "queue": { "depth": 0, "max": 5, "proving": 1 },
             "fee": { "amount": "1000000", "address": "rand1abc" }, "allowed_origins": ["*"],
@@ -195,7 +253,6 @@ mod tests {
     fn known_provers_are_well_formed_and_never_serve_an_address() {
         for p in KNOWN_PROVERS {
             assert!(p.url.starts_with("https://"), "{}", p.name);
-            assert!(!p.members.is_empty(), "{}", p.name);
             for m in p.members {
                 assert!(
                     m.ip.parse::<std::net::Ipv4Addr>().is_ok(),
@@ -213,5 +270,43 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn pinned_list_is_the_pool_and_not_the_retired_shared_key() {
+        let names: Vec<_> = KNOWN_PROVERS.iter().map(|p| p.url).collect();
+        assert_eq!(
+            names,
+            [
+                "https://prover.randprotocol.org/m/a",
+                "https://prover.randprotocol.org/m/b"
+            ]
+        );
+        assert!(KNOWN_PROVERS
+            .iter()
+            .all(|p| p.fingerprint != "RGTF-7HKJ-XZFV-GQ1J"));
+    }
+
+    /// The descriptor as served (2026-10-27): the pairing link carries a token and is not kept.
+    #[test]
+    fn pool_descriptor_parses_and_drops_the_link() {
+        let d: PoolDescriptor = serde_json::from_value(serde_json::json!({
+            "version": 1,
+            "members": [
+                { "name": "a", "url": "https://prover.randprotocol.org/m/a/",
+                  "fingerprint": "4SK4-P64N-XWEN-ZSZZ", "link": "randprover:secret?token=t" },
+                { "name": "x", "url": "http://insecure.example/m/x", "fingerprint": "AAAA" },
+                { "name": "y", "url": "https://prover.randprotocol.org/m/y", "fingerprint": "" },
+            ],
+            "witness_kinds": ["viewing_key"], "fee": null,
+        }))
+        .unwrap();
+        let views = d.views().unwrap();
+        assert_eq!(views.len(), 1);
+        assert_eq!(views[0].url, "https://prover.randprotocol.org/m/a");
+        assert_eq!(views[0].name, "RandProtocol prover a");
+        assert!(!serde_json::to_string(&views).unwrap().contains("secret"));
+        let empty = PoolDescriptor { members: vec![] };
+        assert!(empty.views().is_err());
     }
 }

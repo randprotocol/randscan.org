@@ -5,9 +5,17 @@ After=rand-node.service network-online.target
 [Service]
 Type=oneshot
 Nice=10
+# Proofs are made on the prover pool (--prover), so a stray local proof (a missing pairing, an
+# old `rand`) must not be able to take the host down: cap the unit and make it the first thing
+# the OOM killer takes. On 2026-10-27 the old unit proved locally with ~4 GB free, was OOM-killed
+# 1,176 times and once killed validator e.
+MemoryMax=1G
+MemorySwapMax=0
+OOMScoreAdjust=1000
 Environment=BIN=/usr/local/bin
 Environment=W1=/root/randscan-wallets/w1.key.json
 Environment=W2=/root/randscan-wallets/w2.key.json
 Environment=STATE_DIR=/root/randscan-activity
+Environment=PROVE=--prover
 ExecStart=/bin/bash /root/chain-activity.sh
 TimeoutStartSec=15min

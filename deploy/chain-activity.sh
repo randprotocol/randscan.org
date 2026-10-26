@@ -24,6 +24,9 @@ RPC=${RPC:-http://127.0.0.1:8545}
 EXPLORER=${EXPLORER:-https://randscan.org/api/v1}
 STATE_DIR=${STATE_DIR:-${TMPDIR:-/tmp}/chain-activity}
 NICE=${NICE:-}
+# How proofs are made. Default: on the paired prover pool (`rand prover pair --trusted` once per
+# wallet key, rand v0.8.0+), so the host never proves locally. PROVE="" proves on this machine.
+PROVE=${PROVE---prover}
 MINT_RAND=${MINT_RAND:-10}
 mkdir -p "$STATE_DIR"
 W1=${W1:-$WALLETS/shielded-1.key.json}
@@ -157,14 +160,14 @@ case $step in
       if [ -n "$h" ] && explorer_tx "$h" mint >/dev/null; then log "step $n mint ok $h (wallet 1 had $bal RAND)"; else log "step $n mint FAIL ${h:-nohash}: $(tail -1 <<<"$out")"; fi
     fi
     to=$("$BIN/rand" --key "$W2" address | tail -1)
-    out=$($NICE "$BIN/rand" send "$to" 1.5 $yes --key "$W1" --rpc "$RPC" 2>&1); h=$(submitted "$out" transfer)
+    out=$($NICE "$BIN/rand" send "$to" 1.5 $yes $PROVE --key "$W1" --rpc "$RPC" 2>&1); h=$(submitted "$out" transfer)
     if [ -n "$h" ] && body=$(explorer_tx "$h" transfer); then
       log "step $n transfer ok $h block $(grep -o '"height":[0-9]*' <<<"$body" | head -1 | cut -d: -f2) ($(( $(date +%s) - t0 )) s)"
     else log "step $n transfer FAIL ${h:-nohash}: $(tail -1 <<<"$out")"; exit 1; fi ;;
   deploy)
     pj="$STATE_DIR/pp-$n.json"
     "$BIN/rand" program build --guest private_payment --arg $((100 + n)) --out "$pj" >/dev/null 2>&1
-    out=$($NICE "$BIN/rand" program deploy "$pj" --key "$W1" --rpc "$RPC" 2>&1); h=$(submitted "$out" deploy)
+    out=$($NICE "$BIN/rand" program deploy "$pj" $PROVE --key "$W1" --rpc "$RPC" 2>&1); h=$(submitted "$out" deploy)
     pid=$(grep -o 'program id: [0-9a-f]*' <<<"$out" | awk '{print $3}')
     if [ -n "$h" ] && explorer_tx "$h" deploy >/dev/null; then
       echo "$pid" > "$STATE_DIR/program"
@@ -174,7 +177,7 @@ case $step in
     pid=$(cat "$STATE_DIR/program" 2>/dev/null)
     if [ -z "$pid" ]; then log "step $n call skipped: nothing deployed yet by this loop"; exit 0; fi
     # 400 + 250 against a threshold of 100 + <deploy step>: outputs [1, 0, 650 - threshold, ...]
-    out=$($NICE "$BIN/rand" call "$pid" --input 400 --input 250 --input 0 --input 0 --key "$W1" --rpc "$RPC" 2>&1); h=$(submitted "$out" call)
+    out=$($NICE "$BIN/rand" call "$pid" --input 400 --input 250 --input 0 --input 0 $PROVE --key "$W1" --rpc "$RPC" 2>&1); h=$(submitted "$out" call)
     if [ -n "$h" ] && body=$(explorer_tx "$h" call) && grep -q '"h_in":"[0-9a-f]' <<<"$body"; then
       log "step $n call ok $h program $pid outputs $(grep -o '"outputs":\[[^]]*\]' <<<"$body" | head -1) $(grep -o '"input_envelope_len":[0-9]*' <<<"$body") ($(( $(date +%s) - t0 )) s)"
     else log "step $n call FAIL ${h:-nohash}: $(tail -1 <<<"$out")"; exit 1; fi ;;

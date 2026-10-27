@@ -286,7 +286,7 @@ impl NodeTracker {
     async fn prover_info(&self, url: &str) -> Result<ProverInfoReply> {
         let reply: serde_json::Value = self
             .http
-            .post(format!("{}/", url.trim_end_matches('/')))
+            .post(prover_probe_url(url))
             .json(&serde_json::json!({ "jsonrpc": "2.0", "id": 1, "method": "prover_info", "params": [] }))
             .send()
             .await?
@@ -368,4 +368,28 @@ fn chrono_now() -> chrono::DateTime<chrono::Utc> {
 
 fn chrono_age(t: chrono::DateTime<chrono::Utc>) -> Duration {
     (chrono::Utc::now() - t).to_std().unwrap_or_default()
+}
+
+/// The URL `prover_info` is POSTed to: the member URL as given, without a trailing slash (the
+/// pool's proxy routes `/m/a`, not `/m/a/`).
+pub(crate) fn prover_probe_url(url: &str) -> String {
+    url.trim_end_matches('/').to_string()
+}
+
+#[cfg(test)]
+mod probe_url_tests {
+    use super::prover_probe_url;
+
+    #[test]
+    fn the_probe_path_has_no_trailing_slash() {
+        for given in [
+            "https://prover.randprotocol.org/m/a",
+            "https://prover.randprotocol.org/m/a/",
+        ] {
+            assert_eq!(
+                prover_probe_url(given),
+                "https://prover.randprotocol.org/m/a"
+            );
+        }
+    }
 }

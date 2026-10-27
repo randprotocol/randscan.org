@@ -145,7 +145,8 @@ n=$(cat "$STATE_DIR/n" 2>/dev/null || echo 0); n=$((n+1)); echo "$n" > "$STATE_D
 # ROTATION can drop a step, e.g. "transfer deploy" while a node build refuses calls.
 # `rand call` always proves ON THIS MACHINE (--prover does not move it), a ~23 GB peak at tier 16.
 # So the default cycle leaves it out; ACTIVITY_CALL=1 adds it. Never set that on a validator host.
-read -r -a rotation <<<"${ROTATION:-transfer deploy${ACTIVITY_CALL:+ call}}"
+callstep=; [ "${ACTIVITY_CALL:-}" = 1 ] && callstep=" call"
+read -r -a rotation <<<"${ROTATION:-transfer deploy$callstep}"
 step=${1:-${rotation[$(( (n-1) % ${#rotation[@]} ))]}}
 log "step $n $step (chain $chain, head $head)"
 t0=$(date +%s)

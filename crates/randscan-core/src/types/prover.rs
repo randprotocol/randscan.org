@@ -68,6 +68,7 @@ pub const KNOWN_PROVERS: &[KnownProver] = &[
 /// that lists another key for it is a mismatch, not a healthy member; an unpinned member (one
 /// added to the descriptor since the build) can only be checked against its descriptor entry.
 pub fn fingerprint_ok(url: &str, listed: &str, reported: &str) -> bool {
+    let url = url.trim_end_matches('/');
     match KNOWN_PROVERS.iter().find(|p| p.url == url) {
         Some(pin) => pin.fingerprint == listed && pin.fingerprint == reported,
         None => listed == reported,
@@ -334,6 +335,14 @@ mod tests {
         ));
         // the descriptor lists another key while the member still reports the pinned one
         assert!(!fingerprint_ok(a, "AAAA-AAAA-AAAA-AAAA", pin));
+        // a trailing slash is the same member, so it cannot dodge the pin
+        let slash = "https://prover.randprotocol.org/m/a/";
+        assert!(fingerprint_ok(slash, pin, pin));
+        assert!(!fingerprint_ok(
+            slash,
+            "AAAA-AAAA-AAAA-AAAA",
+            "AAAA-AAAA-AAAA-AAAA"
+        ));
         // an unpinned member falls back to its descriptor entry
         let n = "https://prover.randprotocol.org/m/new";
         assert!(fingerprint_ok(n, "X", "X") && !fingerprint_ok(n, "X", "Y"));

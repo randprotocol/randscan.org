@@ -43,6 +43,29 @@
     "signIn": "Zaloguj się",
     "toggleNav": "Przełącz nawigację"
   },
+  "chainStatus": {
+    "pill": "Łańcuch {chain}",
+    "pillTitle": "Stan łańcucha: {state}. Otwiera widok łańcucha w eksploratorze.",
+    "states": {
+      "live": "na żywo",
+      "behind": "opóźniony",
+      "stalled": "wstrzymany",
+      "wrong_chain": "zły łańcuch",
+      "unreachable": "nieosiągalny",
+      "checking": "sprawdzanie"
+    },
+    "banner": {
+      "fetch": "Nie można połączyć się z API eksploratora — poniższe liczby mogą być nieaktualne.",
+      "node": "Eksplorator nie może połączyć się ze swoim węzłem — poniższe liczby mogą być nieaktualne.",
+      "chainId": "Ta strona odczytuje łańcuch {shown}; sieć działa na łańcuchu {expected}.",
+      "genesis": "Ta strona odczytuje inny łańcuch (genesis {genesis}) niż łańcuch sieci {expected}.",
+      "halted": "Węzeł eksploratora przełączył się na inny łańcuch, więc indeksowanie zostało wstrzymane — poniższe liczby mogą być nieaktualne.",
+      "noBlock": "Nie zindeksowano jeszcze żadnego bloku.",
+      "stale": "Ostatni blok: {age} — poniższe liczby mogą być nieaktualne.",
+      "lag": "Eksplorator jest opóźniony względem sieci (opóźnienie: {lag}) — poniższe liczby mogą być nieaktualne."
+    },
+    "lastGood": "Ostatni prawidłowy blok: #{height} ({age})."
+  },
   "footer": {
     "blurb": "RandScan to eksplorator Rand Protocol.",
     "privacy": "Prywatność",

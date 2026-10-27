@@ -101,6 +101,15 @@ pub async fn max_block_height(pool: &PgPool) -> Result<Option<i64>> {
         .await?)
 }
 
+/// The latest indexed block's height and timestamp, `None` with nothing indexed.
+pub async fn latest_block_head(pool: &PgPool) -> Result<Option<(i64, i64)>> {
+    Ok(
+        sqlx::query_as("SELECT height, timestamp_ms FROM blocks ORDER BY height DESC LIMIT 1")
+            .fetch_optional(pool)
+            .await?,
+    )
+}
+
 /// Average block interval over the last `n` blocks, in milliseconds.
 pub async fn avg_block_time_ms(pool: &PgPool, n: i64) -> Result<f64> {
     // MIN and MAX are NULL over an empty table, so they decode as `Option`.

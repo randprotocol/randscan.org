@@ -43,6 +43,29 @@
     "signIn": "Iniciar sesión",
     "toggleNav": "Alternar navegación"
   },
+  "chainStatus": {
+    "pill": "Cadena {chain}",
+    "pillTitle": "Estado de la cadena: {state}. Abre la vista de la cadena del explorador.",
+    "states": {
+      "live": "en vivo",
+      "behind": "atrasado",
+      "stalled": "detenido",
+      "wrong_chain": "cadena incorrecta",
+      "unreachable": "inaccesible",
+      "checking": "comprobando"
+    },
+    "banner": {
+      "fetch": "No se puede acceder a la API del explorador; las cifras de abajo pueden estar desactualizadas.",
+      "node": "El explorador no puede acceder a su nodo; las cifras de abajo pueden estar desactualizadas.",
+      "chainId": "Esta página lee la cadena {shown}; la red está en la cadena {expected}.",
+      "genesis": "Esta página lee una cadena distinta (génesis {genesis}) de la cadena {expected} de la red.",
+      "halted": "El nodo del explorador ha cambiado a otra cadena, así que la indexación se ha detenido; las cifras de abajo pueden estar desactualizadas.",
+      "noBlock": "Todavía no se ha indexado ningún bloque.",
+      "stale": "Último bloque: {age}; las cifras de abajo pueden estar desactualizadas.",
+      "lag": "El explorador va por detrás de la red (retraso: {lag}); las cifras de abajo pueden no estar al día."
+    },
+    "lastGood": "Último bloque válido: #{height} ({age})."
+  },
   "footer": {
     "blurb": "RandScan es el explorador de Rand Protocol.",
     "privacy": "Privacidad",

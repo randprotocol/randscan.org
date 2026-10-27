@@ -156,7 +156,23 @@ async fn reset_chain_data_truncates_chain_tables_and_keeps_users() {
         "a leaf is linked to the tx that carried its commitment"
     );
 
+    randscan_db::set_chain_meta(&mut conn, 4, &"AB".repeat(32))
+        .await
+        .unwrap();
+    assert_eq!(
+        randscan_db::get_chain_meta(&pool).await.unwrap(),
+        Some(randscan_db::ChainMeta {
+            chain_id: 4,
+            genesis_hash: "ab".repeat(32)
+        }),
+        "stored lowercase"
+    );
     reset_chain_data(&mut conn, 5).await.unwrap();
+    assert_eq!(
+        randscan_db::get_chain_meta(&pool).await.unwrap(),
+        None,
+        "a reset forgets the recorded chain until the caller records the new one"
+    );
 
     for t in CHAIN_TABLES {
         let n: i64 = sqlx::query_scalar(&format!("SELECT count(*) FROM {t}"))

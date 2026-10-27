@@ -1042,9 +1042,19 @@ export interface IndexerHealth {
 export interface Health {
   status: HealthStatus;
   version: string;
-  database: string;
+  database: boolean;
   indexer: IndexerHealth;
+  /** The genesis the indexed data belongs to (null before the indexer first reached a node). */
+  genesis_hash: string | null;
+  /** The latest indexed block's timestamp (null with nothing indexed). */
+  head_timestamp_ms: number | null;
+  /** No indexed block for more than a minute, or none at all. */
+  stalled: boolean;
+  /** The indexed chain is not the pinned one, or the node moved and indexing stopped. */
+  wrong_chain: boolean;
 }
+
+export type { ChainView, ChainState } from '@/lib/chainStatus';
 
 // ---------------------------------------------------------------------------
 // Nodes

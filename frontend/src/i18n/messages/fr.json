@@ -43,6 +43,29 @@
     "signIn": "Se connecter",
     "toggleNav": "Afficher ou masquer la navigation"
   },
+  "chainStatus": {
+    "pill": "Chaîne {chain}",
+    "pillTitle": "État de la chaîne : {state}. Ouvre la vue de la chaîne de l’explorateur.",
+    "states": {
+      "live": "en direct",
+      "behind": "en retard",
+      "stalled": "à l’arrêt",
+      "wrong_chain": "mauvaise chaîne",
+      "unreachable": "injoignable",
+      "checking": "vérification"
+    },
+    "banner": {
+      "fetch": "L’API de l’explorateur est injoignable — les chiffres ci-dessous peuvent être périmés.",
+      "node": "L’explorateur ne parvient pas à joindre son nœud — les chiffres ci-dessous peuvent être périmés.",
+      "chainId": "Cette page lit la chaîne {shown} ; le réseau est sur la chaîne {expected}.",
+      "genesis": "Cette page lit une autre chaîne (genèse {genesis}) que la chaîne {expected} du réseau.",
+      "halted": "Le nœud de l’explorateur est passé sur une autre chaîne, l’indexation est donc arrêtée — les chiffres ci-dessous peuvent être périmés.",
+      "noBlock": "Aucun bloc n’a encore été indexé.",
+      "stale": "Dernier bloc : {age} — les chiffres ci-dessous peuvent être périmés.",
+      "lag": "L’explorateur est en retard sur le réseau (retard : {lag}) — les chiffres ci-dessous peuvent ne pas être à jour."
+    },
+    "lastGood": "Dernier bloc valide : #{height} ({age})."
+  },
   "footer": {
     "blurb": "RandScan est l’explorateur du Rand Protocol.",
     "privacy": "Confidentialité",

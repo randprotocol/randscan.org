@@ -71,7 +71,10 @@ jobs:
   # transfer, a deploy and a confidential call (and an RPL-2 invoke where the build has it), and
   # compares the explorer's every public number with the node's — including the REST contract
   # zusd.money and randprotocol.org read (/bridge, /bridge/assets, /tokens/:index, /envelopes,
-  # /stats, /supply). It gates: the test skips a sub-check the released binary has no flag for
+  # /stats, /supply). The same step runs the site-sync case (`chain_view_follows_a_real_node`):
+  # GET /api/v1/chain equals the node's genesis and head, turns `unreachable` then `stalled` once
+  # the node is killed (a minute of waiting), and `wrong_chain` with nothing written when the
+  # explorer is pointed at a second dev chain. It gates: the test skips a sub-check the released binary has no flag for
   # (with a printed reason), never the whole run. The wallet proves under the chain's `test` FRI
   # profile in its own release binary, so the test itself builds in the default profile.
   real-node:
@@ -129,7 +132,7 @@ jobs:
           echo "RAND_NODE_BIN=$RUNNER_TEMP/fullnode/rand-node" >> "$GITHUB_ENV"
           echo "RAND_CLI=$RUNNER_TEMP/fullnode/rand" >> "$GITHUB_ENV"
 
-      - name: Explorer against the real node
+      - name: Explorer against the real node (contract + site-sync /chain)
         run: cargo test -p randscan-api --test real_node -- --nocapture
         env:
           DATABASE_URL: postgres://randscan:randscan@localhost:5432/randscan

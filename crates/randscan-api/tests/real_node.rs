@@ -10,10 +10,16 @@
 //! the explorer's receipt (tier, outputs, `h_in`) against the node's — the proof is made under
 //! whatever zkVM constraint set the node was built with, so this is what notices a zkVM
 //! re-sync changing the receipt shape.
+//!
+//! A second, lighter test follows the site-sync view (`GET /api/v1/chain`): it equals the node's
+//! genesis and head, turns `unreachable` and then `stalled` once the node is killed, and turns
+//! `wrong_chain`, with the indexer writing nothing, when pointed at a second dev chain with a
+//! different genesis. The two tests share the database, so they take turns.
 
 mod common;
 
 use common::*;
+use randscan_core::ChainPin;
 use serde_json::{json, Value};
 use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
@@ -23,6 +29,43 @@ const WAIT: Duration = Duration::from_secs(90);
 const CHAIN_ID: u64 = 7701;
 /// The genesis treasury's balance, 100 RAND in units.
 const MULTISIG_TREASURY_BALANCE: &str = "100000000000";
+
+/// The two tests below share `DATABASE_URL`; each indexes its own chain from height 0.
+static LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+
+/// The node and wallet binaries, or `None` (a skip) when `RAND_NODE_BIN` or `DATABASE_URL` is
+/// unset; with `RANDSCAN_REQUIRE_REAL_NODE` (CI) a missing variable is a failure instead.
+fn binaries() -> Option<(PathBuf, PathBuf)> {
+    // CI's `real-node` job sets RANDSCAN_REQUIRE_REAL_NODE so a lost variable fails the job
+    // instead of passing it as a skip.
+    let required = std::env::var_os("RANDSCAN_REQUIRE_REAL_NODE").is_some();
+    let Ok(bin) = std::env::var("RAND_NODE_BIN") else {
+        assert!(
+            !required,
+            "RANDSCAN_REQUIRE_REAL_NODE is set but RAND_NODE_BIN is not"
+        );
+        eprintln!("skipping: RAND_NODE_BIN unset");
+        return None;
+    };
+    if std::env::var("DATABASE_URL").is_err() {
+        assert!(
+            !required,
+            "RANDSCAN_REQUIRE_REAL_NODE is set but DATABASE_URL is not"
+        );
+        eprintln!("skipping: DATABASE_URL unset");
+        return None;
+    }
+    let bin = PathBuf::from(bin);
+    let cli = std::env::var("RAND_CLI")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| bin.with_file_name("rand"));
+    assert!(
+        cli.is_file(),
+        "no wallet CLI at {}: set RAND_CLI",
+        cli.display()
+    );
+    Some((bin, cli))
+}
 
 struct Node {
     child: Child,
@@ -327,34 +370,10 @@ async fn start_node(bin: &PathBuf, cli: &PathBuf) -> (Node, String, String) {
 
 #[tokio::test]
 async fn explorer_agrees_with_a_real_shielded_node() {
-    // CI's `real-node` job sets RANDSCAN_REQUIRE_REAL_NODE so a lost variable fails the job
-    // instead of passing it as a skip.
-    let required = std::env::var_os("RANDSCAN_REQUIRE_REAL_NODE").is_some();
-    let Ok(bin) = std::env::var("RAND_NODE_BIN") else {
-        assert!(
-            !required,
-            "RANDSCAN_REQUIRE_REAL_NODE is set but RAND_NODE_BIN is not"
-        );
-        eprintln!("skipping: RAND_NODE_BIN unset");
+    let Some((bin, cli)) = binaries() else {
         return;
     };
-    if std::env::var("DATABASE_URL").is_err() {
-        assert!(
-            !required,
-            "RANDSCAN_REQUIRE_REAL_NODE is set but DATABASE_URL is not"
-        );
-        eprintln!("skipping: DATABASE_URL unset");
-        return;
-    }
-    let bin = PathBuf::from(bin);
-    let cli = std::env::var("RAND_CLI")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| bin.with_file_name("rand"));
-    assert!(
-        cli.is_file(),
-        "no wallet CLI at {}: set RAND_CLI",
-        cli.display()
-    );
+    let _g = LOCK.lock().await;
     let client = reqwest::Client::new();
     let (node, validator_addr, _wallet_addr) = start_node(&bin, &cli).await;
     let wallet = node.dir.path().join("wallet.key.json");
@@ -768,6 +787,141 @@ async fn explorer_agrees_with_a_real_shielded_node() {
         );
     }
     drop(node);
+}
+
+/// `GET /api/v1/chain` against real nodes (site-sync design §6). No transactions: a node that
+/// commits empty blocks is all the view needs.
+#[tokio::test]
+async fn chain_view_follows_a_real_node() {
+    let Some((bin, cli)) = binaries() else {
+        return;
+    };
+    let _g = LOCK.lock().await;
+    let client = reqwest::Client::new();
+    let (node, _, _) = start_node(&bin, &cli).await;
+    let genesis = rpc(&client, &node.url, "rand_getGenesisHash", json!([])).await;
+    let genesis = genesis.as_str().unwrap().to_ascii_lowercase();
+    let block0 = rpc(&client, &node.url, "rand_getBlockByHeight", json!([0])).await;
+    assert_eq!(
+        block0["hash"].as_str().unwrap().to_ascii_lowercase(),
+        genesis,
+        "rand_getGenesisHash is block 0's hash (migration 015 adopts block 0's hash on that basis)"
+    );
+    let pin = ChainPin::new(CHAIN_ID as i64, &genesis);
+    let Some(live) = live_app_pinned(test_config(), &node.url, "127.0.0.1", pin.clone()).await
+    else {
+        return;
+    };
+    {
+        let mut conn = live.pool.acquire().await.unwrap();
+        randscan_db::reset_chain_data(&mut conn, 0).await.unwrap();
+    }
+    live.start();
+
+    // Live: the stored chain is the node's, and the head is a block the node serves.
+    let ch = live
+        .wait_for("/api/v1/chain", WAIT, |c| {
+            c["state"] == "live" && c["head_height"].as_i64().unwrap_or(0) >= 3
+        })
+        .await;
+    assert_eq!(ch["chain_id"], CHAIN_ID);
+    assert_eq!(ch["genesis_hash"], genesis);
+    assert_eq!(ch["node_genesis_hash"], genesis);
+    assert_eq!(ch["node_chain_id"], CHAIN_ID);
+    assert_eq!(ch["halted"], false);
+    let head_height = ch["head_height"].as_u64().unwrap();
+    let node_block = rpc(
+        &client,
+        &node.url,
+        "rand_getBlockByHeight",
+        json!([head_height]),
+    )
+    .await;
+    assert_eq!(ch["head_timestamp_ms"], node_block["timestamp_ms"], "{ch}");
+    let node_head = rpc(&client, &node.url, "rand_getHead", json!([])).await["height"]
+        .as_i64()
+        .unwrap();
+    let node_height = ch["node_height"].as_i64().unwrap();
+    assert!(
+        node_height <= node_head && node_head - node_height <= 10,
+        "/chain's node_height {node_height} tracks the node's head {node_head}"
+    );
+    assert!(ch["lag"].as_i64().unwrap() <= 10, "{ch}");
+    let (_, _, b) = call(
+        &live.app,
+        json_req("GET", &format!("/api/v1/blocks/{head_height}"), None, None),
+    )
+    .await;
+    assert_eq!(b["hash"], node_block["hash"]);
+    let health = live
+        .wait_for("/api/v1/health", WAIT, |h| h["status"] == "healthy")
+        .await;
+    assert_eq!(health["genesis_hash"], genesis);
+    assert_eq!(health["stalled"], false);
+    assert_eq!(health["wrong_chain"], false);
+
+    // The node is killed: unreachable while the last head is fresh, stalled once it is older
+    // than STALL_MS (60 s).
+    drop(node);
+    let ch = live
+        .wait_for("/api/v1/chain", WAIT, |c| c["state"] == "unreachable")
+        .await;
+    assert_eq!(ch["node_connected"], false);
+    let last = ch["head_height"].clone();
+    let ch = live
+        .wait_for("/api/v1/chain", WAIT, |c| c["state"] == "stalled")
+        .await;
+    assert_eq!(ch["head_height"], last, "the last good height stays: {ch}");
+    let (_, _, health) = call(&live.app, json_req("GET", "/api/v1/health", None, None)).await;
+    assert_eq!(health["stalled"], true);
+    assert_eq!(health["status"], "degraded");
+
+    // A second dev chain (same id, its own validator, so another genesis): the explorer, still
+    // pinned to the first, is restarted against it. It writes nothing and reports wrong_chain.
+    let (node2, _, _) = start_node(&bin, &cli).await;
+    let genesis2 = rpc(&client, &node2.url, "rand_getGenesisHash", json!([])).await;
+    let genesis2 = genesis2.as_str().unwrap().to_ascii_lowercase();
+    assert_ne!(genesis2, genesis);
+    let (blocks_before, max_before): (i64, Option<i64>) =
+        sqlx::query_as("SELECT COUNT(*), MAX(height) FROM blocks")
+            .fetch_one(&live.pool)
+            .await
+            .unwrap();
+    let live = live.restart(&node2.url, pin);
+    let ch = live
+        .wait_for("/api/v1/chain", WAIT, |c| c["halted"] == true)
+        .await;
+    assert_eq!(ch["state"], "wrong_chain", "{ch}");
+    assert_eq!(ch["genesis_hash"], genesis);
+    assert_eq!(ch["node_genesis_hash"], genesis2);
+    // Let the second chain grow past the first's head; still nothing is written.
+    let start = std::time::Instant::now();
+    while rpc(&client, &node2.url, "rand_getHead", json!([])).await["height"]
+        .as_i64()
+        .unwrap()
+        <= max_before.unwrap_or(0) + 2
+    {
+        assert!(start.elapsed() < WAIT * 2, "the second chain did not grow");
+        tokio::time::sleep(Duration::from_millis(250)).await;
+    }
+    let (blocks_after, max_after): (i64, Option<i64>) =
+        sqlx::query_as("SELECT COUNT(*), MAX(height) FROM blocks")
+            .fetch_one(&live.pool)
+            .await
+            .unwrap();
+    assert_eq!(
+        (blocks_after, max_after),
+        (blocks_before, max_before),
+        "no block of the second chain was written"
+    );
+    let (_, _, b0) = call(&live.app, json_req("GET", "/api/v1/blocks/0", None, None)).await;
+    assert_eq!(
+        b0["hash"].as_str().map(str::to_ascii_lowercase),
+        Some(genesis)
+    );
+    let (_, _, health) = call(&live.app, json_req("GET", "/api/v1/health", None, None)).await;
+    assert_eq!(health["wrong_chain"], true);
+    assert_eq!(health["status"], "degraded");
 }
 
 /// Fullnode v0.8.0 multisig on a chain whose genesis seeds a 1-of-1 treasury: a payment out of it

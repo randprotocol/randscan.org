@@ -18,9 +18,12 @@ validator e. Do not re-enable it until all of these hold:
    older than the running node).
 2. Each wallet key (`W1`, `W2`) is paired with the prover pool: `rand prover pair --trusted --key
    <wallet>`.
-3. The unit's limits are installed: `MemoryMax=1G`, `MemorySwapMax=0`, `OOMScoreAdjust=1000`. The
-   unit sets `PROVE=--prover`, so every proving command passes `--prover` (proof on the pool, not on
-   the host). `PROVE=` (empty) would prove locally and needs far more than 1G, so do not set it
-   under these limits.
+3. The unit's limits are installed: `MemoryMax=1G`, `MemorySwapMax=0`, `OOMScoreAdjust=1000`.
+4. Know which steps use the pool. The unit sets `PROVE=--prover`, which `send` (transfer) and
+   `program deploy` pass, so those two prove on the pool. `rand call` ALWAYS proves on the host
+   (`--prover` does not move it; about 23 GB at tier 16), so the default cycle is `transfer deploy`
+   only. `ACTIVITY_CALL=1` adds the call step: it needs at least 8 GB free (far more at tier 16)
+   and must never be set on a validator host; under the 1G cap it would be OOM-killed. A bare
+   `chain-activity.sh call` without it is refused. `PROVE=` (empty) would prove locally too.
 
 Then: `systemctl daemon-reload && systemctl enable --now randscan-activity.timer`.

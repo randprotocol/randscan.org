@@ -8,7 +8,7 @@
 #   transfer  a proved 1.5 RAND send from wallet 1 to wallet 2 (faucet-mints first when
 #             wallet 1 is running low, so the loop never starves)
 #   deploy    a fresh private_payment guest (a new threshold each time gives a new program id)
-#   call      a proved call of the last program this loop deployed (input transcript published)
+#   call      (only with ACTIVITY_CALL=1; proves locally) a proved call of the last program this loop deployed (input transcript published)
 # Meant to be fired every few minutes by a scheduler; a lock makes overlapping runs a no-op
 # (two proofs against the same wallet would race for the same notes).
 #
@@ -143,7 +143,9 @@ yes=; "$BIN/rand" send --help 2>&1 | grep -q -- '--yes' && yes=--yes
 
 n=$(cat "$STATE_DIR/n" 2>/dev/null || echo 0); n=$((n+1)); echo "$n" > "$STATE_DIR/n"
 # ROTATION can drop a step, e.g. "transfer deploy" while a node build refuses calls.
-read -r -a rotation <<<"${ROTATION:-transfer deploy call}"
+# `rand call` always proves ON THIS MACHINE (--prover does not move it), a ~23 GB peak at tier 16.
+# So the default cycle leaves it out; ACTIVITY_CALL=1 adds it. Never set that on a validator host.
+read -r -a rotation <<<"${ROTATION:-transfer deploy${ACTIVITY_CALL:+ call}}"
 step=${1:-${rotation[$(( (n-1) % ${#rotation[@]} ))]}}
 log "step $n $step (chain $chain, head $head)"
 t0=$(date +%s)
@@ -174,10 +176,11 @@ case $step in
       log "step $n deploy ok $h program $pid ($(( $(date +%s) - t0 )) s)"
     else log "step $n deploy FAIL ${h:-nohash}: $(tail -1 <<<"$out")"; exit 1; fi ;;
   call)
+    if [ "${ACTIVITY_CALL:-}" != 1 ]; then log "step $n call refused: it proves locally; set ACTIVITY_CALL=1 on a host with >= 8 GB free (never a validator host)"; exit 2; fi
     pid=$(cat "$STATE_DIR/program" 2>/dev/null)
     if [ -z "$pid" ]; then log "step $n call skipped: nothing deployed yet by this loop"; exit 0; fi
     # 400 + 250 against a threshold of 100 + <deploy step>: outputs [1, 0, 650 - threshold, ...]
-    out=$($NICE "$BIN/rand" call "$pid" --input 400 --input 250 --input 0 --input 0 $PROVE --key "$W1" --rpc "$RPC" 2>&1); h=$(submitted "$out" call)
+    out=$($NICE "$BIN/rand" call "$pid" --input 400 --input 250 --input 0 --input 0 --key "$W1" --rpc "$RPC" 2>&1); h=$(submitted "$out" call)
     if [ -n "$h" ] && body=$(explorer_tx "$h" call) && grep -q '"h_in":"[0-9a-f]' <<<"$body"; then
       log "step $n call ok $h program $pid outputs $(grep -o '"outputs":\[[^]]*\]' <<<"$body" | head -1) $(grep -o '"input_envelope_len":[0-9]*' <<<"$body") ($(( $(date +%s) - t0 )) s)"
     else log "step $n call FAIL ${h:-nohash}: $(tail -1 <<<"$out")"; exit 1; fi ;;

@@ -100,6 +100,8 @@ the latest fullnode release on every push and pull request, and gates on it.
 | `STATS_INTERVAL_SECS` | `5` | minimum interval between stats refreshes |
 | `NODES_INTERVAL_SECS` | `60` | peer list / geolocation refresh interval |
 | `NODE_PUBLIC_IP` | auto-detected | public IP of the node the explorer runs on |
+| `RANDSCAN_EXPECTED_CHAIN_ID` | `21` | the chain this deployment expects; `/api/v1/chain` classifies against it, and the indexer re-indexes from height 0 only when the node moves to it (any other chain change stops the indexer). Move it, with the frontend's `src/lib/chainPin.ts`, at every chain cut |
+| `RANDSCAN_EXPECTED_GENESIS` | chain 21's `ca76c276…ca9a` | the expected chain's genesis hash (hex) |
 | `RUST_LOG` | `info` | log filter |
 | `COOKIE_SECURE` | `true` | set the session cookie `Secure` (requires https; use `false` for local http) |
 | `TRUST_PROXY` | `false` | read the client IP from `X-Forwarded-For` (true behind Caddy/nginx) |

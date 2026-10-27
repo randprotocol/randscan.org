@@ -37,7 +37,7 @@ function buildColumns(
       key: 'leaf',
       header: t('viewing.leaf'),
       render: (r) => (
-        <L href={`/notes/${r.cm}`} className="link font-mono">
+        <L href={`/notes/${r.cm}`} prefetch={false} className="link font-mono">
           #{fmt.number(r.leaf_index)}
         </L>
       ),
@@ -46,7 +46,7 @@ function buildColumns(
       key: 'height',
       header: t('viewing.height'),
       render: (r) => (
-        <L href={`/blocks/${r.height}`} className="link font-mono">
+        <L href={`/blocks/${r.height}`} prefetch={false} className="link font-mono">
           {fmt.number(r.height)}
         </L>
       ),
@@ -55,7 +55,7 @@ function buildColumns(
       key: 'tx',
       header: t('viewing.transaction'),
       render: (r) =>
-        r.tx_hash ? <Hash value={r.tx_hash} href={`/transactions/${r.tx_hash}`} /> : <span className="text-mute">{r.height === 0 ? t('viewing.genesis') : t('viewing.deposit')}</span>,
+        r.tx_hash ? <Hash value={r.tx_hash} href={`/transactions/${r.tx_hash}`} prefetch={false} /> : <span className="text-mute">{r.height === 0 ? t('viewing.genesis') : t('viewing.deposit')}</span>,
     },
     { key: 'role', header: t('viewing.role'), render: (r) => <RoleBadge role={r.note.role} /> },
     {
@@ -89,7 +89,7 @@ function buildBalanceColumns(
         b.asset === 0 ? (
           <span className="text-text">RAND</span>
         ) : b.token ? (
-          <L href={`/tokens/${b.token.id_text}`} className="link">
+          <L href={`/tokens/${b.token.id_text}`} prefetch={false} className="link">
             {b.token.symbol} <span className="text-mute">{b.token.name}</span>
           </L>
         ) : (

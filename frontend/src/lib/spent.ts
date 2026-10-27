@@ -16,7 +16,7 @@ export async function matchSpent(
 ): Promise<Map<string, Nullifier>> {
   const want = new Set(owned);
   const spent = new Map<string, Nullifier>();
-  if (want.size === 0) return spent;
+  // The download runs even when nothing is owned, so every wallet makes the same requests.
   let after: string | null = null;
   for (;;) {
     const page: NullifierPage = await fetchPage(after);

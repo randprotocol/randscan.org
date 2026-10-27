@@ -69,6 +69,9 @@ interface HashProps {
   end?: number;
   copyable?: boolean;
   className?: string;
+  /** Next.js link prefetch. Off for anything rendered from a viewing key's results: a prefetch is
+   * a request the server logs, and its URL would name the visitor's notes. */
+  prefetch?: boolean;
 }
 
 /** Monospace hash/address with optional link and copy-to-clipboard button. */
@@ -80,13 +83,14 @@ export function Hash({
   end = 6,
   copyable = true,
   className,
+  prefetch,
 }: HashProps) {
   if (!value) return <span className="text-mute">—</span>;
 
   const text = full ? value : shortenHash(value, start, end);
 
   const body = href ? (
-    <L href={href} title={value} className={cn('link font-mono', full && 'break-all')}>
+    <L href={href} prefetch={prefetch} title={value} className={cn('link font-mono', full && 'break-all')}>
       {text}
     </L>
   ) : (

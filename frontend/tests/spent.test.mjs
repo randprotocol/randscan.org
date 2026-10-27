@@ -30,11 +30,33 @@ test('matchSpent finds the owned nullifiers across pages and sends only server c
   for (const a of sent) assert.ok(a === null || !mine.includes(a) && /^c\d$/.test(a), 'a request carried a wallet value');
 });
 
-test('matchSpent with nothing owned makes no request', { skip }, async () => {
-  let calls = 0;
-  const spent = await matchSpent([], async () => { calls += 1; return { nullifiers: [], next: null }; });
+test('matchSpent downloads the whole set even when nothing is owned', { skip }, async () => {
+  const sent = [];
+  const pages = { '': { nullifiers: [nf('1')], next: 'c1' }, c1: { nullifiers: [nf('2')], next: null } };
+  const spent = await matchSpent([], async (after) => { sent.push(after); return pages[after ?? '']; });
   assert.equal(spent.size, 0);
-  assert.equal(calls, 0);
+  assert.deepEqual(sent, [null, 'c1']);
+});
+
+test('every link rendered from a viewing key result has prefetch disabled', () => {
+  const files = [
+    'app/[lang]/viewing/page.tsx',
+    'components/OpenedNotes.tsx',
+    'components/TransactionOpener.tsx',
+  ];
+  for (const f of files) {
+    const text = readFileSync(join(src, f), 'utf8');
+    // every <L ...> / <Link ...> opening tag, and every <Hash ... href=...> tag
+    const tags = [...text.matchAll(/<(L|Link|Hash)\b[^>]*?(?:=>[^>]*?)*>/gs)].map((m) => m[0]);
+    for (const tag of tags) {
+      const isLink = /^<(L|Link)\b/.test(tag);
+      const hasHref = /\bhref=/.test(tag);
+      if ((isLink || hasHref) && (isLink || /^<Hash/.test(tag))) {
+        if (isLink || hasHref) assert.ok(/prefetch=\{false\}/.test(tag), `${f}: a link without prefetch={false}: ${tag.slice(0, 90)}`);
+      }
+    }
+    assert.ok(tags.length > 0 || f.endsWith('TransactionOpener.tsx'), `${f}: no links found, the check is vacuous`);
+  }
 });
 
 test('the frontend has no route that takes a nullifier in a body or in a lookup', () => {

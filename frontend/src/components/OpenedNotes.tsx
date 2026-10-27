@@ -38,7 +38,7 @@ export function SpentCell({ spent }: { spent?: SpentState }) {
   return (
     <span className="inline-flex flex-wrap items-center gap-1.5">
       <span className="text-soft">{t('components.openedNotes.spentIn')}</span>
-      <Hash value={spent.nullifier.tx_hash} href={`/transactions/${spent.nullifier.tx_hash}`} start={8} end={6} />
+      <Hash value={spent.nullifier.tx_hash} href={`/transactions/${spent.nullifier.tx_hash}`} prefetch={false} start={8} end={6} />
       <span className="text-mute">(#{fmt.number(spent.nullifier.height)})</span>
     </span>
   );
@@ -52,7 +52,7 @@ export function OpenedNoteBlock({ row, tokens }: { row: OpenedNoteRow; tokens?: 
   const fmt = useFmt();
   const title = (
     <span className="inline-flex flex-wrap items-center gap-2">
-      <L href={`/notes/${row.cm}`} className="link font-mono">
+      <L href={`/notes/${row.cm}`} prefetch={false} className="link font-mono">
         {t('components.openedNotes.leaf', { n: fmt.number(row.leaf_index) })}
       </L>
       <Hash value={row.cm} start={10} end={6} />

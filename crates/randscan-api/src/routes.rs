@@ -29,6 +29,8 @@ pub fn create_router(state: AppState) -> Router {
 
     let api = Router::new()
         .route("/health", get(handlers::health))
+        // Read cross-origin by zusd.money (the CORS layer below covers every /api/v1 route).
+        .route("/chain", get(handlers::get_chain))
         .route("/stats", get(handlers::get_stats))
         .route("/blocks", get(handlers::list_blocks))
         .route("/blocks/latest", get(handlers::latest_blocks))

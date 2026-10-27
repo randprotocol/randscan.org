@@ -1,3 +1,4 @@
+use super::{ChainState, ChainView};
 use serde::{Deserialize, Serialize};
 
 /// Pagination query parameters (`page`, `limit`).
@@ -206,6 +207,32 @@ pub struct HealthResponse {
     pub version: String,
     pub database: bool,
     pub indexer: IndexerHealth,
+    /// The genesis the indexed data belongs to (`None` before the indexer first reached a node).
+    pub genesis_hash: Option<String>,
+    /// The latest indexed block's timestamp (`None` with nothing indexed).
+    pub head_timestamp_ms: Option<i64>,
+    /// No indexed block for more than `STALL_MS`, or none at all.
+    pub stalled: bool,
+    /// The indexed chain is not the configured pin, or the node has moved to another chain and
+    /// the indexer stopped writing.
+    pub wrong_chain: bool,
+}
+
+/// `GET /api/v1/chain`: the [`ChainView`] of the indexed data, classified server-side against
+/// the configured pin.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChainResponse {
+    #[serde(flatten)]
+    pub view: ChainView,
+    pub state: ChainState,
+    pub detail: String,
+    pub expected_chain_id: i64,
+    pub expected_genesis_hash: String,
+    /// The indexer has stopped writing because the node reports a different chain than the one
+    /// stored.
+    pub halted: bool,
+    /// Whether the indexer's last request to the node succeeded.
+    pub node_connected: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

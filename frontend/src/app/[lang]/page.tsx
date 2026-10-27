@@ -365,9 +365,11 @@ export default function DashboardPage() {
         </p>
       )}
 
-      {/* Latest blocks + transactions */}
+      {/* Latest blocks + transactions: side by side they show one-line rows and the columns that
+          fit half the page (View, Fee and Height are on /blocks and /transactions), so the two
+          cards line up row for row (one row height) and end at the same height. */}
       <div className="grid gap-6 xl:grid-cols-2">
-        <section className="space-y-4">
+        <section className="flex min-w-0 flex-col gap-4">
           <SectionHeading
             label={t('home.latestBlocks')}
             actions={
@@ -376,10 +378,16 @@ export default function DashboardPage() {
               </L>
             }
           />
-          <BlocksTable blocks={blocks} isLoading={blocksLoading && blocks.length === 0} />
+          <BlocksTable
+            blocks={blocks}
+            isLoading={blocksLoading && blocks.length === 0}
+            hideColumns={['view']}
+            compact
+            className="flex-1 [&_td]:h-[52px] [&_td]:px-3 [&_th]:px-3"
+          />
         </section>
 
-        <section className="space-y-4">
+        <section className="flex min-w-0 flex-col gap-4">
           <SectionHeading
             label={t('home.latestTransactions')}
             actions={
@@ -391,7 +399,9 @@ export default function DashboardPage() {
           <TransactionsTable
             transactions={transactions}
             isLoading={txsLoading && transactions.length === 0}
-            hideColumns={['fee']}
+            hideColumns={['fee', 'height']}
+            compact
+            className="flex-1 [&_td]:h-[52px] [&_td]:px-3 [&_th]:px-3"
           />
         </section>
       </div>

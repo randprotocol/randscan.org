@@ -13,7 +13,12 @@ import type { BlockSummary, TokenInfo, TransactionSummary } from '@/types';
 
 type TFn = ReturnType<typeof useT>['t'];
 
-export function blockColumns(t: TFn, fmt: Fmt): Column<BlockSummary>[] {
+/** Hash lengths: `compact` is for a table sharing the row with another (the home page). */
+const HASH = { start: 8, end: 6 };
+const HASH_COMPACT = { start: 6, end: 4 };
+
+export function blockColumns(t: TFn, fmt: Fmt, compact = false): Column<BlockSummary>[] {
+  const h = compact ? HASH_COMPACT : HASH;
   return [
     {
       key: 'height',
@@ -27,13 +32,18 @@ export function blockColumns(t: TFn, fmt: Fmt): Column<BlockSummary>[] {
     {
       key: 'hash',
       header: t('components.tables.blocks.hash'),
-      render: (block) => <Hash value={block.hash} href={`/blocks/${block.hash}`} />,
+      render: (block) => <Hash value={block.hash} href={`/blocks/${block.hash}`} {...h} />,
     },
     {
       key: 'proposer',
       header: t('components.tables.blocks.proposer'),
       render: (block) => (
-        <Hash value={block.proposer} href={`/validators/${block.proposer}`} start={6} end={6} />
+        <Hash
+          value={block.proposer}
+          href={`/validators/${block.proposer}`}
+          start={compact ? 4 : 6}
+          end={compact ? 4 : 6}
+        />
       ),
     },
     {
@@ -62,14 +72,27 @@ interface BlocksTableProps {
   blocks: BlockSummary[];
   isLoading?: boolean;
   emptyMessage?: string;
+  /** Drop columns that are redundant in the surrounding context. */
+  hideColumns?: string[];
+  /** Shorter hashes, for a table that shares the row with another. */
+  compact?: boolean;
+  className?: string;
 }
 
-export function BlocksTable({ blocks, isLoading, emptyMessage }: BlocksTableProps) {
+export function BlocksTable({
+  blocks,
+  isLoading,
+  emptyMessage,
+  hideColumns = [],
+  compact = false,
+  className,
+}: BlocksTableProps) {
   const { t } = useT();
   const fmt = useFmt();
   return (
     <DataTable
-      columns={blockColumns(t, fmt)}
+      columns={blockColumns(t, fmt, compact).filter((column) => !hideColumns.includes(column.key))}
+      className={className}
       data={blocks}
       keyExtractor={(block) => block.hash}
       isLoading={isLoading}
@@ -88,11 +111,12 @@ export function BlocksTable({ blocks, isLoading, emptyMessage }: BlocksTableProp
  * nothing, by design — its asset is private, and `tokens` (the cached registry) resolves an RPL
  * amount's index to its symbol ("12.50 zUSD") rather than a bare unit count.
  */
-function actionCell(tx: TransactionSummary, t: TFn, fmt: Fmt, tokens?: TokenInfo[]) {
+function actionCell(tx: TransactionSummary, t: TFn, fmt: Fmt, tokens?: TokenInfo[], compact = false) {
   const parts: React.ReactNode[] = [];
+  const n = compact ? 4 : 6;
   if (tx.program) {
     parts.push(
-      <Hash key="program" value={tx.program} href={`/programs/${tx.program}`} start={6} end={6} />
+      <Hash key="program" value={tx.program} href={`/programs/${tx.program}`} start={n} end={n} />
     );
   }
   if (tx.validator) {
@@ -101,8 +125,8 @@ function actionCell(tx: TransactionSummary, t: TFn, fmt: Fmt, tokens?: TokenInfo
         key="validator"
         value={tx.validator}
         href={`/validators/${tx.validator}`}
-        start={6}
-        end={6}
+        start={n}
+        end={n}
       />
     );
   }
@@ -120,19 +144,21 @@ function actionCell(tx: TransactionSummary, t: TFn, fmt: Fmt, tokens?: TokenInfo
       </span>
     );
   }
-  return <span className="inline-flex flex-wrap items-center gap-2">{parts}</span>;
+  return <span className="inline-flex items-center gap-2">{parts}</span>;
 }
 
 export function transactionColumns(
   t: TFn,
   fmt: Fmt,
-  tokens?: TokenInfo[]
+  tokens?: TokenInfo[],
+  compact = false
 ): Column<TransactionSummary>[] {
+  const h = compact ? HASH_COMPACT : HASH;
   return [
     {
       key: 'hash',
       header: t('components.tables.txs.hash'),
-      render: (tx) => <Hash value={tx.hash} href={`/transactions/${tx.hash}`} />,
+      render: (tx) => <Hash value={tx.hash} href={`/transactions/${tx.hash}`} {...h} />,
     },
     {
       key: 'kind',
@@ -151,7 +177,7 @@ export function transactionColumns(
     {
       key: 'action',
       header: t('components.tables.txs.action'),
-      render: (tx) => actionCell(tx, t, fmt, tokens),
+      render: (tx) => actionCell(tx, t, fmt, tokens, compact),
     },
     {
       key: 'fee',
@@ -183,6 +209,9 @@ interface TransactionsTableProps {
   emptyMessage?: string;
   /** Drop columns that are redundant in the surrounding context. */
   hideColumns?: string[];
+  /** Shorter hashes, for a table that shares the row with another. */
+  compact?: boolean;
+  className?: string;
 }
 
 export function TransactionsTable({
@@ -190,17 +219,20 @@ export function TransactionsTable({
   isLoading,
   emptyMessage,
   hideColumns = [],
+  compact = false,
+  className,
 }: TransactionsTableProps) {
   const { data: tokenList } = useTokens();
   const { t } = useT();
   const fmt = useFmt();
-  const columns = transactionColumns(t, fmt, tokenList?.tokens).filter((column) => !hideColumns.includes(column.key));
+  const columns = transactionColumns(t, fmt, tokenList?.tokens, compact).filter((column) => !hideColumns.includes(column.key));
 
   return (
     <DataTable
       columns={columns}
       data={transactions}
       keyExtractor={(tx) => tx.hash}
+      className={className}
       isLoading={isLoading}
       emptyMessage={emptyMessage ?? t('components.tables.txs.empty')}
     />

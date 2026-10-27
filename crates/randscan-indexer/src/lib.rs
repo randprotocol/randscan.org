@@ -12,6 +12,7 @@ pub use processor::*;
 pub use rpc::*;
 pub use service::*;
 
+use randscan_core::ChainPin;
 use std::time::Duration;
 
 #[derive(Debug, Clone)]
@@ -26,6 +27,10 @@ pub struct IndexerConfig {
     pub stats_interval: Duration,
     /// Interval between peer/geolocation refreshes.
     pub nodes_interval: Duration,
+    /// The chain this deployment expects (`RANDSCAN_EXPECTED_CHAIN_ID`,
+    /// `RANDSCAN_EXPECTED_GENESIS`). The API classifies against it; the indexer re-indexes from
+    /// height 0 only when the node moves *to* it (see `IndexerService::check_chain`).
+    pub expected: ChainPin,
 }
 
 impl Default for IndexerConfig {
@@ -36,6 +41,7 @@ impl Default for IndexerConfig {
             batch_size: 200,
             stats_interval: Duration::from_secs(5),
             nodes_interval: Duration::from_secs(60),
+            expected: ChainPin::default(),
         }
     }
 }
@@ -64,6 +70,7 @@ impl IndexerConfig {
                 "NODES_INTERVAL_SECS",
                 d.nodes_interval.as_secs(),
             )),
+            expected: ChainPin::from_env(),
         }
     }
 }

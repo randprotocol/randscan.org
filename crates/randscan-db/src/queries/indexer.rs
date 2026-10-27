@@ -50,6 +50,42 @@ pub async fn set_chain_id(conn: &mut PgConnection, chain_id: i64) -> Result<()> 
     Ok(())
 }
 
+/// The chain the indexed data belongs to (`chain_meta`, migration 015).
+#[derive(Debug, Clone, PartialEq, Eq, sqlx::FromRow)]
+pub struct ChainMeta {
+    pub chain_id: i64,
+    pub genesis_hash: String,
+}
+
+/// `None` before the indexer first reached a node, and right after a chain reset.
+pub async fn get_chain_meta(pool: &PgPool) -> Result<Option<ChainMeta>> {
+    Ok(
+        sqlx::query_as::<_, ChainMeta>(
+            "SELECT chain_id, genesis_hash FROM chain_meta WHERE id = 1",
+        )
+        .fetch_optional(pool)
+        .await?,
+    )
+}
+
+/// Record (or replace) the chain the indexed data belongs to; the hash is stored lowercase.
+pub async fn set_chain_meta(
+    conn: &mut PgConnection,
+    chain_id: i64,
+    genesis_hash: &str,
+) -> Result<()> {
+    sqlx::query(
+        "INSERT INTO chain_meta (id, chain_id, genesis_hash) VALUES (1, $1, LOWER($2))
+         ON CONFLICT (id) DO UPDATE SET chain_id = EXCLUDED.chain_id,
+             genesis_hash = EXCLUDED.genesis_hash, adopted_at = NOW(), updated_at = NOW()",
+    )
+    .bind(chain_id)
+    .bind(genesis_hash)
+    .execute(conn)
+    .await?;
+    Ok(())
+}
+
 /// Tables derived from the chain, in dependency order. Everything else (users, sessions,
 /// API keys, password resets, the `node_geo` IP cache) is independent of the chain and kept.
 pub const CHAIN_TABLES: &[&str] = &[
@@ -63,13 +99,19 @@ pub const CHAIN_TABLES: &[&str] = &[
 ];
 
 /// Forget every block, transaction, note, nullifier, program and validator and start over at
-/// height 0 (and leaf 0) for `chain_id`. Used when the node's chain id (or genesis block) no
-/// longer matches the indexed data, e.g. after a testnet hard fork. Runs in one transaction.
+/// height 0 (and leaf 0) for `chain_id`, and forget the recorded `chain_meta`. Used when the
+/// indexer moves to the pinned chain, or on its first pass over data from another chain. Runs in
+/// one transaction.
 pub async fn reset_chain_data(conn: &mut PgConnection, chain_id: i64) -> Result<()> {
     let tables = CHAIN_TABLES.join(", ");
     sqlx::query("BEGIN").execute(&mut *conn).await?;
     let result: Result<()> = async {
         sqlx::query(&format!("TRUNCATE {tables} RESTART IDENTITY CASCADE"))
+            .execute(&mut *conn)
+            .await?;
+        // The wiped database belongs to no chain until the caller records the new one; if that
+        // never happens the indexer's next first pass takes the node's identity.
+        sqlx::query("DELETE FROM chain_meta")
             .execute(&mut *conn)
             .await?;
         sqlx::query(

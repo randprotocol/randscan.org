@@ -11,6 +11,7 @@ use axum::{
 };
 use http_body_util::BodyExt;
 use randscan_api::{create_router, mail::MailSender, ratelimit::RateLimiter, ApiConfig, AppState};
+use randscan_core::ChainPin;
 use randscan_db::{run_migrations, DbPool};
 use randscan_indexer::{Broadcaster, IndexerConfig, IndexerService};
 use randscan_ws::WsManager;
@@ -130,16 +131,32 @@ pub struct LiveApp {
     pub pool: PgPool,
     pub indexer: Arc<IndexerService>,
     pub broadcaster: Broadcaster,
+    pub rpc_url: String,
+    cfg: ApiConfig,
+    task: std::sync::Mutex<Option<tokio::task::JoinHandle<()>>>,
 }
 
 impl LiveApp {
     pub fn start(&self) {
         let indexer = self.indexer.clone();
-        tokio::spawn(async move {
+        let handle = tokio::spawn(async move {
             if let Err(e) = indexer.run().await {
                 eprintln!("indexer stopped: {e:#}");
             }
         });
+        *self.task.lock().unwrap() = Some(handle);
+    }
+
+    /// Stop this indexer and start another over the same database with `pin` (and `rpc_url`):
+    /// an operator restarting the explorer with a new `RANDSCAN_EXPECTED_*`, or pointing it at
+    /// another node. The new app is started.
+    pub fn restart(&self, rpc_url: &str, pin: ChainPin) -> LiveApp {
+        if let Some(h) = self.task.lock().unwrap().take() {
+            h.abort();
+        }
+        let next = build_live(self.cfg.clone(), self.pool.clone(), rpc_url, pin);
+        next.start();
+        next
     }
 
     /// Poll `GET path` until `pred(body)` holds; panics with the last body after `timeout`.
@@ -171,6 +188,18 @@ pub async fn live_app(cfg: ApiConfig, rpc_url: &str) -> Option<LiveApp> {
 /// tracker does not ask the network for it. A public one needs a fresh `node_geo` row to avoid
 /// a lookup.
 pub async fn live_app_with_ip(cfg: ApiConfig, rpc_url: &str, public_ip: &str) -> Option<LiveApp> {
+    live_app_pinned(cfg, rpc_url, public_ip, ChainPin::default()).await
+}
+
+/// [`live_app_with_ip`] with the indexer (and `/api/v1/chain`) pinned to `pin`. The database's
+/// `chain_meta` row is cleared first, so the indexer's first pass takes the node's chain (and
+/// drops whatever chain an earlier test left), as it does on a fresh database.
+pub async fn live_app_pinned(
+    cfg: ApiConfig,
+    rpc_url: &str,
+    public_ip: &str,
+    pin: ChainPin,
+) -> Option<LiveApp> {
     let url = std::env::var("DATABASE_URL").ok()?;
     // Keep the peer tracker off the network (it would geolocate the host otherwise).
     std::env::set_var("NODE_PUBLIC_IP", public_ip);
@@ -180,6 +209,14 @@ pub async fn live_app_with_ip(cfg: ApiConfig, rpc_url: &str, public_ip: &str) ->
         .await
         .expect("connect to DATABASE_URL");
     run_migrations(&pool).await.expect("migrations");
+    sqlx::query("DELETE FROM chain_meta")
+        .execute(&pool)
+        .await
+        .expect("clear chain_meta");
+    Some(build_live(cfg, pool, rpc_url, pin))
+}
+
+fn build_live(cfg: ApiConfig, pool: PgPool, rpc_url: &str, pin: ChainPin) -> LiveApp {
     let db = DbPool::new(pool.clone());
     let broadcaster = Broadcaster::new();
     let indexer = Arc::new(IndexerService::new(
@@ -189,6 +226,7 @@ pub async fn live_app_with_ip(cfg: ApiConfig, rpc_url: &str, public_ip: &str) ->
             batch_size: 50,
             stats_interval: Duration::from_millis(200),
             nodes_interval: Duration::from_secs(3600),
+            expected: pin,
         },
         db.clone(),
         broadcaster.clone(),
@@ -197,14 +235,17 @@ pub async fn live_app_with_ip(cfg: ApiConfig, rpc_url: &str, public_ip: &str) ->
         db,
         indexer: indexer.clone(),
         ws_manager: Arc::new(WsManager::new()),
-        config: Arc::new(cfg),
+        config: Arc::new(cfg.clone()),
         limiter: Arc::new(RateLimiter::new()),
         mailer: None,
     };
-    Some(LiveApp {
+    LiveApp {
         app: create_router(state),
         pool,
         indexer,
         broadcaster,
-    })
+        rpc_url: rpc_url.to_string(),
+        cfg,
+        task: std::sync::Mutex::new(None),
+    }
 }

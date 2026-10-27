@@ -32,7 +32,10 @@ async fn migrations_are_versioned_and_idempotent() {
     // A long-lived database (this shared one, and the live one) may also record the burned
     // version 8, the reverted chain-11 receivers migration; a fresh database never does.
     let versions: Vec<i32> = versions.into_iter().filter(|v| *v != 8).collect();
-    assert_eq!(versions, vec![1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14]);
+    assert_eq!(
+        versions,
+        vec![1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15]
+    );
 
     for table in ["users", "sessions", "api_keys"] {
         let exists: bool = sqlx::query_scalar(
@@ -230,6 +233,84 @@ fn maintenance_and_scratch_urls(scratch_db: &str) -> (String, String) {
     )
 }
 
+/// Migration 015 on a database that already indexes a chain (the live explorer on chain 21)
+/// adopts that chain: the recorded chain id and block 0's hash, lowercased. A database with no
+/// block 0 gets no row, and the indexer's first pass records the node's chain.
+#[tokio::test]
+async fn migration_15_adopts_the_indexed_chain() {
+    if std::env::var("DATABASE_URL").is_err() {
+        eprintln!("skipping: DATABASE_URL unset");
+        return;
+    }
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let scratch_db = format!("randscan_mig15_{nanos}");
+    let (maintenance_url, scratch_url) = maintenance_and_scratch_urls(&scratch_db);
+    let admin_pool = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&maintenance_url)
+        .await
+        .expect("connect to maintenance database");
+    sqlx::query(&format!("CREATE DATABASE {scratch_db}"))
+        .execute(&admin_pool)
+        .await
+        .expect("create scratch database");
+    let pool = PgPoolOptions::new()
+        .max_connections(2)
+        .connect(&scratch_url)
+        .await
+        .expect("connect to scratch database");
+
+    // A fresh database: no block 0, no row.
+    run_migrations(&pool).await.unwrap();
+    let rows: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM chain_meta")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(rows, 0);
+
+    // Wind back to a version-14 database holding chain 21, then migrate it.
+    sqlx::query("DROP TABLE chain_meta")
+        .execute(&pool)
+        .await
+        .unwrap();
+    sqlx::query("DELETE FROM schema_migrations WHERE version = 15")
+        .execute(&pool)
+        .await
+        .unwrap();
+    let genesis = "CA76C2766ED6090AC6BA5DAD86B724DD5D2B80C0EDFAED287CD8B129E663CA9A";
+    sqlx::query(
+        "INSERT INTO blocks (hash, height, view, parent, proposer, timestamp_ms, tx_root, state_root, justify_view, tx_count)
+         VALUES ($1, 0, 0, $2, 'p', 1, 'r', 's', 0, 0)",
+    )
+    .bind(genesis)
+    .bind("00".repeat(32))
+    .execute(&pool)
+    .await
+    .unwrap();
+    sqlx::query("UPDATE indexer_state SET chain_id = 21 WHERE id = 1")
+        .execute(&pool)
+        .await
+        .unwrap();
+    run_migrations(&pool).await.unwrap();
+    let meta = db::get_chain_meta(&pool).await.unwrap();
+    assert_eq!(
+        meta,
+        Some(db::ChainMeta {
+            chain_id: 21,
+            genesis_hash: genesis.to_ascii_lowercase(),
+        })
+    );
+
+    pool.close().await;
+    sqlx::query(&format!("DROP DATABASE IF EXISTS {scratch_db}"))
+        .execute(&admin_pool)
+        .await
+        .expect("drop scratch database");
+}
+
 #[tokio::test]
 async fn concurrent_migrations_do_not_race() {
     if std::env::var("DATABASE_URL").is_err() {
@@ -275,7 +356,10 @@ async fn concurrent_migrations_do_not_race() {
             .await
             .unwrap();
     // A fresh database: every migration in the tree once, and never the burned version 8.
-    assert_eq!(versions, vec![1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14]);
+    assert_eq!(
+        versions,
+        vec![1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15]
+    );
 
     pool.close().await;
     sqlx::query(&format!("DROP DATABASE IF EXISTS {scratch_db}"))

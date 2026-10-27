@@ -1,14 +1,16 @@
 //! Indexer, database, API and broadcast fan-out working together against a scripted shielded
 //! node: every action kind of phases S1–S3, an unknown future kind, a block at the consensus
 //! transaction limit, the commitment tree and nullifier set, the S2 register/epoch/supply and
-//! the S3-only register shape, and two hard forks under a running indexer (new chain id; same
-//! chain id with a new genesis). Needs `DATABASE_URL`.
+//! the S3-only register shape, and three chain changes under a running indexer: a cut to the
+//! pinned chain (re-indexed from height 0), a re-created genesis nobody pinned (the indexer stops
+//! writing and reports `wrong_chain`), and a restart pinned to that genesis (re-indexed). Needs
+//! `DATABASE_URL`.
 
 mod common;
 
 use common::mock_node::*;
 use common::*;
-use randscan_core::{BroadcastEvent, TxKind};
+use randscan_core::{BroadcastEvent, ChainPin, TxKind};
 use serde_json::{json, Value};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -252,7 +254,10 @@ async fn indexes_every_shielded_kind_and_survives_hard_forks() {
     chain.validators[0].rewards = "3000000".into();
 
     let node = start_mock_node(chain).await;
-    let Some(live) = live_app(test_config(), &node.url).await else {
+    // Pinned to phase 2's chain from the start: an operator moving the pin ahead of a cut. The
+    // first pass still adopts chain 7, the node's chain, and `/chain` calls it the wrong chain.
+    let pin_b = ChainPin::new(8, &h("block-8-genesis-b-0"));
+    let Some(live) = live_app_pinned(test_config(), &node.url, "127.0.0.1", pin_b).await else {
         eprintln!("skipping: DATABASE_URL unset");
         return;
     };
@@ -1233,8 +1238,19 @@ async fn indexes_every_shielded_kind_and_survives_hard_forks() {
         assert!(got.contains(&k), "broadcast kinds miss {k}: {got:?}");
     }
 
-    // ----- phase 2: a user and an API key exist; the fleet hard-forks to chain 8 (an S3-only
-    // node: register without pending/active, no epoch, no supply) ----------------------------
+    let (status, _, ch) = call_api(&live.app, "/api/v1/chain").await;
+    assert_eq!(status, 200, "{ch}");
+    assert_eq!(ch["chain_id"], 7);
+    assert_eq!(ch["genesis_hash"], h("block-7-genesis-a-0"));
+    assert_eq!(ch["head_height"], 4);
+    assert_eq!(
+        ch["state"], "wrong_chain",
+        "chain 7 is not the pinned chain 8: {ch}"
+    );
+    assert_eq!(ch["halted"], false, "the node and the database agree");
+
+    // ----- phase 2: a user and an API key exist; the fleet hard-forks to chain 8, the pinned
+    // chain (an S3-only node: register without pending/active, no epoch, no supply) ----------
     let body = json!({ "email": unique_email(), "password": "correct horse battery" });
     let (status, headers, _) = call(
         &live.app,
@@ -1340,7 +1356,12 @@ async fn indexes_every_shielded_kind_and_survives_hard_forks() {
     let (status, _, _) = call(&live.app, req).await;
     assert_eq!(status, 200);
 
-    // ----- phase 3: same chain id, re-created genesis, node head below the indexed height ---
+    let (_, _, ch) = call_api(&live.app, "/api/v1/chain").await;
+    assert_eq!(ch["genesis_hash"], h("block-8-genesis-b-0"));
+    assert_eq!(ch["chain_id"], 8);
+
+    // ----- phase 3: same chain id, a re-created genesis nobody pinned: the indexer stops
+    // writing, keeps what it has, and says so -------------------------------------------------
     node.with_chain(|c| {
         c.push_block(vec![]);
         c.push_block(vec![]);
@@ -1349,8 +1370,54 @@ async fn indexes_every_shielded_kind_and_survives_hard_forks() {
         b["indexer"]["current_height"] == 3
     })
     .await;
+    node.with_chain(|c| {
+        *c = MockChain::new(8, "genesis-c");
+        for _ in 0..6 {
+            c.push_block(vec![]);
+        }
+    });
+    let ch = live
+        .wait_for("/api/v1/chain", WAIT, |c| c["halted"] == true)
+        .await;
+    assert_eq!(ch["state"], "wrong_chain", "{ch}");
+    assert_eq!(
+        ch["genesis_hash"],
+        h("block-8-genesis-b-0"),
+        "the stored chain"
+    );
+    assert_eq!(ch["node_genesis_hash"], h("block-8-genesis-c-0"));
+    assert_eq!(ch["node_chain_id"], 8);
+    assert!(ch["node_height"].is_null() && ch["lag"].is_null(), "{ch}");
+    assert!(
+        ch["detail"].as_str().unwrap().contains("indexing stopped"),
+        "{ch}"
+    );
+    let (_, _, health) = call_api(&live.app, "/api/v1/health").await;
+    assert_eq!(health["status"], "degraded", "{health}");
+    assert_eq!(health["wrong_chain"], true);
+    assert_eq!(health["genesis_hash"], h("block-8-genesis-b-0"));
+    // Nothing of the new genesis is written, however long the node keeps it up.
+    tokio::time::sleep(Duration::from_secs(2)).await;
+    let (_, _, b0) = call_api(&live.app, "/api/v1/blocks/0").await;
+    assert_eq!(b0["hash"], h("block-8-genesis-b-0"));
+    let (status, _, b3) = call_api(&live.app, "/api/v1/blocks/3").await;
+    assert_eq!(status, 200, "the old chain's blocks stay: {b3}");
+    let (status, _, _) = call_api(&live.app, "/api/v1/blocks/4").await;
+    assert_eq!(status, 404, "the new genesis' blocks 4.. are never written");
+    let (stored_chain, stored_genesis): (i64, String) =
+        sqlx::query_as("SELECT chain_id, genesis_hash FROM chain_meta WHERE id = 1")
+            .fetch_one(&live.pool)
+            .await
+            .unwrap();
+    assert_eq!(
+        (stored_chain, stored_genesis),
+        (8, h("block-8-genesis-b-0"))
+    );
+
+    // ----- phase 4: the operator pins the re-created genesis and restarts; the node's head is
+    // below the old indexed height, and everything is re-read from height 0 and leaf 0 ---------
     node.with_chain(|c| *c = MockChain::new(8, "genesis-c"));
-    // The forced re-check is rate limited (10 s), so allow for that.
+    let live = live.restart(&node.url, ChainPin::new(8, &h("block-8-genesis-c-0")));
     let b0 = live
         .wait_for("/api/v1/blocks/0", WAIT, |b| {
             b["hash"] == h("block-8-genesis-c-0")
@@ -1359,8 +1426,12 @@ async fn indexes_every_shielded_kind_and_survives_hard_forks() {
     assert_eq!(b0["height"], 0);
     let (status, _, _) = call_api(&live.app, "/api/v1/blocks/3").await;
     assert_eq!(status, 404);
+    // The handler lists, then counts: wait on both, or a count taken just after the leaf's
+    // commit can pair with the empty page read just before it.
     let notes = live
-        .wait_for("/api/v1/notes", WAIT, |n| n["pagination"]["total"] == 1)
+        .wait_for("/api/v1/notes", WAIT, |n| {
+            n["pagination"]["total"] == 1 && n["data"].as_array().is_some_and(|d| d.len() == 1)
+        })
         .await;
     assert_eq!(
         notes["data"][0]["cm"],

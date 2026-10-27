@@ -39,6 +39,14 @@ pub fn public_digest(program: &str) -> String {
 /// The treasury account a chain-21 mock (`v080: Some(true)`) holds.
 pub const MOCK_TREASURY: &str = "9b2e000000000000000000000000000000000000000000000000000000000001";
 
+/// Wall-clock milliseconds.
+pub fn now_ms() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_millis() as u64
+}
+
 pub fn h(seed: &str) -> String {
     hex::encode(Sha256::digest(seed.as_bytes()))
 }
@@ -114,6 +122,13 @@ pub struct MockChain {
     pub fail: Vec<(String, Option<String>)>,
     /// Methods that answer `null`, the same way: a node that does not know the thing asked for.
     pub null: Vec<(String, Option<String>)>,
+    /// Stamp new blocks with the wall clock instead of the fixed 2026-09 epoch, so the head is
+    /// fresh for the site-sync classifier (see [`MockChain::go_live`]).
+    pub live_clock: bool,
+    /// `rand_getBlockByHeight` answers `null` above this height while `rand_getHead` reports the
+    /// real head: a node that announced blocks it cannot serve yet, which leaves the indexer
+    /// behind by a chosen number of blocks.
+    pub serve_up_to: Option<u64>,
 }
 
 impl MockChain {
@@ -140,9 +155,22 @@ impl MockChain {
             peers: Vec::new(),
             fail: Vec::new(),
             null: Vec::new(),
+            live_clock: false,
+            serve_up_to: None,
         };
         c.push_block(vec![]);
         c
+    }
+
+    /// Re-stamp every block so the head is now (one second apart going back) and stamp later
+    /// blocks with the wall clock.
+    pub fn go_live(&mut self) {
+        self.live_clock = true;
+        let now = now_ms();
+        let n = self.blocks.len() as u64;
+        for (i, b) in self.blocks.iter_mut().enumerate() {
+            b["timestamp_ms"] = json!(now - (n - 1 - i as u64) * 1000);
+        }
     }
 
     pub fn head(&self) -> &Value {
@@ -236,7 +264,7 @@ impl MockChain {
             "view": self.view,
             "parent": parent,
             "proposer": VALIDATOR,
-            "timestamp_ms": 1_789_000_000_000u64 + height * 1000,
+            "timestamp_ms": if self.live_clock { now_ms() } else { 1_789_000_000_000u64 + height * 1000 },
             "tx_root": h(&format!("txroot-{height}")),
             "state_root": h(&format!("state-{}-{}-{height}", self.chain_id, self.salt)),
             "justify_view": self.view.saturating_sub(1),
@@ -311,8 +339,11 @@ impl MockChain {
                 })
             }
             "rand_getBlockByHeight" => {
-                let height = p(0).as_u64().ok_or((-32602, "height".to_string()))? as usize;
-                self.blocks.get(height).cloned().unwrap_or(Value::Null)
+                let height = p(0).as_u64().ok_or((-32602, "height".to_string()))?;
+                if self.serve_up_to.is_some_and(|max| height > max) {
+                    return Ok(Value::Null);
+                }
+                self.blocks.get(height as usize).cloned().unwrap_or(Value::Null)
             }
             "rand_getBlockByHash" => {
                 let hash = p(0).as_str().unwrap_or("").to_ascii_lowercase();

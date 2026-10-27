@@ -201,14 +201,30 @@ pub async fn list_nullifiers_after(
     after: Option<&str>,
     limit: i64,
 ) -> Result<Vec<NullifierRow>> {
-    Ok(sqlx::query_as::<_, NullifierRow>(
-        "SELECT nullifier, tx_hash, height, tx_index FROM nullifiers \
-         WHERE ($1::text IS NULL OR nullifier > $1) ORDER BY nullifier LIMIT $2",
-    )
-    .bind(after)
-    .bind(limit)
-    .fetch_all(pool)
-    .await?)
+    // Two statements, not `($1 IS NULL OR nullifier > $1)`: that OR shape can plan as a primary-key
+    // scan from the start with a filter, which makes every later page read all rows before its
+    // cursor.
+    Ok(match after {
+        Some(after) => {
+            sqlx::query_as::<_, NullifierRow>(
+                "SELECT nullifier, tx_hash, height, tx_index FROM nullifiers \
+                 WHERE nullifier > $1 ORDER BY nullifier LIMIT $2",
+            )
+            .bind(after)
+            .bind(limit)
+            .fetch_all(pool)
+            .await?
+        }
+        None => {
+            sqlx::query_as::<_, NullifierRow>(
+                "SELECT nullifier, tx_hash, height, tx_index FROM nullifiers \
+                 ORDER BY nullifier LIMIT $1",
+            )
+            .bind(limit)
+            .fetch_all(pool)
+            .await?
+        }
+    })
 }
 
 pub async fn count_nullifiers(pool: &PgPool) -> Result<i64> {

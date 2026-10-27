@@ -43,6 +43,29 @@
     "signIn": "Log masuk",
     "toggleNav": "Togol navigasi"
   },
+  "chainStatus": {
+    "pill": "Rantaian {chain}",
+    "pillTitle": "Status rantaian: {state}. Membuka paparan rantaian dalam peneroka.",
+    "states": {
+      "live": "langsung",
+      "behind": "ketinggalan",
+      "stalled": "terhenti",
+      "wrong_chain": "rantaian salah",
+      "unreachable": "tidak dapat dicapai",
+      "checking": "menyemak"
+    },
+    "banner": {
+      "fetch": "API peneroka tidak dapat dicapai — angka di bawah mungkin sudah lapuk.",
+      "node": "Peneroka tidak dapat mencapai nodnya — angka di bawah mungkin sudah lapuk.",
+      "chainId": "Halaman ini membaca rantaian {shown}; rangkaian berada pada rantaian {expected}.",
+      "genesis": "Halaman ini membaca rantaian yang berbeza (genesis {genesis}) daripada rantaian rangkaian {expected}.",
+      "halted": "Nod peneroka telah bertukar kepada rantaian lain, jadi pengindeksan telah berhenti — angka di bawah mungkin sudah lapuk.",
+      "noBlock": "Belum ada blok yang diindeks.",
+      "stale": "Blok terakhir: {age} — angka di bawah mungkin sudah lapuk.",
+      "lag": "Peneroka ketinggalan daripada rangkaian (sela: {lag}) — angka di bawah mungkin tidak terkini."
+    },
+    "lastGood": "Blok sah terakhir: #{height} ({age})."
+  },
   "footer": {
     "blurb": "RandScan ialah peneroka untuk Rand Protocol.",
     "privacy": "Privasi",

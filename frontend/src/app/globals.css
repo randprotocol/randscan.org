@@ -280,6 +280,16 @@
     letter-spacing: -0.005em;
   }
 
+  /* -- site-sync banner (components/ChainStatus.tsx) ---------------------- */
+  .chain-banner {
+    border-color: color-mix(in srgb, var(--color-negative) 45%, var(--color-border));
+    background: color-mix(in srgb, var(--color-negative) 12%, var(--color-bg));
+  }
+  .chain-banner-behind {
+    border-color: color-mix(in srgb, var(--color-warning) 45%, var(--color-border));
+    background: color-mix(in srgb, var(--color-warning) 12%, var(--color-bg));
+  }
+
   .form-error {
     @apply rounded-md border px-3 py-2 text-sm;
     border-color: color-mix(in srgb, var(--color-negative) 45%, var(--color-border));

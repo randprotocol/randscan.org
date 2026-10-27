@@ -43,6 +43,29 @@
     "signIn": "로그인",
     "toggleNav": "탐색 메뉴 전환"
   },
+  "chainStatus": {
+    "pill": "체인 {chain}",
+    "pillTitle": "체인 상태: {state}. 익스플로러의 체인 정보를 엽니다.",
+    "states": {
+      "live": "실시간",
+      "behind": "지연",
+      "stalled": "정지",
+      "wrong_chain": "잘못된 체인",
+      "unreachable": "연결 불가",
+      "checking": "확인 중"
+    },
+    "banner": {
+      "fetch": "익스플로러 API에 연결할 수 없습니다. 아래 수치는 오래되었을 수 있습니다.",
+      "node": "익스플로러가 노드에 연결할 수 없습니다. 아래 수치는 오래되었을 수 있습니다.",
+      "chainId": "이 페이지는 체인 {shown}을(를) 읽고 있지만 네트워크는 체인 {expected}에 있습니다.",
+      "genesis": "이 페이지는 네트워크의 체인 {expected}과(와) 다른 체인(제네시스 {genesis})을 읽고 있습니다.",
+      "halted": "익스플로러의 노드가 다른 체인으로 전환되어 인덱싱이 중단되었습니다. 아래 수치는 오래되었을 수 있습니다.",
+      "noBlock": "아직 인덱싱된 블록이 없습니다.",
+      "stale": "마지막 블록: {age}. 아래 수치는 오래되었을 수 있습니다.",
+      "lag": "익스플로러가 네트워크보다 뒤처져 있습니다(지연: {lag}). 아래 수치는 최신이 아닐 수 있습니다."
+    },
+    "lastGood": "마지막 정상 블록: #{height} ({age})"
+  },
   "footer": {
     "blurb": "RandScan은 Rand Protocol의 익스플로러입니다.",
     "privacy": "개인정보 처리방침",

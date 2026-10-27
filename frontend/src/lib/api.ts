@@ -13,6 +13,7 @@ import type {
   BlockSummary,
   BridgeState,
   CreatedApiKey,
+  ChainView,
   Health,
   NetworkStats,
   NodeInfo,
@@ -122,6 +123,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export function getHealth(): Promise<Health> {
   return request<Health>('/health');
+}
+
+/** The site-sync view; a reply slower than `FETCH_TIMEOUT_MS` counts as a failed fetch. */
+export function getChain(timeoutMs = 8_000): Promise<ChainView> {
+  return request<ChainView>('/chain', { signal: AbortSignal.timeout(timeoutMs) });
 }
 
 export function getStats(): Promise<NetworkStats> {

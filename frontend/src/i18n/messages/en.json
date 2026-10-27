@@ -43,6 +43,29 @@
     "signIn": "Sign in",
     "toggleNav": "Toggle navigation"
   },
+  "chainStatus": {
+    "pill": "Chain {chain}",
+    "pillTitle": "Chain status: {state}. Opens the explorer's chain view.",
+    "states": {
+      "live": "live",
+      "behind": "behind",
+      "stalled": "stalled",
+      "wrong_chain": "wrong chain",
+      "unreachable": "unreachable",
+      "checking": "checking"
+    },
+    "banner": {
+      "fetch": "Can't reach the explorer API — the numbers below may be stale.",
+      "node": "The explorer can't reach its node — the numbers below may be stale.",
+      "chainId": "This page is reading chain {shown}; the network is on chain {expected}.",
+      "genesis": "This page is reading a different chain (genesis {genesis}) from the network's chain {expected}.",
+      "halted": "The explorer's node has switched to another chain, so indexing has stopped — the numbers below may be stale.",
+      "noBlock": "No block has been indexed yet.",
+      "stale": "The last block was {age} — the numbers below may be stale.",
+      "lag": "The explorer is behind the network (lag: {lag}) — the numbers below may be out of date."
+    },
+    "lastGood": "Last good block: #{height} ({age})."
+  },
   "footer": {
     "blurb": "RandScan is the explorer for Rand Protocol.",
     "privacy": "Privacy",

@@ -43,6 +43,29 @@
     "signIn": "Anmelden",
     "toggleNav": "Navigation umschalten"
   },
+  "chainStatus": {
+    "pill": "Chain {chain}",
+    "pillTitle": "Chain-Status: {state}. Öffnet die Chain-Ansicht des Explorers.",
+    "states": {
+      "live": "live",
+      "behind": "im Rückstand",
+      "stalled": "stockt",
+      "wrong_chain": "falsche Chain",
+      "unreachable": "nicht erreichbar",
+      "checking": "wird geprüft"
+    },
+    "banner": {
+      "fetch": "Die Explorer-API ist nicht erreichbar – die Zahlen unten sind möglicherweise veraltet.",
+      "node": "Der Explorer erreicht seinen Knoten nicht – die Zahlen unten sind möglicherweise veraltet.",
+      "chainId": "Diese Seite liest Chain {shown}; das Netzwerk läuft auf Chain {expected}.",
+      "genesis": "Diese Seite liest eine andere Chain (Genesis {genesis}) als die Chain {expected} des Netzwerks.",
+      "halted": "Der Knoten des Explorers ist auf eine andere Chain gewechselt, daher ist die Indizierung angehalten – die Zahlen unten sind möglicherweise veraltet.",
+      "noBlock": "Es wurde noch kein Block indiziert.",
+      "stale": "Letzter Block: {age} – die Zahlen unten sind möglicherweise veraltet.",
+      "lag": "Der Explorer hinkt dem Netzwerk hinterher (Rückstand: {lag}) – die Zahlen unten sind möglicherweise nicht aktuell."
+    },
+    "lastGood": "Letzter gültiger Block: #{height} ({age})."
+  },
   "footer": {
     "blurb": "RandScan ist der Explorer für Rand Protocol.",
     "privacy": "Datenschutz",

@@ -2,6 +2,7 @@
 
 import useSWR, { type SWRConfiguration, type SWRResponse } from 'swr';
 import * as api from '@/lib/api';
+import { FETCH_TIMEOUT_MS, POLL_MS } from '@/lib/chainStatus';
 import type {
   AdmittedSet,
   MultisigAccount,
@@ -13,6 +14,7 @@ import type {
   ApprovedToken,
   BridgeAssetActivity,
   BridgeState,
+  ChainView,
   Health,
   NetworkStats,
   NodeInfo,
@@ -53,6 +55,17 @@ export function useHealth(config?: SWRConfiguration): SWRResponse<Health> {
   return useSWR<Health>('health', api.getHealth, {
     ...defaultConfig,
     refreshInterval: 30_000,
+    ...config,
+  });
+}
+
+/** GET /api/v1/chain every 15 s (site-sync design §3); SWR keeps the last good view on error. */
+export function useChain(config?: SWRConfiguration): SWRResponse<ChainView> {
+  return useSWR<ChainView>('chain', () => api.getChain(FETCH_TIMEOUT_MS), {
+    ...defaultConfig,
+    refreshInterval: POLL_MS,
+    revalidateOnFocus: true,
+    shouldRetryOnError: false,
     ...config,
   });
 }

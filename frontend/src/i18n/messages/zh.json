@@ -43,6 +43,29 @@
     "signIn": "登录",
     "toggleNav": "切换导航"
   },
+  "chainStatus": {
+    "pill": "链 {chain}",
+    "pillTitle": "链状态:{state}。打开浏览器的链视图。",
+    "states": {
+      "live": "实时",
+      "behind": "落后",
+      "stalled": "停滞",
+      "wrong_chain": "链不正确",
+      "unreachable": "无法连接",
+      "checking": "检查中"
+    },
+    "banner": {
+      "fetch": "无法连接到浏览器 API,下方数据可能已过时。",
+      "node": "浏览器无法连接到其节点,下方数据可能已过时。",
+      "chainId": "本页面读取的是链 {shown},而网络运行在链 {expected} 上。",
+      "genesis": "本页面读取的链(创世哈希 {genesis})与网络的链 {expected} 不同。",
+      "halted": "浏览器的节点已切换到另一条链,因此索引已停止,下方数据可能已过时。",
+      "noBlock": "尚未索引任何区块。",
+      "stale": "最新区块:{age},下方数据可能已过时。",
+      "lag": "浏览器落后于网络(差距:{lag}),下方数据可能不是最新的。"
+    },
+    "lastGood": "最后一个有效区块:#{height}({age})"
+  },
   "footer": {
     "blurb": "RandScan 是 Rand Protocol 的浏览器。",
     "privacy": "隐私",

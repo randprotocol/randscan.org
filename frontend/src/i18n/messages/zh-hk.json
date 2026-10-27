@@ -43,6 +43,29 @@
     "signIn": "登入",
     "toggleNav": "切換導覽"
   },
+  "chainStatus": {
+    "pill": "鏈 {chain}",
+    "pillTitle": "鏈狀態:{state}。開啟瀏覽器的鏈檢視。",
+    "states": {
+      "live": "即時",
+      "behind": "落後",
+      "stalled": "停滯",
+      "wrong_chain": "鏈不正確",
+      "unreachable": "無法連接",
+      "checking": "檢查中"
+    },
+    "banner": {
+      "fetch": "無法連接瀏覽器 API,下方數據可能已過時。",
+      "node": "瀏覽器無法連接其節點,下方數據可能已過時。",
+      "chainId": "本頁面讀取的是鏈 {shown},而網絡運行於鏈 {expected}。",
+      "genesis": "本頁面讀取的鏈(創世雜湊 {genesis})與網絡的鏈 {expected} 不同。",
+      "halted": "瀏覽器的節點已切換到另一條鏈,因此索引已停止,下方數據可能已過時。",
+      "noBlock": "尚未索引任何區塊。",
+      "stale": "最新區塊:{age},下方數據可能已過時。",
+      "lag": "瀏覽器落後於網絡(差距:{lag}),下方數據可能不是最新的。"
+    },
+    "lastGood": "最後一個有效區塊:#{height}({age})"
+  },
   "footer": {
     "blurb": "RandScan 是 Rand Protocol 的瀏覽器。",
     "privacy": "私隱",

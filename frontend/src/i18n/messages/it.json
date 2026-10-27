@@ -43,6 +43,29 @@
     "signIn": "Accedi",
     "toggleNav": "Mostra/nascondi navigazione"
   },
+  "chainStatus": {
+    "pill": "Chain {chain}",
+    "pillTitle": "Stato della chain: {state}. Apre la vista della chain dell'explorer.",
+    "states": {
+      "live": "live",
+      "behind": "in ritardo",
+      "stalled": "ferma",
+      "wrong_chain": "chain errata",
+      "unreachable": "irraggiungibile",
+      "checking": "verifica in corso"
+    },
+    "banner": {
+      "fetch": "Impossibile raggiungere l'API dell'explorer: i numeri qui sotto potrebbero non essere aggiornati.",
+      "node": "L'explorer non riesce a raggiungere il suo nodo: i numeri qui sotto potrebbero non essere aggiornati.",
+      "chainId": "Questa pagina legge la chain {shown}; la rete è sulla chain {expected}.",
+      "genesis": "Questa pagina legge una chain diversa (genesi {genesis}) dalla chain {expected} della rete.",
+      "halted": "Il nodo dell'explorer è passato a un'altra chain, quindi l'indicizzazione si è fermata: i numeri qui sotto potrebbero non essere aggiornati.",
+      "noBlock": "Nessun blocco è stato ancora indicizzato.",
+      "stale": "Ultimo blocco: {age}. I numeri qui sotto potrebbero non essere aggiornati.",
+      "lag": "L'explorer è in ritardo rispetto alla rete (ritardo: {lag}): i numeri qui sotto potrebbero non essere aggiornati."
+    },
+    "lastGood": "Ultimo blocco valido: #{height} ({age})."
+  },
   "footer": {
     "blurb": "RandScan è l'explorer di Rand Protocol.",
     "privacy": "Privacy",

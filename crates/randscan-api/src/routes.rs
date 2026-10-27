@@ -50,7 +50,7 @@ pub fn create_router(state: AppState) -> Router {
         )
         .route("/notes", get(handlers::list_notes))
         .route("/notes/:id", get(handlers::get_note))
-        .route("/nullifiers/lookup", post(handlers::lookup_nullifiers))
+        .route("/nullifiers", get(handlers::list_nullifiers))
         .route("/nullifiers/:nf", get(handlers::get_nullifier))
         .route("/bridge", get(handlers::get_bridge))
         .route("/bridge/assets", get(handlers::bridge_assets))

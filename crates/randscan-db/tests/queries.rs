@@ -318,9 +318,21 @@ async fn leaves_nullifiers_and_programs_are_stored_and_rewound() {
     // Nullifiers: three transactions published four each.
     assert_eq!(db::count_nullifiers(&pool).await.unwrap(), 12);
     let asked = vec![bundle(6).nullifiers[1].clone(), hex64(424_242)];
-    let found = db::get_nullifiers(&pool, &asked).await.unwrap();
-    assert_eq!(found.len(), 1, "an unpublished nullifier is simply absent");
-    assert_eq!(found[0].tx_hash, deploy);
+    let all = db::list_nullifiers_after(&pool, None, 5).await.unwrap();
+    assert_eq!(all.len(), 5);
+    let rest = db::list_nullifiers_after(&pool, Some(&all[4].nullifier), 100)
+        .await
+        .unwrap();
+    assert_eq!(
+        rest.len(),
+        7,
+        "the cursor is exclusive and the pages tile the set"
+    );
+    assert!(all.windows(2).all(|w| w[0].nullifier < w[1].nullifier));
+    assert!(all
+        .iter()
+        .chain(&rest)
+        .any(|r| r.nullifier == asked[0] && r.tx_hash == deploy));
     let one = db::get_nullifier(&pool, &asked[0]).await.unwrap().unwrap();
     assert_eq!((one.height, one.tx_index), (0, 0));
     assert!(db::get_nullifier(&pool, &asked[1]).await.unwrap().is_none());

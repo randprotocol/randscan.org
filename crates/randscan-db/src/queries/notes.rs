@@ -193,13 +193,20 @@ pub async fn get_nullifier(pool: &PgPool, nullifier: &str) -> Result<Option<Null
     .await?)
 }
 
-/// Those of `nullifiers` that are published, in no particular order; an unpublished one is
-/// simply absent.
-pub async fn get_nullifiers(pool: &PgPool, nullifiers: &[String]) -> Result<Vec<NullifierRow>> {
+/// A page of the published nullifier set, in nullifier order, strictly after `after` (`None` =
+/// from the start). The whole set is public; a client that wants to know which of its own are
+/// spent downloads it and matches locally, so the server never learns which ones it cares about.
+pub async fn list_nullifiers_after(
+    pool: &PgPool,
+    after: Option<&str>,
+    limit: i64,
+) -> Result<Vec<NullifierRow>> {
     Ok(sqlx::query_as::<_, NullifierRow>(
-        "SELECT nullifier, tx_hash, height, tx_index FROM nullifiers WHERE nullifier = ANY($1)",
+        "SELECT nullifier, tx_hash, height, tx_index FROM nullifiers \
+         WHERE ($1::text IS NULL OR nullifier > $1) ORDER BY nullifier LIMIT $2",
     )
-    .bind(nullifiers)
+    .bind(after)
+    .bind(limit)
     .fetch_all(pool)
     .await?)
 }

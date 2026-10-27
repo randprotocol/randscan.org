@@ -9,6 +9,7 @@ import { StatsCard, StatsRow } from '@/components/StatsCard';
 import { PageHeader } from '@/components/States';
 import { useTokens } from '@/hooks/useApi';
 import * as api from '@/lib/api';
+import { matchSpent } from '@/lib/spent';
 import { tokenBalances, type TokenBalance } from '@/lib/utils';
 import { L, useFmt, useT, type Fmt } from '@/i18n/client';
 import { keyInfo, openNote, rebuildNote, type KeyInfo, type OpenedNote } from '@/lib/viewing';
@@ -141,16 +142,14 @@ export default function ViewingPage() {
         if (page.next_leaf === null) break;
         from = page.next_leaf;
       }
-      // Every received note's nullifier in one request per thousand: a lookup that fails fails the
-      // scan, since a note of unknown status would silently drop out of the balances.
+      // Spent or not: the public nullifier set is downloaded and matched here. No nullifier of
+      // this key is ever sent to the explorer. A download that fails fails the scan, since a note
+      // of unknown status would silently drop out of the balances.
       const owned = found.filter((r) => r.note.role === 'received' && r.note.nullifier);
-      for (let i = 0; i < owned.length; i += api.NULLIFIER_LOOKUP_MAX) {
-        const chunk = owned.slice(i, i + api.NULLIFIER_LOOKUP_MAX);
-        const spent = new Map((await api.lookupNullifiers(chunk.map((r) => r.note.nullifier!))).map((nf) => [nf.nullifier, nf]));
-        for (const r of chunk) {
-          const nf = spent.get(r.note.nullifier!);
-          r.spent = nf ? { state: 'spent', nullifier: nf } : { state: 'unspent' };
-        }
+      const spent = await matchSpent(owned.map((r) => r.note.nullifier!), api.getNullifierPage);
+      for (const r of owned) {
+        const nf = spent.get(r.note.nullifier!);
+        r.spent = nf ? { state: 'spent', nullifier: nf } : { state: 'unspent' };
       }
       setRows(found.sort((a, b) => b.leaf_index - a.leaf_index));
     } catch (e) {

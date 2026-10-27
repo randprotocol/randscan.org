@@ -2,21 +2,12 @@
 
 import { useState } from 'react';
 import { KeyPanel, type SubmittedKey } from '@/components/KeyPanel';
-import { OpenedCallBlock, OpenedNoteBlock, type OpenedNoteRow, type SpentState } from '@/components/OpenedNotes';
+import { OpenedCallBlock, OpenedNoteBlock, type OpenedNoteRow } from '@/components/OpenedNotes';
 import { useTokens } from '@/hooks/useApi';
 import { useT } from '@/i18n/client';
 import * as api from '@/lib/api';
 import { openCall, openNote, rebuildNote, type OpenedCall, type OpenedNote } from '@/lib/viewing';
 import type { TransactionKind } from '@/types';
-
-async function spentState(nullifier: string): Promise<SpentState> {
-  try {
-    const nf = await api.getNullifier(nullifier);
-    return { state: 'spent', nullifier: nf };
-  } catch (e) {
-    return api.isNotFoundError(e) ? { state: 'unspent' } : { state: 'unknown' };
-  }
-}
 
 /** The "Open with a key" panel of a transaction page. */
 export function TransactionOpener({ hash, kind }: { hash: string; kind: TransactionKind }) {
@@ -53,7 +44,8 @@ export function TransactionOpener({ hash, kind }: { hash: string; kind: Transact
           opened = await rebuildNote(n.cm, n.public, keyKind, key);
         }
         const row: OpenedNoteRow = { leaf_index: n.leaf_index, cm: n.cm, height: n.height, opened, public: n.public ?? null };
-        if (opened && opened.nullifier) row.spent = await spentState(opened.nullifier);
+        // Spent state is not looked up here: asking the explorer about this note's nullifier would
+        // tell it whose note it is. The History page matches the public set in the browser.
         out.push(row);
       }
       setRows(out);

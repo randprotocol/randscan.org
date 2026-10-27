@@ -203,15 +203,10 @@ export function getNullifier(nf: string): Promise<Nullifier> {
   return request<Nullifier>(`/nullifiers/${encodeURIComponent(nf)}`);
 }
 
-/** The most nullifiers one `lookupNullifiers` request may name. */
-export const NULLIFIER_LOOKUP_MAX = 1000;
-
-/** Which of `nfs` (at most `NULLIFIER_LOOKUP_MAX`) are published; one absent from the answer is
- * unspent. One request for a whole history, where a request per note would run an anonymous
- * caller into the rate limit after sixty. */
-export async function lookupNullifiers(nfs: string[]): Promise<Nullifier[]> {
-  const res = await request<{ spent: Nullifier[] }>('/nullifiers/lookup', jsonInit('POST', { nullifiers: nfs }));
-  return res.spent;
+/** One page of the public nullifier set (up to 5000), strictly after `after`. The client matches
+ * its own nullifiers locally (`matchSpent`); it must never send one to the server. */
+export function getNullifierPage(after: string | null): Promise<{ nullifiers: Nullifier[]; next: string | null }> {
+  return request(`/nullifiers${buildQuery({ after: after ?? undefined, limit: 5000 })}`);
 }
 
 /** The envelopes a transaction published (and a call's sealed transcript). Public data. */

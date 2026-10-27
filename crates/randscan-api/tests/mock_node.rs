@@ -614,33 +614,53 @@ async fn indexes_every_shielded_kind_and_survives_hard_forks() {
     assert_eq!(nf4["tx_hash"], burn_hash);
     let (status, _, _) = call_api(&live.app, &format!("/api/v1/nullifiers/{}", h("never"))).await;
     assert_eq!(status, 404);
-    // The batch lookup answers for a whole history in one request: the published ones come
-    // back, the unpublished one is just absent.
-    let lookup = json!({ "nullifiers": [h("nf2-bb"), h("never"), h("nf4-bb")] });
-    let (status, _, found) = call(
-        &live.app,
-        json_req("POST", "/api/v1/nullifiers/lookup", Some(lookup), None),
-    )
-    .await;
-    assert_eq!(status, 200, "{found}");
-    let mut spent: Vec<&str> = found["spent"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|n| n["nullifier"].as_str().unwrap())
-        .collect();
-    spent.sort();
-    let mut want = vec![h("nf2-bb"), h("nf4-bb")];
-    want.sort();
-    assert_eq!(spent, want);
-    assert_eq!(found["spent"][0]["tx_hash"], burn_hash);
-    let too_many = json!({ "nullifiers": vec![h("never"); 1001] });
+    // The set is served a page at a time and matched by the client: the batch lookup that took
+    // a visitor's own nullifiers is gone.
+    let (status, _, page) = call_api(&live.app, "/api/v1/nullifiers?limit=2").await;
+    assert_eq!(status, 200, "{page}");
+    assert_eq!(page["nullifiers"].as_array().unwrap().len(), 2);
+    let mut got: Vec<String> = Vec::new();
+    let mut cur = page.clone();
+    loop {
+        got.extend(
+            cur["nullifiers"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|n| n["nullifier"].as_str().unwrap().to_string()),
+        );
+        let Some(next) = cur["next"].as_str().map(str::to_string) else {
+            break;
+        };
+        let (status, _, nxt) = call_api(
+            &live.app,
+            &format!("/api/v1/nullifiers?after={next}&limit=5000"),
+        )
+        .await;
+        assert_eq!(status, 200, "{nxt}");
+        cur = nxt;
+    }
+    assert!(
+        got.windows(2).all(|w| w[0] < w[1]),
+        "paged in order, no overlap"
+    );
+    assert!(got.contains(&h("nf2-bb")) && got.contains(&h("nf4-bb")));
+    let (status, _, _) = call_api(&live.app, "/api/v1/nullifiers?after=zz").await;
+    assert_eq!(status, 400);
     let (status, _, _) = call(
         &live.app,
-        json_req("POST", "/api/v1/nullifiers/lookup", Some(too_many), None),
+        json_req(
+            "POST",
+            "/api/v1/nullifiers/lookup",
+            Some(json!({ "nullifiers": [h("nf2-bb")] })),
+            None,
+        ),
     )
     .await;
-    assert_eq!(status, 400);
+    assert!(
+        status == 404 || status == 405,
+        "the lookup route is removed: {status}"
+    );
 
     // The commitment tree was paged in (1000 rows per page) and linked to the transactions.
     let notes = live

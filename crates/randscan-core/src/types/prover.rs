@@ -69,7 +69,10 @@ pub const KNOWN_PROVERS: &[KnownProver] = &[
 /// added to the descriptor since the build) can only be checked against its descriptor entry.
 pub fn fingerprint_ok(url: &str, listed: &str, reported: &str) -> bool {
     let url = url.trim_end_matches('/');
-    match KNOWN_PROVERS.iter().find(|p| p.url == url) {
+    match KNOWN_PROVERS
+        .iter()
+        .find(|p| p.url.eq_ignore_ascii_case(url))
+    {
         Some(pin) => pin.fingerprint == listed && pin.fingerprint == reported,
         None => listed == reported,
     }

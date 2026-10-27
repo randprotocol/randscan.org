@@ -63,6 +63,17 @@ pub const KNOWN_PROVERS: &[KnownProver] = &[
     },
 ];
 
+/// Whether a member's reported key is the right one. A member with a pinned fingerprint
+/// (`KNOWN_PROVERS`, from the clients' trusted list) is checked against the pin, so a descriptor
+/// that lists another key for it is a mismatch, not a healthy member; an unpinned member (one
+/// added to the descriptor since the build) can only be checked against its descriptor entry.
+pub fn fingerprint_ok(url: &str, listed: &str, reported: &str) -> bool {
+    match KNOWN_PROVERS.iter().find(|p| p.url == url) {
+        Some(pin) => pin.fingerprint == listed && pin.fingerprint == reported,
+        None => listed == reported,
+    }
+}
+
 /// The operator shown for the pool's members.
 pub const POOL_OPERATOR: &str = "Rand Protocol validators";
 
@@ -308,5 +319,23 @@ mod tests {
         assert!(!serde_json::to_string(&views).unwrap().contains("secret"));
         let empty = PoolDescriptor { members: vec![] };
         assert!(empty.views().is_err());
+    }
+
+    #[test]
+    fn fingerprint_is_checked_against_the_pin_not_the_descriptor() {
+        let a = "https://prover.randprotocol.org/m/a";
+        let pin = "4SK4-P64N-XWEN-ZSZZ";
+        assert!(fingerprint_ok(a, pin, pin));
+        // the member reports a key other than its pin, and the descriptor agrees with it
+        assert!(!fingerprint_ok(
+            a,
+            "AAAA-AAAA-AAAA-AAAA",
+            "AAAA-AAAA-AAAA-AAAA"
+        ));
+        // the descriptor lists another key while the member still reports the pinned one
+        assert!(!fingerprint_ok(a, "AAAA-AAAA-AAAA-AAAA", pin));
+        // an unpinned member falls back to its descriptor entry
+        let n = "https://prover.randprotocol.org/m/new";
+        assert!(fingerprint_ok(n, "X", "X") && !fingerprint_ok(n, "X", "Y"));
     }
 }

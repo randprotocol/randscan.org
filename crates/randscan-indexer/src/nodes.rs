@@ -3,8 +3,8 @@
 use crate::rpc::RpcClient;
 use anyhow::Result;
 use randscan_core::{
-    is_private_ip, parse_multiaddr, NodeInfo, PoolDescriptor, ProverInfoReply, ProverMember,
-    ProverView, KNOWN_PROVERS, POOL_DESCRIPTOR_URL,
+    fingerprint_ok, is_private_ip, parse_multiaddr, NodeInfo, PoolDescriptor, ProverInfoReply,
+    ProverMember, ProverView, KNOWN_PROVERS, POOL_DESCRIPTOR_URL,
 };
 use randscan_db::{self as db, DbPool};
 use serde::Deserialize;
@@ -248,8 +248,10 @@ impl NodeTracker {
             v.checked_at_ms = Some(now);
             match self.prover_info(&t.url).await {
                 Ok(info) => {
-                    v.fingerprint_matches =
-                        info.kem_fingerprint.as_deref().map(|f| f == t.fingerprint);
+                    v.fingerprint_matches = info
+                        .kem_fingerprint
+                        .as_deref()
+                        .map(|f| fingerprint_ok(&t.url, &t.fingerprint, f));
                     v.up = true;
                     v.error = None;
                     v.last_up_ms = Some(now);

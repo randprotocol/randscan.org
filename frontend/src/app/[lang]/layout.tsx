@@ -3,7 +3,6 @@ import localFont from 'next/font/local';
 import { notFound } from 'next/navigation';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
-import { ChainBanner } from '@/components/ChainStatus';
 import { ChainMeta } from '@/components/ChainMeta';
 import { I18nProvider } from '@/i18n/client';
 import { getMessages } from '@/i18n/messages';
@@ -96,7 +95,6 @@ export default async function RootLayout({
         <I18nProvider locale={lang} messages={messages}>
           <div className="flex min-h-screen flex-col">
             <Header />
-            <ChainBanner />
             <main className="flex-1">
               <div className="mx-auto max-w-6xl px-6 py-10 lg:px-8">{children}</div>
             </main>

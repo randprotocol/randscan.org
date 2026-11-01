@@ -125,14 +125,11 @@ test('the order: wrong chain beats stalled beats behind', { skip }, () => {
   assert.equal(state(view({ chain_id: 20, lag: 50, head_timestamp_ms: NOW - 600_000 })), 'wrong_chain');
 });
 
-test('pill tone and banner per state', { skip }, () => {
+test('pill tone per state', { skip }, () => {
   assert.equal(cs.tone('live'), 'positive');
   assert.equal(cs.tone('behind'), 'warning');
   for (const s of ['stalled', 'wrong_chain', 'unreachable']) assert.equal(cs.tone(s), 'negative');
   assert.equal(cs.tone(null), 'mute');
-  assert.equal(cs.showsBanner('live'), false);
-  assert.equal(cs.showsBanner(null), false, 'no banner before the first answer');
-  for (const s of ['behind', 'stalled', 'wrong_chain', 'unreachable']) assert.equal(cs.showsBanner(s), true);
 });
 
 test('every page\'s <head> carries the pin as rand-genesis / rand-chain-id meta tags', { skip }, () => {
@@ -144,7 +141,7 @@ test('every page\'s <head> carries the pin as rand-genesis / rand-chain-id meta 
   assert.match(other, /content="22"/);
 });
 
-test('the banner names each state in a sentence every language has', { skip }, async () => {
+test('each reason classifies to its state, and every language labels every state', { skip }, async () => {
   const { readFileSync, readdirSync } = await import('node:fs');
   const dir = new URL('../src/i18n/messages/', import.meta.url);
   const dicts = readdirSync(dir).filter((f) => f.endsWith('.json')).map((f) => [f, JSON.parse(readFileSync(new URL(f, dir), 'utf8'))]);
@@ -162,15 +159,7 @@ test('the banner names each state in a sentence every language has', { skip }, a
   for (const [v, st, r] of cases) {
     const c = cs.classify(v, pin.EXPECTED_CHAIN, NOW);
     assert.deepEqual([c.state, c.reason], [st, r]);
-    const m = cs.bannerMessage(c, v, pin.EXPECTED_CHAIN);
-    assert.equal(m.key, `chainStatus.banner.${r}`);
-    for (const [f, d] of dicts) assert.equal(typeof at(d, m.key), 'string', `${f} lacks ${m.key}`);
-    for (const s of ['live', 'behind', 'stalled', 'wrong_chain', 'unreachable', 'checking'])
-      for (const [f, d] of dicts) assert.equal(typeof at(d, `chainStatus.states.${s}`), 'string', `${f} lacks ${s}`);
-    // The last good height comes with every banner that has one; a chain with no block has none.
-    assert.equal(m.lastGood === null, v === null || r === 'noBlock', r);
   }
-  const wrong = cs.bannerMessage(cs.classify(view({ chain_id: 20 }), pin.EXPECTED_CHAIN, NOW), view({ chain_id: 20 }), pin.EXPECTED_CHAIN);
-  assert.deepEqual([wrong.vars.shown, wrong.vars.expected], [20, 21]);
-  assert.equal(cs.bannerMessage(cs.classify(view(), pin.EXPECTED_CHAIN, NOW), view(), pin.EXPECTED_CHAIN), null, 'live: no banner');
+  for (const s of ['live', 'behind', 'stalled', 'wrong_chain', 'unreachable', 'checking'])
+    for (const [f, d] of dicts) assert.equal(typeof at(d, `chainStatus.states.${s}`), 'string', `${f} lacks ${s}`);
 });

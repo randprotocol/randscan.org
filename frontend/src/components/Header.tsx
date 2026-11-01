@@ -10,7 +10,6 @@ import { useMe } from '@/hooks/useApi';
 import { L, useT } from '@/i18n/client';
 import { stripLocale } from '@/i18n/locales';
 import { LanguageMenu } from './LanguageMenu';
-import { ChainPill } from './ChainStatus';
 
 const navLinks = [
   { href: '/', key: 'dashboard' },
@@ -120,12 +119,6 @@ export function Header() {
               </svg>
             </button>
           </div>
-        </div>
-
-        {/* The site-sync pill, on its own line under the top bar: the bar is already full at
-            every width (the nav on wide screens, the brand and buttons on a phone). */}
-        <div className="-mt-1 flex justify-end pb-2">
-          <ChainPill />
         </div>
 
         {mobileOpen && (

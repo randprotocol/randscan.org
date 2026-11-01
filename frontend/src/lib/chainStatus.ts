@@ -33,7 +33,7 @@ export interface ChainView {
   detail?: string;
 }
 
-/** Why the state is what it is; each one is a banner sentence in the dictionary. */
+/** Why the state is what it is. */
 export type ChainReason =
   | 'fetch' // the page could not read /chain at all
   | 'node' // the API answered, but the explorer cannot reach its node
@@ -48,7 +48,7 @@ export type ChainReason =
 export interface Classification {
   state: ChainState;
   reason: ChainReason;
-  /** One English sentence, for logs and tooltips; the page shows the translated reason. */
+  /** One English sentence, for logs and tooltips. */
   detail: string;
 }
 
@@ -103,37 +103,4 @@ export function tone(state: ChainState | null): 'positive' | 'warning' | 'negati
   if (state === 'live') return 'positive';
   if (state === 'behind') return 'warning';
   return 'negative';
-}
-
-/** The banner shows for every state but live (behind means more than MAX_LAG blocks). */
-export const showsBanner = (state: ChainState | null): boolean => state !== null && state !== 'live';
-
-/** What the banner says for a classification: a dictionary key, its variables, and the last good
- *  block (height and timestamp) when there is one worth naming. `age` is filled by the caller,
- *  which owns the locale's relative-time formatter. */
-export interface BannerMessage {
-  key: string;
-  vars: Record<string, string | number>;
-  lastGood: { height: number; timestampMs: number } | null;
-}
-
-export function bannerMessage(
-  status: Classification,
-  view: ChainView | null | undefined,
-  expected: ChainPin,
-): BannerMessage | null {
-  if (!showsBanner(status.state)) return null;
-  return {
-    key: `chainStatus.banner.${status.reason}`,
-    vars: {
-      expected: expected.chain_id,
-      shown: view?.chain_id ?? '?',
-      genesis: view?.genesis_hash ? `${normalizeHash(view.genesis_hash).slice(0, 8)}…` : '—',
-      lag: view?.lag ?? 0,
-    },
-    lastGood:
-      view && view.head_timestamp_ms != null && status.reason !== 'noBlock'
-        ? { height: view.head_height, timestampMs: view.head_timestamp_ms }
-        : null,
-  };
 }

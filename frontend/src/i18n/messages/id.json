@@ -53,18 +53,7 @@
       "wrong_chain": "chain salah",
       "unreachable": "tidak terjangkau",
       "checking": "memeriksa"
-    },
-    "banner": {
-      "fetch": "API penjelajah tidak dapat dijangkau — angka di bawah mungkin sudah usang.",
-      "node": "Penjelajah tidak dapat menjangkau node-nya — angka di bawah mungkin sudah usang.",
-      "chainId": "Halaman ini membaca chain {shown}; jaringan berada di chain {expected}.",
-      "genesis": "Halaman ini membaca chain yang berbeda (genesis {genesis}) dari chain jaringan {expected}.",
-      "halted": "Node penjelajah telah beralih ke chain lain, sehingga pengindeksan berhenti — angka di bawah mungkin sudah usang.",
-      "noBlock": "Belum ada blok yang diindeks.",
-      "stale": "Blok terakhir: {age} — angka di bawah mungkin sudah usang.",
-      "lag": "Penjelajah tertinggal dari jaringan (selisih: {lag}) — angka di bawah mungkin tidak mutakhir."
-    },
-    "lastGood": "Blok valid terakhir: #{height} ({age})."
+    }
   },
   "footer": {
     "blurb": "RandScan adalah penjelajah untuk Rand Protocol.",

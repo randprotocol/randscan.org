@@ -1,5 +1,5 @@
 // The chain this build of the explorer expects to be showing (site-sync design §1). A build-time
-// constant, the one place the frontend pins it: the status pill and banner classify against it,
+// constant, the one place the frontend pins it: the status pill classifies against it,
 // and the root layout prints it as <meta name="rand-genesis"> / <meta name="rand-chain-id"> so the
 // monorepo's site-sync cron can grep the deployed HTML for the live genesis. Move it at every
 // chain cut, together with the API's RANDSCAN_EXPECTED_* (whose default is the same chain).

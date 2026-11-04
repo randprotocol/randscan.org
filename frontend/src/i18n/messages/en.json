@@ -1021,7 +1021,7 @@
         "id": "viewing-keys",
         "title": "Viewing keys stay in your browser",
         "body": [
-          "The <a href=\"/viewing\">History</a> page and the note opener let you paste a viewing key, a transaction key or a wallet key file to read your own shielded activity. The decryption runs inside the page, in a WebAssembly module compiled from the explorer’s own code. A pasted key is held in the page’s memory only. It is never included in any request to our servers, never written to a cookie or to local storage, and is gone when you close or reload the page.",
+          "The <a href=\"/viewing\">History</a> page and the note opener let you paste a viewing key, a transaction key or a wallet key file to read your own shielded activity. The decryption runs inside the page, in a WebAssembly module compiled from the explorer’s own code. A pasted key is held in the page’s memory. It is never included in any request to our servers, never written to a cookie or to local storage, and is gone when you close or reload the page, unless you tick “remember for this tab”. The key is then kept in that tab’s session storage, inside your browser only, so it survives a reload and is filled in on the other key pages, until you close the tab or open a key with the box unticked.",
           "The page does fetch the encrypted envelopes it needs from our API, in the same way any visitor can. We therefore see which transactions a browser asked for, but not which of them opened or what they contained."
         ]
       },

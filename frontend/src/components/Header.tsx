@@ -51,40 +51,23 @@ export function Header() {
   const isActive = (href: string) =>
     href === '/' ? pathname === '/' : pathname.startsWith(href);
 
+  // On the home page the hero carries the search, so the header does not repeat it.
+  const onHome = pathname === '/';
+
   return (
-    <header className="border-b border-border-soft bg-bg">
-      <div className="mx-auto max-w-6xl px-6 lg:px-8">
-        <div className="flex h-14 items-center justify-between gap-5">
-          <L href="/" className="flex flex-shrink-0 items-center rounded-md">
+    <header className="border-b border-border bg-bg">
+      <div className="mx-auto max-w-[1200px] px-4 sm:px-6">
+        <div className="flex h-16 items-center justify-between gap-5">
+          <L href="/" className="flex flex-shrink-0 items-center">
             <Brand />
           </L>
 
-          <nav className="hidden items-center gap-4 lg:flex">
-            {navLinks.map((link) => {
-              const active = isActive(link.href);
-              return (
-                <L
-                  key={link.href}
-                  href={link.href}
-                  className={cn(
-                    'relative whitespace-nowrap py-1 text-[13px] transition-colors hover:text-strong',
-                    active ? 'text-strong' : 'text-soft'
-                  )}
-                >
-                  {t(`header.nav.${link.key}`)}
-                  {active && (
-                    <span className="absolute -bottom-px start-0 h-0.5 w-full rounded-full bg-accent" />
-                  )}
-                </L>
-              );
-            })}
-          </nav>
-
-          <div className="ms-auto hidden items-center gap-2.5 lg:flex">
-            <div className="w-44">
-              <SearchBar />
-            </div>
-            <AccountLink signedIn={!!me} className="whitespace-nowrap text-[13px] text-soft transition-colors hover:text-strong" />
+          <div className="ms-auto hidden items-center gap-2 lg:flex">
+            {!onHome && (
+              <div className="w-72">
+                <SearchBar />
+              </div>
+            )}
             <a
               href="https://github.com/randprotocol"
               target="_blank"
@@ -99,9 +82,10 @@ export function Header() {
             </a>
             <LanguageMenu />
             <ThemeToggle />
+            <AccountLink signedIn={!!me} className="btn-primary ms-2 min-h-9 px-3.5 text-[13px]" />
           </div>
 
-          <div className="ms-auto flex items-center gap-2 lg:hidden">
+          <div className="ms-auto flex items-center gap-1 lg:hidden">
             <ThemeToggle />
             <button
               type="button"
@@ -112,14 +96,34 @@ export function Header() {
               <span className="sr-only">{t('header.toggleNav')}</span>
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.6} stroke="currentColor">
                 <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+                  strokeLinecap="square"
+                  strokeLinejoin="miter"
                   d={mobileOpen ? 'M6 18L18 6M6 6l12 12' : 'M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5'}
                 />
               </svg>
             </button>
           </div>
         </div>
+
+        <nav className="-mx-1 hidden h-11 items-stretch gap-6 overflow-x-auto border-t border-border-soft px-1 lg:flex">
+          {navLinks.map((link) => {
+            const active = isActive(link.href);
+            return (
+              <L
+                key={link.href}
+                href={link.href}
+                aria-current={active ? 'page' : undefined}
+                className={cn(
+                  'relative flex items-center whitespace-nowrap text-sm transition-colors hover:text-strong',
+                  active ? 'text-strong' : 'text-text'
+                )}
+              >
+                {t(`header.nav.${link.key}`)}
+                {active && <span className="absolute -bottom-px start-0 h-px w-full bg-ink" />}
+              </L>
+            );
+          })}
+        </nav>
 
         {mobileOpen && (
           <nav className="flex flex-col border-t border-border-soft py-2 lg:hidden">
@@ -128,9 +132,10 @@ export function Header() {
                 key={link.href}
                 href={link.href}
                 onClick={() => setMobileOpen(false)}
+                aria-current={isActive(link.href) ? 'page' : undefined}
                 className={cn(
-                  'px-1 py-2 text-sm transition-colors hover:text-strong',
-                  isActive(link.href) ? 'text-strong' : 'text-soft'
+                  'flex items-center gap-2 border-b border-border-soft px-1 py-2.5 text-sm transition-colors last:border-0 hover:text-strong',
+                  isActive(link.href) ? 'text-strong' : 'text-text'
                 )}
               >
                 {t(`header.nav.${link.key}`)}
@@ -138,16 +143,18 @@ export function Header() {
             ))}
             <AccountLink
               signedIn={!!me}
-              className="px-1 py-2 text-sm text-soft transition-colors hover:text-strong"
+              className="btn-primary mt-3 w-full"
               onClick={() => setMobileOpen(false)}
             />
-            <LanguageMenu inline className="mt-2 border-t border-border-soft pt-2" />
+            <LanguageMenu inline className="mt-3 border-t border-border-soft pt-2" />
           </nav>
         )}
 
-        <div className="pb-4 lg:hidden">
-          <SearchBar />
-        </div>
+        {!onHome && (
+          <div className="pb-4 lg:hidden">
+            <SearchBar />
+          </div>
+        )}
       </div>
     </header>
   );

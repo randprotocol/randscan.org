@@ -87,7 +87,7 @@ export function LanguageMenu({ className, inline = false }: { className?: string
         <span className="sr-only">{t('common.language')}</span>
       </button>
       {open && (
-        <div className="absolute end-0 top-full z-50 mt-1 w-48 rounded-md border border-border bg-surface shadow-lg">
+        <div className="absolute end-0 top-full z-50 mt-1 w-48 rounded-sm border border-border bg-surface">
           {list}
         </div>
       )}

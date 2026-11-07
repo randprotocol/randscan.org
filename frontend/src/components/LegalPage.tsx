@@ -128,7 +128,7 @@ export function LegalPage({ title, intro, sections, related, lang, words }: Lega
 
         {sections.map((section, index) => (
           <section key={section.id} id={section.id} className="mt-10 scroll-mt-6">
-            <h2 className="text-xl font-semibold tracking-tight text-strong">
+            <h2 className="text-xl font-medium text-strong">
               <span className="me-3 font-mono text-sm text-mute">{index + 1}</span>
               {section.title}
             </h2>

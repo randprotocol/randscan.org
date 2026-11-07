@@ -3,25 +3,46 @@
 import { L, useT } from '@/i18n/client';
 import { cn } from '@/lib/utils';
 
-/** Accent section label with the short leading rule, as on randprotocol.org. */
-export function SectionLabel({ children, className }: { children: React.ReactNode; className?: string }) {
+/**
+ * Section eyebrow: mono, uppercase, a 6px square bullet, or a two-digit index in its place
+ * ("01 — Latest blocks").
+ */
+export function SectionLabel({
+  children,
+  index,
+  className,
+}: {
+  children: React.ReactNode;
+  index?: string;
+  className?: string;
+}) {
+  if (index) {
+    return (
+      <span className={cn('eyebrow', className)}>
+        <span className="text-strong">{index}</span>
+        <span aria-hidden="true">—</span>
+        {children}
+      </span>
+    );
+  }
   return <span className={cn('chip', className)}>{children}</span>;
 }
 
 interface SectionHeadingProps {
   label: string;
+  index?: string;
   title?: string;
   actions?: React.ReactNode;
   className?: string;
 }
 
-export function SectionHeading({ label, title, actions, className }: SectionHeadingProps) {
+export function SectionHeading({ label, index, title, actions, className }: SectionHeadingProps) {
   return (
     <div className={cn('flex flex-wrap items-end justify-between gap-3', className)}>
       <div>
-        <SectionLabel>{label}</SectionLabel>
+        <SectionLabel index={index}>{label}</SectionLabel>
         {title && (
-          <h2 className="mt-1.5 text-2xl font-semibold tracking-tight text-strong">
+          <h2 className="mt-2 text-2xl font-medium text-strong">
             {title}
           </h2>
         )}
@@ -43,8 +64,8 @@ export function PageHeader({ title, label, subtitle, actions, className }: PageH
   return (
     <div className={cn('mb-8 flex flex-wrap items-start justify-between gap-4', className)}>
       <div className="min-w-0">
-        {label && <SectionLabel className="mb-2">{label}</SectionLabel>}
-        <h1 className="text-4xl font-semibold tracking-tight text-strong">{title}</h1>
+        {label && <SectionLabel className="mb-3">{label}</SectionLabel>}
+        <h1 className="text-[32px] font-medium text-strong sm:text-[40px]">{title}</h1>
         {subtitle && <div className="mt-2 text-sm text-soft">{subtitle}</div>}
       </div>
       {actions && <div className="flex items-center gap-3">{actions}</div>}
@@ -68,7 +89,7 @@ export function NotFoundState({
   const { t } = useT();
   return (
     <div className="card-padded py-16 text-center">
-      <h2 className="text-2xl font-semibold tracking-tight text-strong">{title ?? t('common.notFound')}</h2>
+      <h2 className="text-2xl font-medium text-strong">{title ?? t('common.notFound')}</h2>
       <p className="mx-auto mt-3 max-w-md break-all text-sm text-soft">{message}</p>
       <L href={backHref} className="btn-secondary mt-7">
         {backLabel ?? t('common.backToDashboard')}
@@ -91,7 +112,7 @@ export function ErrorState({
   const { t } = useT();
   return (
     <div className="card-padded py-16 text-center">
-      <h2 className="text-2xl font-semibold tracking-tight text-negative">{title ?? t('common.somethingWrong')}</h2>
+      <h2 className="text-2xl font-medium text-negative">{title ?? t('common.somethingWrong')}</h2>
       <p className="mx-auto mt-3 max-w-md text-sm text-soft">{message ?? t('common.apiUnreachable')}</p>
       {onRetry && (
         <button type="button" onClick={onRetry} className="btn-primary mt-7">
@@ -128,21 +149,21 @@ export function Panel({ title, children, actions, className }: PanelProps) {
   return (
     <section className={cn('card overflow-hidden', className)}>
       {(title || actions) && (
-        <header className="flex items-center justify-between border-b border-border px-6 py-3.5">
+        <header className="flex items-center justify-between border-b border-border px-5 py-3.5 sm:px-6">
           {title && <SectionLabel>{title}</SectionLabel>}
           {actions}
         </header>
       )}
-      <div className="px-6 py-2">{children}</div>
+      <div className="px-5 py-2 sm:px-6">{children}</div>
     </section>
   );
 }
 
-/** Muted green/grey dot reflecting the WebSocket connection. */
-export function LiveIndicator({ isConnected }: { isConnected: boolean }) {
+/** Small status dot reflecting the WebSocket connection, in the mono label register. */
+export function LiveIndicator({ isConnected, className }: { isConnected: boolean; className?: string }) {
   const { t } = useT();
   return (
-    <span className="inline-flex items-center gap-2 text-xs text-mute">
+    <span className={cn('inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.08em] text-mute', className)}>
       <span className={cn('status-dot', isConnected ? 'status-dot-live' : 'status-dot-off')} />
       {isConnected ? t('common.live') : t('common.offline')}
     </span>

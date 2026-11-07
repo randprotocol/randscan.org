@@ -3,70 +3,117 @@
 @tailwind utilities;
 
 /* ---------------------------------------------------------------------------
-   Palette — the Rand Wallet tokens (clients/design/tokens.json), so the
-   explorer and the wallet read as one product. Dark (ink) is the default, as
-   in the wallet; light (paper) is a full theme. The signal accent is the only
-   colour: it fills the primary action and otherwise marks state (selection,
-   focus, an active tab, a hot pixel in the mark).
+   Palette — institutional monochrome (the Rand sites' 2026-11 design spec).
+   No hue in the chrome: ink on paper, hairline rules, one inverted band (the
+   footer). Status colours are desaturated and appear only where they carry
+   meaning (a failed transaction, a stalled chain, a form error).
+
+   The spec tokens (--bg, --ink, --rule, …) are the source; the --color-*
+   names the Tailwind config and the markup already use are aliases of them,
+   so every page re-skins without touching its markup. Light (paper) is the
+   default; dark (ink) is selected by data-theme="dark" on <html>, which the
+   inline script in layout.tsx sets from the stored choice or the system.
    --------------------------------------------------------------------------- */
 
 :root {
-  color-scheme: dark;
-  --color-bg: #0e1220;
-  --color-bg-soft: #121726;
-  --color-surface: #161c2c;
-  --color-surface-2: #1e2538;
-  --color-border: #2b3350;
-  --color-border-soft: #20283d;
-  --color-text: #ece9e2;
-  --color-text-soft: #abafbf;
-  --color-text-mute: #8c91a5;
-  --color-text-strong: #fffdf8;
-  --color-accent: #ff5c9d;
-  --color-accent-2: #ff8fbd;
-  --color-on-accent: #0e1220;
-  --color-positive: #3ddc97;
-  --color-negative: #ff7a59;
-  --color-warning: #f5c451;
-
-  /* Neutral alphas re-tuned per theme: deep shadows read as depth on ink. */
-  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.45);
-  --shadow-2: 0 10px 30px -14px rgba(0, 0, 0, 0.8);
-  --press: rgba(255, 255, 255, 0.05);
-
-  --r-sm: 8px;
-  --r-md: 12px;
-  --r-lg: 16px;
-  --r-pill: 999px;
-
-  --ease: cubic-bezier(0.2, 0.8, 0.3, 1);
-  --fast: 150ms;
-  --mid: 200ms;
+  color-scheme: light;
+  --bg: #f7f7f6;
+  --bg-alt: #efefed;
+  --surface: #ffffff;
+  --ink: #111111;
+  --ink-2: #3a3a3a;
+  --ink-3: #6b6b6b;
+  --ink-4: #9a9a9a;
+  --rule: #d7d7d4;
+  --rule-soft: #e6e6e3;
+  --invert-bg: #0e0e0e;
+  --invert-ink: #f5f5f4;
+  --invert-ink-3: #9a9a98;
+  --invert-rule: #2a2a2a;
+  --positive: #2f6f4f;
+  --negative: #9b2c2c;
+  --warning: #8a6d1f;
+  --hover: rgba(17, 17, 17, 0.03);
 }
 
-[data-theme='light'] {
-  color-scheme: light;
-  --color-bg: #f2f3f7;
-  --color-bg-soft: #e9ebf1;
-  --color-surface: #ffffff;
-  --color-surface-2: #f1f2f6;
-  --color-border: #d9dce6;
-  --color-border-soft: #e6e8ef;
-  --color-text: #121521;
-  --color-text-soft: #474c5e;
-  --color-text-mute: #62677a;
-  --color-text-strong: #07090f;
-  --color-accent: #c8185f;
-  --color-accent-2: #a3124c;
-  --color-on-accent: #ffffff;
-  --color-positive: #0b7a51;
-  --color-negative: #c2410c;
-  --color-warning: #8f6200;
+/* With JavaScript off no data-theme is set: follow the system. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --bg: #0b0b0b;
+    --bg-alt: #121212;
+    --surface: #151515;
+    --ink: #f2f2f2;
+    --ink-2: #c9c9c9;
+    --ink-3: #8e8e8e;
+    --ink-4: #5e5e5e;
+    --rule: #262626;
+    --rule-soft: #1c1c1c;
+    --invert-bg: #f2f2f2;
+    --invert-ink: #0b0b0b;
+    --invert-ink-3: #5e5e5e;
+    --invert-rule: #d0d0d0;
+    --positive: #7fb89a;
+    --negative: #d98a8a;
+    --warning: #cdb56e;
+    --hover: rgba(242, 242, 242, 0.03);
+  }
+}
 
-  /* On paper, shadows go short and tight so cards read as paper, not holes. */
-  --shadow-1: 0 1px 2px rgba(20, 26, 46, 0.06);
-  --shadow-2: 0 8px 24px -12px rgba(20, 26, 46, 0.18);
-  --press: rgba(20, 26, 46, 0.04);
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #0b0b0b;
+  --bg-alt: #121212;
+  --surface: #151515;
+  --ink: #f2f2f2;
+  --ink-2: #c9c9c9;
+  --ink-3: #8e8e8e;
+  --ink-4: #5e5e5e;
+  --rule: #262626;
+  --rule-soft: #1c1c1c;
+  --invert-bg: #f2f2f2;
+  --invert-ink: #0b0b0b;
+  --invert-ink-3: #5e5e5e;
+  --invert-rule: #d0d0d0;
+  --positive: #7fb89a;
+  --negative: #d98a8a;
+  --warning: #cdb56e;
+  --hover: rgba(242, 242, 242, 0.03);
+}
+
+:root {
+  /* Aliases the Tailwind colour names resolve to (tailwind.config.ts). */
+  --color-bg: var(--bg);
+  --color-bg-soft: var(--bg-alt);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--bg-alt);
+  --color-border: var(--rule);
+  --color-border-soft: var(--rule-soft);
+  --color-text: var(--ink-2);
+  --color-text-soft: var(--ink-3);
+  /* Captions stay at --ink-3: --ink-4 is too faint for text and is kept for placeholders. */
+  --color-text-mute: var(--ink-3);
+  --color-text-faint: var(--ink-4);
+  --color-text-strong: var(--ink);
+  --color-accent: var(--ink);
+  --color-accent-2: var(--ink-2);
+  --color-on-accent: var(--bg);
+  --color-positive: var(--positive);
+  --color-negative: var(--negative);
+  --color-warning: var(--warning);
+
+  --shadow-1: none;
+  --shadow-2: none;
+  --press: var(--hover);
+
+  --r-sm: 2px;
+  --r-md: 2px;
+  --r-lg: 2px;
+  --r-pill: 999px;
+
+  --ease: linear;
+  --fast: 150ms;
+  --mid: 150ms;
 }
 
 @layer base {
@@ -74,8 +121,8 @@
     background: var(--color-bg);
     color: var(--color-text);
     font-size: 15px;
-    line-height: 1.45;
-    letter-spacing: -0.006em;
+    line-height: 1.5;
+    letter-spacing: -0.01em;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
@@ -86,12 +133,23 @@
   h2,
   h3 {
     color: var(--color-text-strong);
-    letter-spacing: -0.02em;
+    font-weight: 500;
+    letter-spacing: -0.04em;
+    line-height: 1.1;
+  }
+
+  /* Figures line up in every table and stat. */
+  .font-mono,
+  td,
+  th,
+  code,
+  kbd {
+    font-variant-numeric: tabular-nums;
   }
 
   ::selection {
-    background: color-mix(in srgb, var(--color-accent) 35%, transparent);
-    color: var(--color-text-strong);
+    background: var(--ink);
+    color: var(--bg);
   }
 
   /* One ring, on everything focusable, in both themes. Pointer clicks never
@@ -101,7 +159,7 @@
   }
 
   :focus-visible {
-    outline: 2px solid var(--color-accent);
+    outline: 2px solid var(--ink);
     outline-offset: 2px;
     border-radius: var(--r-sm);
   }
@@ -122,7 +180,7 @@
 
   ::-webkit-scrollbar-thumb {
     background: var(--color-border);
-    border-radius: var(--r-pill);
+    border-radius: 0;
     border: 3px solid transparent;
     background-clip: content-box;
   }
@@ -150,13 +208,16 @@
     @apply inline-flex items-center gap-2.5;
   }
 
+  /* The mark keeps its shape and its one hot cell; in monochrome the hot cell
+     is told apart by weight (ink-3) instead of hue. */
   .brand .mark {
-    fill: var(--color-text-strong);
+    fill: currentColor;
+    color: var(--color-text-strong);
     flex: none;
   }
 
   .brand .mark .hot {
-    fill: var(--color-accent);
+    fill: var(--ink-3);
   }
 
   .brand .name {
@@ -168,84 +229,79 @@
     color: var(--color-text-strong);
   }
 
+  /* -- eyebrow: mono, uppercase, small square bullet ---------------------- */
+
+  .eyebrow {
+    @apply inline-flex items-center gap-2 font-mono text-[11px] font-normal uppercase text-soft;
+    letter-spacing: 0.08em;
+    line-height: 1.2;
+  }
+
+  .eyebrow-dot::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    background: currentColor;
+    flex: none;
+  }
+
   /* -- surfaces --------------------------------------------------------- */
 
   .card {
-    @apply rounded-lg border border-border-soft bg-surface;
-    box-shadow: var(--shadow-1);
+    @apply rounded-sm border border-border bg-surface;
   }
 
   .card-padded {
-    @apply rounded-lg border border-border-soft bg-surface p-5;
-    box-shadow: var(--shadow-1);
+    @apply rounded-sm border border-border bg-surface p-5;
   }
 
-  /* -- section label with the short leading rule ------------------------ */
+  /* -- section label (the old accent chip): now an eyebrow -------------- */
 
   .chip {
-    @apply inline-flex items-center gap-[0.6rem] text-[0.8125rem] font-medium text-soft;
-  }
-
-  .chip::before {
-    content: '';
-    display: inline-block;
-    width: 1.25rem;
-    height: 2px;
-    border-radius: var(--r-pill);
-    background: var(--color-accent);
+    @apply eyebrow eyebrow-dot;
   }
 
   /* -- buttons ---------------------------------------------------------- */
 
   .btn-primary {
-    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-transparent bg-accent px-5 text-[0.9375rem] font-semibold text-on-accent;
+    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-sm border border-transparent px-[18px] text-sm font-medium;
+    background: var(--ink);
+    color: var(--bg);
     letter-spacing: -0.01em;
     white-space: nowrap;
     user-select: none;
-    transition:
-      background var(--mid) var(--ease),
-      transform var(--fast) var(--ease);
+    transition: opacity var(--fast) var(--ease);
   }
 
   .btn-primary:hover {
-    background: color-mix(in srgb, var(--color-accent) 88%, var(--color-text-strong));
-  }
-
-  .btn-primary:active {
-    transform: scale(0.98);
+    opacity: 0.86;
   }
 
   .btn-secondary {
-    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-border bg-surface px-5 text-[0.9375rem] font-semibold text-strong;
+    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-sm border bg-transparent px-[18px] text-sm font-medium text-strong;
+    border-color: var(--ink);
     letter-spacing: -0.01em;
     white-space: nowrap;
     user-select: none;
-    transition:
-      background var(--mid) var(--ease),
-      border-color var(--mid) var(--ease),
-      transform var(--fast) var(--ease);
+    transition: background var(--fast) var(--ease);
   }
 
   .btn-secondary:hover {
-    background: var(--color-surface-2);
-  }
-
-  .btn-secondary:active {
-    transform: scale(0.98);
+    background: var(--hover);
   }
 
   .btn-primary:disabled,
   .btn-secondary:disabled {
-    opacity: 0.45;
-    transform: none;
+    opacity: 0.4;
     pointer-events: none;
   }
 
   .btn-icon {
-    @apply inline-flex h-9 w-9 items-center justify-center rounded-md text-soft;
+    @apply inline-flex h-9 w-9 items-center justify-center rounded-sm text-soft;
     transition:
-      background var(--mid) var(--ease),
-      color var(--mid) var(--ease);
+      background var(--fast) var(--ease),
+      color var(--fast) var(--ease);
   }
 
   .btn-icon:hover {
@@ -256,83 +312,94 @@
   /* -- forms ------------------------------------------------------------ */
 
   .input {
-    @apply w-full rounded-md border border-border bg-bg-soft px-3 py-2.5 text-sm text-strong placeholder-mute;
-    transition:
-      border-color var(--mid) var(--ease),
-      box-shadow var(--mid) var(--ease),
-      background var(--mid) var(--ease);
+    @apply w-full rounded-sm border border-border bg-surface px-3 py-2.5 text-sm text-strong;
+    transition: border-color var(--fast) var(--ease);
+  }
+
+  .input::placeholder {
+    color: var(--ink-4);
   }
 
   .input:hover {
-    border-color: color-mix(in srgb, var(--color-text-soft) 30%, var(--color-border));
+    border-color: var(--ink-3);
   }
 
   .input:focus,
   .input:focus-visible {
-    border-color: var(--color-accent);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 20%, transparent);
-    background: var(--color-surface);
+    border-color: var(--ink);
+    box-shadow: inset 0 0 0 1px var(--ink);
     outline: none;
   }
 
   .field-label {
-    @apply mb-1.5 block text-[13px] font-semibold text-soft;
-    letter-spacing: -0.005em;
+    @apply mb-1.5 block font-mono text-[11px] font-normal uppercase text-soft;
+    letter-spacing: 0.08em;
   }
 
   .form-error {
-    @apply rounded-md border px-3 py-2 text-sm;
-    border-color: color-mix(in srgb, var(--color-negative) 45%, var(--color-border));
+    @apply rounded-sm border px-3 py-2 text-sm;
+    border-color: var(--color-negative);
     color: var(--color-negative);
   }
 
   /* -- links ------------------------------------------------------------ */
 
-  /* Links and hashes are white, not signal-coloured: on a page that is mostly hashes the accent
-     would be everywhere, and the wallet keeps it for the primary action and state. */
   .link {
     @apply text-strong transition-colors;
   }
 
   .link:hover {
-    @apply underline decoration-accent decoration-2 underline-offset-4;
+    @apply underline decoration-1 underline-offset-4;
   }
 
-  /* -- badges ----------------------------------------------------------- */
+  /* Tertiary action: text with an arrow, underlined on hover. */
+  .link-arrow {
+    @apply inline-flex items-center gap-1 text-sm text-strong underline-offset-4 hover:underline;
+  }
+
+  /* -- badges: square, hairline, mono; kinds told apart by border style --- */
 
   .badge {
-    @apply inline-flex items-center rounded-full border border-border-soft bg-surface px-2.5 py-0.5 text-[0.6875rem] font-semibold text-soft;
+    @apply inline-flex items-center rounded-sm border border-border bg-transparent px-1.5 py-px font-mono text-[10.5px] font-normal uppercase text-text;
+    letter-spacing: 0.06em;
     white-space: nowrap;
   }
 
   .badge-transfer {
-    color: var(--color-accent);
-  }
-
-  .badge-mint {
-    color: var(--color-positive);
-  }
-
-  .badge-deploy {
     color: var(--color-text-strong);
   }
 
+  .badge-mint {
+    color: var(--color-text-strong);
+    border-color: var(--ink-3);
+  }
+
+  .badge-deploy {
+    color: var(--bg);
+    background: var(--ink);
+    border-color: var(--ink);
+  }
+
   .badge-call {
-    color: var(--color-warning);
+    color: var(--color-text);
   }
 
   .badge-bridge {
-    color: var(--color-accent-2);
+    color: var(--color-text);
     border-style: dashed;
   }
 
   .badge-stake {
-    color: var(--color-accent);
+    color: var(--color-text);
     border-style: double;
+    border-width: 3px;
+    padding-top: 0;
+    padding-bottom: 0;
   }
 
   .badge-accent {
-    color: var(--color-accent);
+    color: var(--color-text-strong);
+    border-color: var(--ink);
   }
 
   .badge-neutral {
@@ -341,37 +408,37 @@
 
   /* -- stat row (hairline separated, not boxed) ------------------------- */
 
+  /* Cells share hairlines: the row's rule colour shows through 1px gaps, so the
+     separators are right at any column count. */
   .stat-row {
-    @apply grid border-y border-border-soft;
+    @apply grid gap-px border-y border-border;
+    background: var(--rule);
   }
 
   .stat {
-    @apply border-border-soft px-5 py-5;
+    @apply min-w-0 px-5 py-6;
+    background: var(--bg);
   }
 
-  .stat + .stat {
-    @apply border-t border-border-soft sm:border-l sm:border-t-0;
-  }
-
-  /* The figure the user came for, in the wallet's balance face: the pixel
-     grid at three of its 11 px units. */
+  /* Label (mono eyebrow) above, the figure below. */
   .stat-value {
-    font-family: var(--font-display);
-    font-size: 33px;
-    line-height: 1;
-    font-weight: 400;
-    letter-spacing: 0;
+    font-family: var(--font-sans);
+    font-size: 32px;
+    line-height: 1.05;
+    font-weight: 500;
+    letter-spacing: -0.04em;
     color: var(--color-text-strong);
     font-variant-numeric: tabular-nums;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
   }
 
   .stat-label {
-    @apply mt-2.5 text-[0.8125rem] text-soft;
+    @apply mb-3 font-mono text-[11px] uppercase text-soft;
+    letter-spacing: 0.08em;
   }
 
   .stat-sub {
-    @apply mt-0.5 text-xs text-mute;
+    @apply mt-2 font-mono text-xs text-mute;
   }
 
   /* -- detail rows ------------------------------------------------------ */
@@ -381,27 +448,33 @@
   }
 
   .detail-label {
-    @apply w-full flex-shrink-0 text-[0.8125rem] text-mute sm:w-56;
+    @apply w-full flex-shrink-0 pt-0.5 font-mono text-[11px] uppercase text-mute sm:w-56;
+    letter-spacing: 0.08em;
   }
 
   .detail-value {
     @apply min-w-0 flex-1 break-all text-sm text-text;
   }
 
+  /* -- ruled tables ------------------------------------------------------ */
+
+  .table-head {
+    @apply whitespace-nowrap px-4 py-2.5 text-start font-mono text-[11px] font-normal uppercase text-soft;
+    letter-spacing: 0.08em;
+  }
+
   /* -- live indicator --------------------------------------------------- */
 
   .status-dot {
-    @apply inline-block h-2 w-2 rounded-full;
+    @apply inline-block h-1.5 w-1.5 rounded-full;
   }
 
   .status-dot-live {
     background: var(--color-positive);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-positive) 25%, transparent);
   }
 
   .status-dot-off {
     background: var(--color-negative);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-negative) 25%, transparent);
   }
 }
 
@@ -463,7 +536,7 @@
 
 /* ---------------------------------------------------------------------------------------------
    Languages (docs/superpowers/specs/2026-10-02-explorer-i18n-design.md)
-   Hashes, keys, amounts and code read left to right inside a right-to-left page. Scripts Inter
+   Hashes, keys, amounts and code read left to right inside a right-to-left page. Scripts Geist
    lacks fall back to the system's own faces; no fonts are downloaded for them. Tracking is
    reset where the site's slight negative letter-spacing would break Arabic joining, crowd CJK or
    split Indic conjuncts.

@@ -8,8 +8,8 @@ type Theme = 'light' | 'dark';
 const STORAGE_KEY = 'randscan-theme';
 
 function currentTheme(): Theme {
-  if (typeof document === 'undefined') return 'dark';
-  return document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+  if (typeof document === 'undefined') return 'light';
+  return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
 }
 
 function storedTheme(): Theme | null {
@@ -27,17 +27,17 @@ function storedTheme(): Theme | null {
  * following the system until the user makes one.
  */
 export function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>('dark');
+  const [theme, setTheme] = useState<Theme>('light');
   const [mounted, setMounted] = useState(false);
   const { t } = useT();
 
   useEffect(() => {
     setTheme(currentTheme());
     setMounted(true);
-    const mq = window.matchMedia('(prefers-color-scheme: light)');
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
     const follow = () => {
       if (storedTheme()) return;
-      const next: Theme = mq.matches ? 'light' : 'dark';
+      const next: Theme = mq.matches ? 'dark' : 'light';
       document.documentElement.setAttribute('data-theme', next);
       setTheme(next);
     };

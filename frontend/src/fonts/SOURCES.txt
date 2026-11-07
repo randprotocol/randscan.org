@@ -1,26 +1,19 @@
-Self-hosted variable fonts for Rand Wallet. No network fonts: every shell runs under a
-`style-src 'self'` content security policy, so the woff2 files ship with the app.
+Self-hosted fonts for randscan. No network fonts: the woff2 files ship with the app and are
+loaded through next/font/local (src/app/[lang]/layout.tsx).
 
-Inter-Variable.woff2
-  Inter v4.1 — https://github.com/rsms/inter/releases/download/v4.1/Inter-4.1.zip
-  taken verbatim from `web/InterVariable.woff2` inside that archive.
-  Licence: Inter-OFL.txt (SIL Open Font License 1.1), the archive's LICENSE.txt.
-
-JetBrainsMono-Variable.woff2
-  JetBrains Mono v2.304 —
-  https://github.com/JetBrains/JetBrainsMono/releases/download/v2.304/JetBrainsMono-2.304.zip
-  The release ships the variable face as TrueType only (`fonts/variable/JetBrainsMono[wght].ttf`),
-  so it was repackaged as woff2 with fontTools (no subsetting, no glyph changes):
-      python3 -c 'from fontTools.ttLib import TTFont; f=TTFont("JetBrainsMono[wght].ttf"); \
-                  f.flavor="woff2"; f.save("JetBrainsMono-Variable.woff2")'
-  Licence: JetBrainsMono-OFL.txt (SIL Open Font License 1.1), the archive's OFL.txt.
+Geist-Variable.woff2, GeistMono-Variable.woff2
+  Geist and Geist Mono (Vercel with basement.studio), from the `geist` npm package v1.9.2 —
+  https://registry.npmjs.org/geist/-/geist-1.9.2.tgz
+  taken verbatim from `dist/fonts/geist-sans/Geist-Variable.woff2` and
+  `dist/fonts/geist-mono/GeistMono-Variable.woff2` inside that tarball.
+  Geist sets the text and headings; Geist Mono sets eyebrows, table headers, hashes, keys and
+  figures. Licence: Geist-OFL.txt (SIL Open Font License 1.1), the tarball's LICENSE.txt.
 
 DepartureMono-Regular.woff2
   Departure Mono v1.500 (Helena Zhang) —
   https://github.com/rektdeckard/departure-mono/releases/download/v1.500/DepartureMono-1.500.zip
   taken verbatim from `DepartureMono-Regular.woff2` inside that archive. A pixel face on an 11 px
-  grid: used only for the wordmark and the balance figure, at multiples of 11 px.
+  grid: used only for the randscan wordmark, so the logo is the same as the wallet's.
   Licence: DepartureMono-OFL.txt (SIL Open Font License 1.1), the archive's LICENSE.
 
-All three faces are declared in ui/tokens.css (generated) and reached through --font / --mono /
---display.
+The faces are reached through --font-sans / --font-mono / --font-display.

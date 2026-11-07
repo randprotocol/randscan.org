@@ -9,19 +9,19 @@ import { getMessages } from '@/i18n/messages';
 import { LOCALE_CODES, isLocale, localeInfo, localizePath } from '@/i18n/locales';
 import '../globals.css';
 
-// The wallet's three faces, self-hosted (src/fonts/SOURCES.txt): Inter for text, JetBrains Mono
-// for hashes and keys, Departure Mono for the wordmark and the big figures. Scripts Inter lacks
-// (CJK, Arabic) fall back to the system's own faces (globals.css, html[lang]).
+// Three faces, self-hosted (src/fonts/SOURCES.txt): Geist for text, Geist Mono for labels,
+// hashes, keys and figures, Departure Mono for the wordmark only. Scripts Geist lacks (CJK,
+// Arabic, Indic) fall back to the system's own faces (globals.css, html[lang]).
 const sans = localFont({
-  src: '../../fonts/Inter-Variable.woff2',
+  src: '../../fonts/Geist-Variable.woff2',
   weight: '100 900',
   variable: '--font-sans',
   display: 'swap',
 });
 
 const mono = localFont({
-  src: '../../fonts/JetBrainsMono-Variable.woff2',
-  weight: '100 800',
+  src: '../../fonts/GeistMono-Variable.woff2',
+  weight: '100 900',
   variable: '--font-mono',
   display: 'swap',
 });
@@ -67,9 +67,10 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 
 /**
  * Applies the stored theme before first paint, or follows the operating system when nothing is
- * stored (the wallet does the same), so the wrong theme never flashes.
+ * stored, so the wrong theme never flashes. Light (paper) is the default when the system states
+ * no preference.
  */
-const themeScript = `(function(){var d=document.documentElement;try{var t=localStorage.getItem('randscan-theme');if(t!=='dark'&&t!=='light'){t=window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';}d.setAttribute('data-theme',t);}catch(e){d.setAttribute('data-theme','dark');}})();`;
+const themeScript = `(function(){var d=document.documentElement;try{var t=localStorage.getItem('randscan-theme');if(t!=='dark'&&t!=='light'){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}d.setAttribute('data-theme',t);}catch(e){d.setAttribute('data-theme','light');}})();`;
 
 export default async function RootLayout({
   children,
@@ -85,7 +86,7 @@ export default async function RootLayout({
   return (
     <html lang={info.tag} dir={info.dir} suppressHydrationWarning>
       <head>
-        <meta name="color-scheme" content="dark light" />
+        <meta name="color-scheme" content="light dark" />
         <ChainMeta />
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
@@ -96,7 +97,7 @@ export default async function RootLayout({
           <div className="flex min-h-screen flex-col">
             <Header />
             <main className="flex-1">
-              <div className="mx-auto max-w-6xl px-6 py-10 lg:px-8">{children}</div>
+              <div className="mx-auto max-w-[1200px] px-4 py-10 sm:px-6 lg:py-14">{children}</div>
             </main>
             <Footer />
           </div>

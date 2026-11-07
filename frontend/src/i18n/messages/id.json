@@ -1230,6 +1230,7 @@
       "other": "{epoch} ({n} blok)"
     },
     "currentLeader": "Leader saat ini",
+    "parameters": "Chain parameters",
     "facts": {
       "totalSupply": "Total suplai {amount}",
       "supplyUnavailable": "Audit suplai tidak tersedia",

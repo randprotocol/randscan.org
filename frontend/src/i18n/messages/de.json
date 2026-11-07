@@ -1241,6 +1241,7 @@
       "other": "{epoch} ({n} Blöcke)"
     },
     "currentLeader": "Aktueller Leader",
+    "parameters": "Chain parameters",
     "facts": {
       "totalSupply": "Gesamtmenge {amount}",
       "supplyUnavailable": "Mengenprüfung nicht verfügbar",

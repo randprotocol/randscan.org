@@ -1241,6 +1241,7 @@
       "other": "{epoch} ({n} بلاکس)"
     },
     "currentLeader": "موجودہ لیڈر",
+    "parameters": "Chain parameters",
     "facts": {
       "totalSupply": "کل سپلائی {amount}",
       "supplyUnavailable": "سپلائی آڈٹ دستیاب نہیں",

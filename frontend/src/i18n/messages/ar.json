@@ -1285,6 +1285,7 @@
       "other": "{epoch} ({n} كتلة)"
     },
     "currentLeader": "القائد الحالي",
+    "parameters": "Chain parameters",
     "facts": {
       "totalSupply": "إجمالي المعروض {amount}",
       "supplyUnavailable": "تدقيق المعروض غير متاح",

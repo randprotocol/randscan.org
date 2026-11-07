@@ -1230,6 +1230,7 @@
       "other": "{epoch}({n} ブロック)"
     },
     "currentLeader": "現在のリーダー",
+    "parameters": "Chain parameters",
     "facts": {
       "totalSupply": "総供給量 {amount}",
       "supplyUnavailable": "供給量の監査は利用できません",

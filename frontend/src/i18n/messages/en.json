@@ -1241,6 +1241,7 @@
       "other": "{epoch} ({n} blocks)"
     },
     "currentLeader": "Current leader",
+    "parameters": "Chain parameters",
     "facts": {
       "totalSupply": "Total supply {amount}",
       "supplyUnavailable": "Supply audit unavailable",

@@ -1241,6 +1241,7 @@
       "other": "{epoch} ({n} ब्लॉक)"
     },
     "currentLeader": "वर्तमान लीडर",
+    "parameters": "Chain parameters",
     "facts": {
       "totalSupply": "कुल आपूर्ति {amount}",
       "supplyUnavailable": "आपूर्ति ऑडिट अनुपलब्ध",

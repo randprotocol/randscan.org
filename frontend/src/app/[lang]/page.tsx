@@ -4,7 +4,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { StatsCard, StatsCardSkeleton, StatsRow } from '@/components/StatsCard';
 import { BlocksTable, TransactionsTable } from '@/components/Tables';
 import { Hash } from '@/components/Hash';
-import { LiveIndicator, SectionHeading } from '@/components/States';
+import { LiveIndicator, SectionHeading, SectionLabel } from '@/components/States';
+import { SearchBar } from '@/components/SearchBar';
 import { useLatestBlocks, useLatestTransactions, usePerps, useRandPrice, useStats, useSupply } from '@/hooks/useApi';
 import { useNewBlocks, useNewTransactions, useStatsUpdates } from '@/hooks/useWebSocket';
 import { TOKEN_SYMBOL } from '@/lib/utils';
@@ -65,32 +66,85 @@ export default function DashboardPage() {
   ).slice(0, LATEST_LIMIT);
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-4xl font-semibold tracking-tight text-strong">
+    <div>
+      {/* Hero: search is the primary action; the panel beside it is the chain's live state in the
+          label · value · status register. */}
+      <section className="grid gap-10 pb-14 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:gap-16 lg:pb-20 lg:pt-6">
+        <div className="min-w-0">
+          <span className="eyebrow eyebrow-dot">
+            {stats ? t('home.chain', { id: stats.chain_id }) : t('home.connecting')}
+          </span>
+          <h1 className="mt-5 text-[38px] font-medium leading-[1.05] text-strong sm:text-[56px] lg:text-[64px]">
             {t('home.title')}
           </h1>
-          <p className="mt-2 text-sm text-soft">
-            {stats
-              ? t('home.chain', { id: stats.chain_id })
-              : t('home.connecting')}
-          </p>
+          <p className="mt-5 max-w-xl text-base text-soft">{t('search.subtitle')}</p>
+          <SearchBar size="lg" className="mt-9 max-w-2xl" />
+          <div className="mt-5 flex flex-wrap gap-x-6 gap-y-2">
+            <L href="/blocks" className="link-arrow">
+              {t('header.nav.blocks')} <span aria-hidden="true">→</span>
+            </L>
+            <L href="/transactions" className="link-arrow">
+              {t('header.nav.transactions')} <span aria-hidden="true">→</span>
+            </L>
+            <L href="/validators" className="link-arrow">
+              {t('header.nav.validators')} <span aria-hidden="true">→</span>
+            </L>
+          </div>
         </div>
-        <LiveIndicator isConnected={isConnected} />
-      </div>
 
-      {/* Primary stats */}
-      <StatsRow columns={4}>
+        <aside className="card min-w-0 self-start">
+          <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-3.5">
+            <span className="eyebrow">
+              {stats ? t('home.chain', { id: stats.chain_id }) : t('home.connecting')}
+            </span>
+            <LiveIndicator isConnected={isConnected} />
+          </div>
+          <div className="border-b border-border-soft px-5 py-5">
+            <p className="stat-label">{t('home.blockHeight')}</p>
+            {statsLoading && !stats ? (
+              <div className="h-10 w-48 animate-pulse bg-bg-soft" />
+            ) : (
+              <p className="stat-value text-[40px] sm:text-[44px]">{fmt.number(stats?.height ?? 0)}</p>
+            )}
+            {stats && (
+              <p className="stat-sub">{stats.node_syncing ? t('home.nodeSyncing') : t('home.inSync')}</p>
+            )}
+          </div>
+          <dl className="px-5 py-1">
+            <PanelRow label={t('home.avgBlockTime')} value={stats ? fmt.duration(stats.avg_block_time_ms) : '—'} />
+            <PanelRow
+              label={t('home.epoch')}
+              value={
+                stats && stats.epoch !== null
+                  ? tp('home.epochValue', stats.epoch_blocks ?? 0, { epoch: fmt.number(stats.epoch) })
+                  : '—'
+              }
+            />
+            <PanelRow
+              label={t('home.currentLeader')}
+              value={
+                stats?.current_leader ? (
+                  <Hash
+                    value={stats.current_leader}
+                    href={`/validators/${stats.current_leader}`}
+                    start={6}
+                    end={4}
+                  />
+                ) : (
+                  '—'
+                )
+              }
+            />
+          </dl>
+        </aside>
+      </section>
+
+      {/* Stat row: mono label over a tabular figure, hairlines between cells. */}
+      <StatsRow columns={5}>
         {statsLoading && !stats ? (
-          Array.from({ length: 4 }).map((_, i) => <StatsCardSkeleton key={i} />)
+          Array.from({ length: 5 }).map((_, i) => <StatsCardSkeleton key={i} />)
         ) : (
           <>
-            <StatsCard
-              title={t('home.blockHeight')}
-              value={fmt.number(stats?.height ?? 0)}
-              subtitle={stats?.node_syncing ? t('home.nodeSyncing') : t('home.inSync')}
-            />
             <StatsCard
               title={t('home.validators')}
               value={
@@ -110,42 +164,63 @@ export default function DashboardPage() {
               value={fmt.number(stats?.notes ?? 0)}
               subtitle={stats ? t('home.spent', { count: fmt.number(stats.nullifiers) }) : undefined}
             />
+            <StatsCard title={t('home.peers')} value={stats ? fmt.number(stats.peer_count) : '—'} />
+            <StatsCard title={t('home.mempool')} value={stats ? fmt.number(stats.mempool_size) : '—'} />
           </>
         )}
       </StatsRow>
 
-      {/* Secondary stats */}
-      <StatsRow columns={5}>
-        <MiniStat label={t('home.avgBlockTime')} value={stats ? fmt.duration(stats.avg_block_time_ms) : '—'} />
-        <MiniStat label={t('home.peers')} value={stats ? fmt.number(stats.peer_count) : '—'} />
-        <MiniStat label={t('home.mempool')} value={stats ? fmt.number(stats.mempool_size) : '—'} />
-        <MiniStat
-          label={t('home.epoch')}
-          value={
-            stats && stats.epoch !== null
-              ? tp('home.epochValue', stats.epoch_blocks ?? 0, { epoch: fmt.number(stats.epoch) })
-              : '—'
-          }
-        />
-        <MiniStat
-          label={t('home.currentLeader')}
-          value={
-            stats?.current_leader ? (
-              <Hash
-                value={stats.current_leader}
-                href={`/validators/${stats.current_leader}`}
-                start={6}
-                end={4}
-              />
-            ) : (
-              '—'
-            )
-          }
-        />
-      </StatsRow>
+      {/* Latest blocks + transactions: side by side they show one-line rows and the columns that
+          fit half the page (View, Fee and Height are on /blocks and /transactions), so the two
+          tables line up row for row (one row height) and end at the same height. */}
+      <div className="grid gap-12 py-16 lg:py-24 xl:grid-cols-2 xl:gap-10">
+        <section className="flex min-w-0 flex-col gap-5">
+          <SectionHeading
+            index="01"
+            label={t('home.latestBlocks')}
+            actions={
+              <L href="/blocks" className="link-arrow">
+                {t('home.viewAll')}
+              </L>
+            }
+          />
+          <BlocksTable
+            blocks={blocks}
+            isLoading={blocksLoading && blocks.length === 0}
+            hideColumns={['view']}
+            compact
+            variant="ruled"
+            className="flex-1 [&_td]:h-[48px] [&_td]:px-3 [&_th]:px-3 [&_td:first-child]:ps-0 [&_th:first-child]:ps-0 [&_td:last-child]:pe-0 [&_th:last-child]:pe-0"
+          />
+        </section>
 
+        <section className="flex min-w-0 flex-col gap-5">
+          <SectionHeading
+            index="02"
+            label={t('home.latestTransactions')}
+            actions={
+              <L href="/transactions" className="link-arrow">
+                {t('home.viewAll')}
+              </L>
+            }
+          />
+          <TransactionsTable
+            transactions={transactions}
+            isLoading={txsLoading && transactions.length === 0}
+            hideColumns={['fee', 'height']}
+            compact
+            variant="ruled"
+            className="flex-1 [&_td]:h-[48px] [&_td]:px-3 [&_th]:px-3 [&_td:first-child]:ps-0 [&_th:first-child]:ps-0 [&_td:last-child]:pe-0 [&_th:last-child]:pe-0"
+          />
+        </section>
+      </div>
+
+      {/* Chain parameters: every genesis fact the node reports, one ruled line per group. */}
+      <section className="border-t border-border pt-10">
+        <SectionLabel index="03">{t('home.parameters')}</SectionLabel>
+        <div className="mt-6 divide-y divide-border-soft border-y border-border-soft font-mono text-xs leading-relaxed text-mute [&>p]:py-3.5">
       {stats && (
-        <p className="flex flex-wrap items-center gap-x-2 text-xs text-mute">
+        <p className="flex flex-wrap items-center gap-x-2">
           <span>
             {stats.total_supply !== '0'
               ? t('home.facts.totalSupply', { amount: fmt.amount(stats.total_supply) })
@@ -182,7 +257,7 @@ export default function DashboardPage() {
       )}
 
       {stats?.limits && (
-        <p className="flex flex-wrap items-center gap-x-2 text-xs text-mute">
+        <p className="flex flex-wrap items-center gap-x-2">
           <span>{tp('home.limits.programs', stats.limits.max_program_words)}</span>
           <span>· {t('home.limits.proofs', { size: fmt.binaryBytes(stats.limits.max_proof_bytes) })}</span>
           <span>· {t('home.limits.blocks', { size: fmt.binaryBytes(stats.limits.max_block_bytes) })}</span>
@@ -217,7 +292,7 @@ export default function DashboardPage() {
       )}
 
       {stats?.limits && (stats.limits.testnet || stats.limits.admission_by_vote || stats.limits.slashing) && (
-        <p className="flex flex-wrap items-center gap-x-2 text-xs text-mute">
+        <p className="flex flex-wrap items-center gap-x-2">
           <span>{stats.limits.testnet ? t('home.network.testnet') : t('home.network.mainnet')}</span>
           {stats.limits.admission_by_vote && (
             <span>
@@ -236,7 +311,7 @@ export default function DashboardPage() {
       )}
 
       {stats?.limits && stats.limits.gas_metering && (
-        <p className="flex flex-wrap items-center gap-x-2 text-xs text-mute">
+        <p className="flex flex-wrap items-center gap-x-2">
           <span>
             {stats.limits.gas_metering === 'circuit'
               ? t('home.gas.circuit')
@@ -284,7 +359,7 @@ export default function DashboardPage() {
 
       {/* Fullnode v0.8.0's genesis sections: each line only on a chain that carries it. */}
       {stats?.limits && (stats.limits.fee_rules || stats.limits.multisig || stats.limits.perps) && (
-        <p className="flex flex-wrap items-center gap-x-2 text-xs text-mute">
+        <p className="flex flex-wrap items-center gap-x-2">
           {stats.limits.fee_rules && (
             <span>
               {t('home.v080.fees')}{' '}
@@ -365,55 +440,17 @@ export default function DashboardPage() {
         </p>
       )}
 
-      {/* Latest blocks + transactions: side by side they show one-line rows and the columns that
-          fit half the page (View, Fee and Height are on /blocks and /transactions), so the two
-          cards line up row for row (one row height) and end at the same height. */}
-      <div className="grid gap-6 xl:grid-cols-2">
-        <section className="flex min-w-0 flex-col gap-4">
-          <SectionHeading
-            label={t('home.latestBlocks')}
-            actions={
-              <L href="/blocks" className="link text-sm">
-                {t('home.viewAll')}
-              </L>
-            }
-          />
-          <BlocksTable
-            blocks={blocks}
-            isLoading={blocksLoading && blocks.length === 0}
-            hideColumns={['view']}
-            compact
-            className="flex-1 [&_td]:h-[52px] [&_td]:px-3 [&_th]:px-3"
-          />
-        </section>
-
-        <section className="flex min-w-0 flex-col gap-4">
-          <SectionHeading
-            label={t('home.latestTransactions')}
-            actions={
-              <L href="/transactions" className="link text-sm">
-                {t('home.viewAll')}
-              </L>
-            }
-          />
-          <TransactionsTable
-            transactions={transactions}
-            isLoading={txsLoading && transactions.length === 0}
-            hideColumns={['fee', 'height']}
-            compact
-            className="flex-1 [&_td]:h-[52px] [&_td]:px-3 [&_th]:px-3"
-          />
-        </section>
-      </div>
+        </div>
+      </section>
     </div>
   );
 }
 
-function MiniStat({ label, value }: { label: string; value: React.ReactNode }) {
+function PanelRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="stat">
-      <div className="truncate text-lg font-medium text-strong">{value}</div>
-      <p className="stat-label">{label}</p>
+    <div className="flex items-baseline justify-between gap-4 border-b border-border-soft py-3 last:border-0">
+      <dt className="font-mono text-[11px] uppercase tracking-[0.08em] text-mute">{label}</dt>
+      <dd className="min-w-0 truncate text-end font-mono text-[13px] text-strong">{value}</dd>
     </div>
   );
 }

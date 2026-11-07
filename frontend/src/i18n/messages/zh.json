@@ -1230,6 +1230,7 @@
       "other": "{epoch}（{n} 个区块）"
     },
     "currentLeader": "当前领导者",
+    "parameters": "Chain parameters",
     "facts": {
       "totalSupply": "总供应量 {amount}",
       "supplyUnavailable": "供应量审计不可用",

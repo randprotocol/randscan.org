@@ -1230,6 +1230,7 @@
       "other": "{epoch} (블록 {n}개)"
     },
     "currentLeader": "현재 리더",
+    "parameters": "Chain parameters",
     "facts": {
       "totalSupply": "총 공급량 {amount}",
       "supplyUnavailable": "공급량 감사를 사용할 수 없음",

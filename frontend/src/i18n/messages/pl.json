@@ -1263,6 +1263,7 @@
       "other": "{epoch} ({n} bloku)"
     },
     "currentLeader": "Bieżący lider",
+    "parameters": "Chain parameters",
     "facts": {
       "totalSupply": "Całkowita podaż {amount}",
       "supplyUnavailable": "Audyt podaży niedostępny",

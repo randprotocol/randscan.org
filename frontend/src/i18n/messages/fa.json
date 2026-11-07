@@ -1241,6 +1241,7 @@
       "other": "{epoch} ({n} بلوک)"
     },
     "currentLeader": "رهبر کنونی",
+    "parameters": "Chain parameters",
     "facts": {
       "totalSupply": "عرضهٔ کل {amount}",
       "supplyUnavailable": "ممیزی عرضه در دسترس نیست",

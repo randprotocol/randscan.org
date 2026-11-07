@@ -1241,6 +1241,7 @@
       "other": "{epoch} ({n} பிளாக்குகள்)"
     },
     "currentLeader": "தற்போதைய தலைவர்",
+    "parameters": "Chain parameters",
     "facts": {
       "totalSupply": "மொத்த வழங்கல் {amount}",
       "supplyUnavailable": "வழங்கல் தணிக்கை கிடைக்கவில்லை",

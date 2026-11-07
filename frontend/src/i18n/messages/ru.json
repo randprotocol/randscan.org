@@ -1263,6 +1263,7 @@
       "other": "{epoch} ({n} блока)"
     },
     "currentLeader": "Текущий лидер",
+    "parameters": "Chain parameters",
     "facts": {
       "totalSupply": "Общее предложение {amount}",
       "supplyUnavailable": "Аудит предложения недоступен",

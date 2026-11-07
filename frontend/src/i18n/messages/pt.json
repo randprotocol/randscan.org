@@ -1252,6 +1252,7 @@
       "other": "{epoch} ({n} blocos)"
     },
     "currentLeader": "Líder atual",
+    "parameters": "Chain parameters",
     "facts": {
       "totalSupply": "Oferta total {amount}",
       "supplyUnavailable": "Auditoria da oferta indisponível",

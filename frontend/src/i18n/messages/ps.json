@@ -1241,6 +1241,7 @@
       "other": "{epoch} ({n} بلاکونه)"
     },
     "currentLeader": "اوسنی مشر",
+    "parameters": "Chain parameters",
     "facts": {
       "totalSupply": "ټول عرضه {amount}",
       "supplyUnavailable": "د عرضې پلټنه شتون نه لري",

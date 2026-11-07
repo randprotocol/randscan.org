@@ -1230,6 +1230,7 @@
       "other": "{epoch} ({n} blok)"
     },
     "currentLeader": "Peneraju semasa",
+    "parameters": "Chain parameters",
     "facts": {
       "totalSupply": "Jumlah bekalan {amount}",
       "supplyUnavailable": "Audit bekalan tidak tersedia",

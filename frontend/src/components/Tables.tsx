@@ -48,19 +48,22 @@ export function blockColumns(t: TFn, fmt: Fmt, compact = false): Column<BlockSum
     },
     {
       key: 'tx_count',
+      className: 'text-end',
       header: t('components.tables.blocks.txs'),
       render: (block) => <span className="font-mono text-soft">{fmt.number(block.tx_count)}</span>,
     },
     {
       key: 'view',
+      className: 'text-end',
       header: t('components.tables.blocks.view'),
       render: (block) => <span className="font-mono text-soft">{fmt.number(block.view)}</span>,
     },
     {
       key: 'timestamp_ms',
+      className: 'text-end',
       header: t('components.tables.blocks.age'),
       render: (block) => (
-        <span className="text-mute" title={String(block.timestamp_ms)}>
+        <span className="font-mono text-[13px] text-mute" title={String(block.timestamp_ms)}>
           {fmt.ago(block.timestamp_ms)}
         </span>
       ),
@@ -77,6 +80,7 @@ interface BlocksTableProps {
   /** Shorter hashes, for a table that shares the row with another. */
   compact?: boolean;
   className?: string;
+  variant?: 'card' | 'ruled';
 }
 
 export function BlocksTable({
@@ -86,6 +90,7 @@ export function BlocksTable({
   hideColumns = [],
   compact = false,
   className,
+  variant,
 }: BlocksTableProps) {
   const { t } = useT();
   const fmt = useFmt();
@@ -93,6 +98,7 @@ export function BlocksTable({
     <DataTable
       columns={blockColumns(t, fmt, compact).filter((column) => !hideColumns.includes(column.key))}
       className={className}
+      variant={variant}
       data={blocks}
       keyExtractor={(block) => block.hash}
       isLoading={isLoading}
@@ -181,6 +187,7 @@ export function transactionColumns(
     },
     {
       key: 'fee',
+      className: 'text-end',
       header: t('components.tables.txs.fee'),
       render: (tx) =>
         tx.has_bundle ? (
@@ -193,9 +200,10 @@ export function transactionColumns(
     },
     {
       key: 'timestamp_ms',
+      className: 'text-end',
       header: t('components.tables.txs.age'),
       render: (tx) => (
-        <span className="text-mute" title={String(tx.timestamp_ms)}>
+        <span className="font-mono text-[13px] text-mute" title={String(tx.timestamp_ms)}>
           {fmt.ago(tx.timestamp_ms)}
         </span>
       ),
@@ -212,6 +220,7 @@ interface TransactionsTableProps {
   /** Shorter hashes, for a table that shares the row with another. */
   compact?: boolean;
   className?: string;
+  variant?: 'card' | 'ruled';
 }
 
 export function TransactionsTable({
@@ -221,6 +230,7 @@ export function TransactionsTable({
   hideColumns = [],
   compact = false,
   className,
+  variant,
 }: TransactionsTableProps) {
   const { data: tokenList } = useTokens();
   const { t } = useT();
@@ -233,6 +243,7 @@ export function TransactionsTable({
       data={transactions}
       keyExtractor={(tx) => tx.hash}
       className={className}
+      variant={variant}
       isLoading={isLoading}
       emptyMessage={emptyMessage ?? t('components.tables.txs.empty')}
     />

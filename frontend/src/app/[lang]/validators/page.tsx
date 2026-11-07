@@ -63,9 +63,9 @@ const validatorColumns = (t: (key: string) => string, fmt: Fmt): Column<Validato
     header: t('validators.columns.share'),
     render: (validator) => (
       <div className="flex items-center gap-2">
-        <div className="h-1.5 w-20 overflow-hidden rounded-full bg-surface-2">
+        <div className="h-1 w-20 overflow-hidden bg-rule-soft">
           <div
-            className="h-full rounded-full bg-accent"
+            className="h-full bg-ink"
             style={{ width: `${Math.min(100, Math.max(0, validator.share_percent))}%` }}
           />
         </div>

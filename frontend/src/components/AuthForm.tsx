@@ -40,7 +40,7 @@ export function AuthForm({ mode }: AuthFormProps) {
 
   return (
     <div className="mx-auto max-w-md">
-      <h1 className="text-3xl font-semibold tracking-tight text-strong">{t(`${k}.title`)}</h1>
+      <h1 className="text-3xl font-medium text-strong">{t(`${k}.title`)}</h1>
       <p className="mt-2 text-sm text-soft">
         {t('auth.form.intro')}
       </p>

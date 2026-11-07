@@ -35,7 +35,7 @@ export function ForgotPasswordForm() {
 
   return (
     <div className="mx-auto max-w-md">
-      <h1 className="text-3xl font-semibold tracking-tight text-strong">{t('auth.forgot.title')}</h1>
+      <h1 className="text-3xl font-medium text-strong">{t('auth.forgot.title')}</h1>
       <p className="mt-2 text-sm text-soft">
         {t('auth.forgot.intro')}
       </p>
@@ -115,7 +115,7 @@ export function ResetPasswordForm() {
   if (!token) {
     return (
       <div className="mx-auto max-w-md">
-        <h1 className="text-3xl font-semibold tracking-tight text-strong">{t('auth.reset.title')}</h1>
+        <h1 className="text-3xl font-medium text-strong">{t('auth.reset.title')}</h1>
         <div className="card-padded mt-6 space-y-3">
           <p className="text-sm text-text">{t('auth.reset.missingToken')}</p>
           <L href="/forgot" className="link text-sm">
@@ -128,7 +128,7 @@ export function ResetPasswordForm() {
 
   return (
     <div className="mx-auto max-w-md">
-      <h1 className="text-3xl font-semibold tracking-tight text-strong">{t('auth.reset.choose')}</h1>
+      <h1 className="text-3xl font-medium text-strong">{t('auth.reset.choose')}</h1>
       <p className="mt-2 text-sm text-soft">{t('auth.reset.signedOut')}</p>
       <form onSubmit={onSubmit} className="card-padded mt-6 space-y-4">
         <div>

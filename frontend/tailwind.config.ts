@@ -3,7 +3,9 @@ import type { Config } from 'tailwindcss';
 /**
  * Every colour resolves to a CSS variable defined in globals.css, so the dark
  * and light themes swap by flipping `data-theme` on <html> with no `dark:`
- * variants in the markup. The values are the Rand Wallet's design tokens.
+ * variants in the markup. The palette is monochrome (ink on paper); the
+ * spec's own names (ink, ink-2…, rule, invert) are available next to the
+ * older aliases.
  */
 const config: Config = {
   content: [
@@ -31,21 +33,33 @@ const config: Config = {
         positive: 'var(--color-positive)',
         negative: 'var(--color-negative)',
         warning: 'var(--color-warning)',
+        faint: 'var(--color-text-faint)',
+        ink: 'var(--ink)',
+        'ink-2': 'var(--ink-2)',
+        'ink-3': 'var(--ink-3)',
+        'ink-4': 'var(--ink-4)',
+        rule: 'var(--rule)',
+        'rule-soft': 'var(--rule-soft)',
+        'bg-alt': 'var(--bg-alt)',
+        invert: 'var(--invert-bg)',
+        'invert-ink': 'var(--invert-ink)',
+        'invert-ink-3': 'var(--invert-ink-3)',
+        'invert-rule': 'var(--invert-rule)',
       },
-      // The wallet's radius scale: 8 / 12 / 16 / 24, pills for chips and dots.
+      // Square corners: 0 or 2px everywhere; pills only for tiny status dots and spinners.
       borderRadius: {
         none: '0',
-        DEFAULT: '8px',
-        sm: '8px',
-        md: '12px',
-        lg: '16px',
-        xl: '24px',
-        '2xl': '24px',
-        '3xl': '24px',
+        DEFAULT: '2px',
+        sm: '2px',
+        md: '2px',
+        lg: '2px',
+        xl: '2px',
+        '2xl': '2px',
+        '3xl': '2px',
         full: '9999px',
       },
       fontFamily: {
-        sans: ['var(--font-sans)', 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        sans: ['var(--font-sans)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         mono: ['var(--font-mono)', 'ui-monospace', 'SFMono-Regular', 'monospace'],
         display: ['var(--font-display)', 'var(--font-mono)', 'ui-monospace', 'monospace'],
       },
@@ -58,6 +72,10 @@ const config: Config = {
     },
   },
   plugins: [],
+  corePlugins: {
+    // No shadows anywhere: surfaces are told apart by a 1px rule.
+    boxShadow: false,
+  },
 };
 
 export default config;

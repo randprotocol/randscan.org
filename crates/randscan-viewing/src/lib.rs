@@ -447,7 +447,8 @@ pub fn key_info(input: &str, kind: &str) -> Result<String, String> {
 
 #[derive(Serialize)]
 struct OpenedNote {
-    /// "received", "sent" or "tx_key": which key path opened the envelope.
+    /// "received", "sent", "sent_unverified" ([`Role`]: owner and creator are checked against
+    /// the key's own `pk`, not only that a key path opened the envelope) or "tx_key".
     role: String,
     tx_key: String,
     pk: String,
@@ -457,7 +458,7 @@ struct OpenedNote {
     asset: u32,
     time: u32,
     r: String,
-    /// The nullifier this note publishes when spent, when the receiver's viewing key opened it.
+    /// The nullifier this note publishes when spent: only for a note the viewing key owns.
     nullifier: Option<String>,
     /// True when the opened plaintext recomputes to the on-chain commitment (always, or the
     /// opening would have failed): stated so the page can say the row is verified.
@@ -484,9 +485,71 @@ fn opened(role: &str, key: [u8; 32], note: Note, nullifier: Option<Word8>, memo:
     }
 }
 
+/// What an envelope a viewing key opens is for that key.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Role {
+    /// The receiver part opens under the key **and** the note's owner `pk` is the key's own.
+    Received,
+    /// The sender part opens under the key's `ovk` **and** the note's creator `from` is the
+    /// key's own `pk`.
+    Sent,
+    /// The sender part opens under the key's `ovk` and the note's `from` is one of the words the
+    /// chain fixes for a note it computes itself ([`CHAIN_FROM_WORDS`]): a bridge deposit this
+    /// key's holder relayed, a token it minted, a payout of a program it invoked. The note has no
+    /// creator inside the pool to compare with, and anyone who holds the `ovk` can seal one, so
+    /// the row is shown under its own label and is never counted as sent.
+    SentUnverified,
+}
+
+impl Role {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Role::Received => "received",
+            Role::Sent => "sent",
+            Role::SentUnverified => "sent_unverified",
+        }
+    }
+}
+
+/// What one envelope is for `vk`: the explorer's restatement of the wallet's and the node's
+/// `classify` (fullnode `randprotocol-client/src/wallet.rs`, `randprotocol-node/src/viewing.rs`).
+///
+/// An envelope opening is not ownership and not authorship. A shielded address is public, so
+/// anyone can seal to its ML-KEM key a note owned by some other `pk` (audit v14, SCAN-841); and
+/// anyone who holds a viewing key holds its `ovk`, and can wrap the transaction key of a payment
+/// of its own under it (VK-751). The commitment binds `pk` and `from` (it is recomputed from the
+/// plaintext by the opening), and the bundle guest forces every input's owner and every output's
+/// `from` to the spender's derived `pk`, so both are compared with `vk.pk()`:
+///
+/// 1. the receiver part opens and `note.pk == vk.pk()` → [`Role::Received`];
+/// 2. otherwise the sender part opens and `note.from == vk.pk()` → [`Role::Sent`];
+/// 3. otherwise the sender part opens and `note.from` is a chain-fixed word → [`Role::SentUnverified`];
+/// 4. otherwise `None`: the note is neither this key's nor of its making, whatever opened.
+///
+/// A note sealed to this key but owned by another still gets the sender path (2–4): the two
+/// openings are independent.
+pub fn classify(env: &Envelope, cm: &Word8, vk: &ViewingKey) -> Option<(Role, [u8; 32], Note, Option<String>)> {
+    let pk_self = vk.pk();
+    if let Some((k, n, memo)) = env.open_as_receiver_with_memo(cm, vk) {
+        // A change note is both sent and received; received wins.
+        if n.pk == pk_self {
+            return Some((Role::Received, k, n, memo));
+        }
+    }
+    let (k, n, memo) = env.open_as_sender_with_memo(cm, vk)?;
+    if n.from == pk_self {
+        Some((Role::Sent, k, n, memo))
+    } else if CHAIN_FROM_WORDS.contains(&n.from) {
+        Some((Role::SentUnverified, k, n, memo))
+    } else {
+        None
+    }
+}
+
 /// Try to open one envelope with a key. `key_kind` is "viewing" (64-hex `nk`), "spend"
 /// (64-hex spend key, derived locally), "file" (a key file JSON) or "tx" (32-byte transaction
-/// key). Returns the opened note as JSON, or `null` when the key does not open it.
+/// key). Returns the opened note as JSON, or `null` when the key does not open it — or, for a
+/// viewing key, opens it without the note being the key's own or of its making ([`classify`]).
 #[wasm_bindgen]
 pub fn open_note(cm_hex: &str, envelope_json: &str, key_kind: &str, key: &str) -> Result<String, String> {
     let cm = word8_from_hex(cm_hex).ok_or("commitment must be 64 hex characters")?;
@@ -499,15 +562,10 @@ pub fn open_note(cm_hex: &str, envelope_json: &str, key_kind: &str, key: &str) -
         }
         _ => {
             let vk = viewing_key_from(key_kind, key)?;
-            if let Some((k, n, memo)) = env.open_as_receiver_with_memo(&cm, &vk) {
-                let nf = vk.nullifier(&cm);
-                Some(opened("received", k, n, Some(nf), memo))
-            } else if let Some((k, n, memo)) = env.open_as_sender_with_memo(&cm, &vk) {
-                // A change note is both sent and received; the receiver path above wins.
-                Some(opened("sent", k, n, None, memo))
-            } else {
-                None
-            }
+            classify(&env, &cm, &vk).map(|(role, k, n, memo)| {
+                let nf = (role == Role::Received).then(|| vk.nullifier(&cm));
+                opened(role.as_str(), k, n, nf, memo)
+            })
         }
     };
     match result {
@@ -588,6 +646,13 @@ pub const MINT_FROM: Word8 = [u32::from_le_bytes(*b"rpl-"), u32::from_le_bytes(*
 pub const PROGRAM_FROM: Word8 = [u32::from_le_bytes(*b"rpl2"), u32::from_le_bytes(*b"-pay"), 0, 0, 0, 0, 0, 0];
 /// A bridge deposit's and a bridge fee note's `from`: zero (`bridge_notes::DEPOSIT_FROM`).
 pub const DEPOSIT_FROM: Word8 = [0; 8];
+/// `randprotocol_core::ledger::perps::PERP_FROM`: the `from` word of an RPL-3 perp withdrawal's
+/// note, ASCII `rpl3-pay`, zero-padded.
+pub const PERP_FROM: Word8 = [u32::from_le_bytes(*b"rpl3"), u32::from_le_bytes(*b"-pay"), 0, 0, 0, 0, 0, 0];
+/// Every `from` word the chain fixes for a note it computes itself (fullnode v0.8.6). None is a
+/// key's `pk` (a Poseidon2 digest). Zero is also the `from` of a faucet mint, a genesis alloc and
+/// a staking withdrawal, whose envelopes are sealed under throwaway sender keys.
+pub const CHAIN_FROM_WORDS: [Word8; 4] = [DEPOSIT_FROM, MINT_FROM, PROGRAM_FROM, PERP_FROM];
 
 /// The public opening of a chain-computed note as randscan serves it beside the leaf
 /// (`GET /api/v1/envelopes`, `public`): every word but `pk` and `from`.

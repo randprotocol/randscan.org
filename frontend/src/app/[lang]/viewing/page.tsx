@@ -9,6 +9,7 @@ import { StatsCard, StatsRow } from '@/components/StatsCard';
 import { PageHeader } from '@/components/States';
 import { useTokens } from '@/hooks/useApi';
 import * as api from '@/lib/api';
+import { admit, isOwned, spendableNotes } from '@/lib/history';
 import { matchSpent } from '@/lib/spent';
 import { tokenBalances, type TokenBalance } from '@/lib/utils';
 import { L, useFmt, useT, type Fmt } from '@/i18n/client';
@@ -31,6 +32,7 @@ function buildColumns(
   tokens: TokenInfo[] | undefined,
   t: (key: string) => string,
   fmt: Fmt,
+  ownPk: string | null | undefined,
 ): Column<HistoryRow>[] {
   return [
     {
@@ -66,12 +68,12 @@ function buildColumns(
     {
       key: 'counterparty',
       header: t('viewing.counterparty'),
-      render: (r) => <Hash value={r.note.role === 'received' ? r.note.from : r.note.pk} start={8} end={6} />,
+      render: (r) => <Hash value={isOwned(r.note, ownPk) ? r.note.from : r.note.pk} start={8} end={6} />,
     },
     {
       key: 'status',
       header: t('viewing.status'),
-      render: (r) => (r.note.role === 'received' ? <SpentCell spent={r.spent} /> : <span className="text-mute">—</span>),
+      render: (r) => (isOwned(r.note, ownPk) ? <SpentCell spent={r.spent} /> : <span className="text-mute">—</span>),
     },
   ];
 }
@@ -114,7 +116,7 @@ export default function ViewingPage() {
   const { data: tokenList } = useTokens();
   const { t, tp } = useT();
   const fmt = useFmt();
-  const columns = buildColumns(tokenList?.tokens, t, fmt);
+  const columns = buildColumns(tokenList?.tokens, t, fmt, info?.pk);
 
   const run = async ({ kind, key }: SubmittedKey) => {
     setBusy(true);
@@ -134,6 +136,9 @@ export default function ViewingPage() {
           // deposit's may be junk) is rebuilt from its public opening for this key's own pk.
           let opened = n.envelope ? await openNote(n.cm, n.envelope, kind, key) : null;
           if (!opened && n.public) opened = await rebuildNote(n.cm, n.public, kind, key);
+          // Opening is not ownership (audit v14, SCAN-841 / VK-751): a received row must be owned
+          // by this key's pk and a sent row created by it, or it is dropped / shown as unverified.
+          if (opened) opened = admit(opened, ki.pk);
           if (opened) {
             found.push({ leaf_index: n.leaf_index, cm: n.cm, height: n.height, tx_hash: n.tx_hash, note: opened, spent: { state: 'unknown' } });
           }
@@ -145,7 +150,7 @@ export default function ViewingPage() {
       // Spent or not: the public nullifier set is downloaded and matched here. No nullifier of
       // this key is ever sent to the explorer. A download that fails fails the scan, since a note
       // of unknown status would silently drop out of the balances.
-      const owned = found.filter((r) => r.note.role === 'received' && r.note.nullifier);
+      const owned = found.filter((r) => isOwned(r.note, ki.pk) && r.note.nullifier);
       const spent = await matchSpent(owned.map((r) => r.note.nullifier!), api.getNullifierPage);
       for (const r of owned) {
         const nf = spent.get(r.note.nullifier!);
@@ -159,11 +164,9 @@ export default function ViewingPage() {
     }
   };
 
-  const received = rows?.filter((r) => r.note.role === 'received') ?? [];
-  const balances = tokenBalances(
-    received.filter((r) => r.spent.state === 'unspent').map((r) => r.note),
-    tokenList?.tokens
-  );
+  // Only notes this key's pk owns are received, and only those, unspent, are a balance.
+  const received = rows?.filter((r) => isOwned(r.note, info?.pk)) ?? [];
+  const balances = tokenBalances(spendableNotes(rows ?? [], info?.pk), tokenList?.tokens);
   const balance = balances[0].units;
 
   return (

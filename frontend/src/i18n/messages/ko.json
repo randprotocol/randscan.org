@@ -278,6 +278,7 @@
     "openedNotes": {
       "received": "수신",
       "sent": "발신",
+      "sentUnverified": "Sealed by this key (sender unverified)",
       "openedWithTxKey": "트랜잭션 키로 열람됨",
       "unspent": "미사용",
       "spentIn": "사용된 위치",

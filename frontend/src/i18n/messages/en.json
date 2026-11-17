@@ -280,6 +280,7 @@
     "openedNotes": {
       "received": "Received",
       "sent": "Sent",
+      "sentUnverified": "Sealed by this key (sender unverified)",
       "openedWithTxKey": "Opened with tx key",
       "unspent": "unspent",
       "spentIn": "spent in",

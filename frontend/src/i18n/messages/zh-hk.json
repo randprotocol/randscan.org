@@ -278,6 +278,7 @@
     "openedNotes": {
       "received": "已接收",
       "sent": "已發送",
+      "sentUnverified": "Sealed by this key (sender unverified)",
       "openedWithTxKey": "以交易金鑰開啟",
       "unspent": "未花費",
       "spentIn": "花費於",

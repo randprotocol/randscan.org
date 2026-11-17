@@ -288,6 +288,7 @@
     "openedNotes": {
       "received": "مستلَمة",
       "sent": "مرسَلة",
+      "sentUnverified": "Sealed by this key (sender unverified)",
       "openedWithTxKey": "فُتحت بمفتاح المعاملة",
       "unspent": "غير مُنفَقة",
       "spentIn": "أُنفقت في",

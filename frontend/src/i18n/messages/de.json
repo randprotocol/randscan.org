@@ -280,6 +280,7 @@
     "openedNotes": {
       "received": "Empfangen",
       "sent": "Gesendet",
+      "sentUnverified": "Sealed by this key (sender unverified)",
       "openedWithTxKey": "Mit Tx-Schlüssel geöffnet",
       "unspent": "unausgegeben",
       "spentIn": "ausgegeben in",

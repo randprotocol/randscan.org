@@ -284,6 +284,7 @@
     "openedNotes": {
       "received": "Otrzymane",
       "sent": "Wysłane",
+      "sentUnverified": "Sealed by this key (sender unverified)",
       "openedWithTxKey": "Otwarte kluczem tx",
       "unspent": "niewydane",
       "spentIn": "wydane w",

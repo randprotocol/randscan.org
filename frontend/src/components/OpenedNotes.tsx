@@ -26,7 +26,9 @@ export function RoleBadge({ role }: { role: OpenedNote['role'] }) {
       ? t('components.openedNotes.received')
       : role === 'sent'
         ? t('components.openedNotes.sent')
-        : t('components.openedNotes.openedWithTxKey');
+        : role === 'sent_unverified'
+          ? t('components.openedNotes.sentUnverified')
+          : t('components.openedNotes.openedWithTxKey');
   return <span className={cls}>{label}</span>;
 }
 

@@ -278,6 +278,7 @@
     "openedNotes": {
       "received": "Diterima",
       "sent": "Dikirim",
+      "sentUnverified": "Sealed by this key (sender unverified)",
       "openedWithTxKey": "Dibuka dengan kunci tx",
       "unspent": "belum dibelanjakan",
       "spentIn": "dibelanjakan di",

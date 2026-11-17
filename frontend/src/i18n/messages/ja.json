@@ -278,6 +278,7 @@
     "openedNotes": {
       "received": "受信",
       "sent": "送信",
+      "sentUnverified": "Sealed by this key (sender unverified)",
       "openedWithTxKey": "tx キーで開封",
       "unspent": "未使用",
       "spentIn": "使用先",

@@ -280,6 +280,7 @@
     "openedNotes": {
       "received": "ترلاسه شوي",
       "sent": "لېږل شوي",
+      "sentUnverified": "Sealed by this key (sender unverified)",
       "openedWithTxKey": "د راکړې ورکړې په کیلي پرانیستل شوی",
       "unspent": "نه دی لګول شوی",
       "spentIn": "لګول شوی په",

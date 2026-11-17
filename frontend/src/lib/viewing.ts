@@ -17,7 +17,13 @@ export interface KeyInfo {
 }
 
 export interface OpenedNote {
-  role: 'received' | 'sent' | 'tx_key';
+  /**
+   * `received`: the note's owner is the key's own pk. `sent`: its creator is. `sent_unverified`:
+   * the sender part opens under the key but the creator is a word the chain fixes (a relayed
+   * deposit, a mint, a payout), so who sealed it cannot be checked — never counted as sent.
+   * `tx_key`: opened with a transaction key, which says nothing about either.
+   */
+  role: 'received' | 'sent' | 'sent_unverified' | 'tx_key';
   tx_key: string;
   pk: string;
   from: string;

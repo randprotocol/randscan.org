@@ -282,6 +282,7 @@
     "openedNotes": {
       "received": "Recebida",
       "sent": "Enviada",
+      "sentUnverified": "Sealed by this key (sender unverified)",
       "openedWithTxKey": "Aberta com a chave da tx",
       "unspent": "não gasta",
       "spentIn": "gasta em",

@@ -16,7 +16,12 @@ plus a call's sealed input transcript checked against the receipt's `H_IN`, and 
 v0.6.8, `wallet::rebuilt_notes_with`) `rebuild_note`: a chain-computed note — a bridge deposit, a
 bridge fee note (no envelope), an RPL mint, an RPL-2 payout — rebuilt from its public opening
 (randscan's `public`) with the key's own `pk` and accepted only when it commits to the leaf
-(`tests/rebuild.rs`, chain 20 block 1664's leaves 19 and 20). No sealing, no
+(`tests/rebuild.rs`, chain 20 block 1664's leaves 19 and 20). An opening is
+not ownership or authorship (audit v14, SCAN-841 / VK-751): `classify` — the wallet's and the
+node's `classify` restated — reports a note as received only when its owner `pk` is the key's
+own, as sent only when its creator `from` is, as `sent_unverified` when the sender part opens
+and `from` is a word the chain fixes (a relayed deposit, a mint, a payout), and otherwise not at
+all (`tests/ownership.rs`, which seals its own envelopes). No sealing, no
 randomness, no ledger. `tests/vectors.json` was produced by the fullnode crate itself; the
 tests open it.
 

@@ -20,7 +20,8 @@ export function open_call(h_in_hex: string, envelope_json: string, key_kind: str
 /**
  * Try to open one envelope with a key. `key_kind` is "viewing" (64-hex `nk`), "spend"
  * (64-hex spend key, derived locally), "file" (a key file JSON) or "tx" (32-byte transaction
- * key). Returns the opened note as JSON, or `null` when the key does not open it.
+ * key). Returns the opened note as JSON, or `null` when the key does not open it — or, for a
+ * viewing key, opens it without the note being the key's own or of its making ([`classify`]).
  */
 export function open_note(cm_hex: string, envelope_json: string, key_kind: string, key: string): string;
 

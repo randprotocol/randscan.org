@@ -202,6 +202,28 @@ jobs:
       - name: Test
         run: npm test
 
+  # deploy/scan2-*.sh (SCAN-2, randprotocol/monorepo#16): shellcheck, then the offline tests (a
+  # fake explorer on 127.0.0.1, a fake journalctl). No host is contacted.
+  deploy-scripts:
+    name: Deploy scripts (SCAN-2)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Shellcheck
+        run: shellcheck deploy/scan2-verify.sh deploy/scan2-log-audit.sh deploy/tests/*.sh
+
+      - name: scan2-verify against a fake explorer
+        run: bash deploy/tests/scan2-verify.test.sh
+
+      - name: scan2-log-audit against a fake journal
+        run: bash deploy/tests/scan2-log-audit.test.sh
+
   # Docker build test
   docker:
     name: Docker Build

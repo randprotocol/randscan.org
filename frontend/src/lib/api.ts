@@ -205,9 +205,9 @@ export function getNote(id: string | number): Promise<Note> {
   return request<Note>(`/notes/${encodeURIComponent(String(id))}`);
 }
 
-export function getNullifier(nf: string): Promise<Nullifier> {
-  return request<Nullifier>(`/nullifiers/${encodeURIComponent(nf)}`);
-}
+// There is deliberately no `getNullifier(nf)` here (SCAN-2): a nullifier is derived from a wallet's
+// key, so a request that names one tells the explorer which notes the visitor owns. The API still
+// serves `GET /nullifiers/:nf` for third parties; this frontend never calls it.
 
 /** One page of the public nullifier set (up to 5000), strictly after `after`. The client matches
  * its own nullifiers locally (`matchSpent`); it must never send one to the server. */

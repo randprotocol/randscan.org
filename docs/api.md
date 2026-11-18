@@ -671,7 +671,7 @@ reports what the node reports.
 |---|---|
 | `GET /notes?page&limit` | paginated leaves of the commitment tree, newest first |
 | `GET /notes/:id` | one leaf by commitment (64 hex) or by leaf index (decimal) |
-| `GET /nullifiers/:nf` | the transaction that published a nullifier |
+| `GET /nullifiers/:nf` | the transaction that published a nullifier. **Do not call it with a nullifier of your own wallet** (SCAN-2): the request tells the explorer, and anything logging the URL, which note is yours. It is for a nullifier already public in some transaction; to learn which of your notes are spent, page through `GET /nullifiers` and match locally, as the history page does |
 | `GET /nullifiers?after&limit` | the published nullifier set in nullifier order, up to 5000 a page: `{"nullifiers": [...], "next": "…"}` (`next` is the `after` of the next page, `null` on the last). There is no way to ask about particular nullifiers in bulk: a nullifier is derived from a wallet's key, so a client downloads the set and matches its own locally |
 
 ```json

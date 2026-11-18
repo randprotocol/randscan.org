@@ -68,3 +68,33 @@ test('the frontend has no route that takes a nullifier in a body or in a lookup'
   const opener = readFileSync(join(src, 'components/TransactionOpener.tsx'), 'utf8');
   assert.ok(!/getNullifier\(/.test(opener), 'TransactionOpener asks the server about a note nullifier');
 });
+
+// SCAN-2: the single-nullifier route (GET /nullifiers/:nf) stays in the API for third parties, but
+// nothing in this frontend may be able to call it: the client has no function for it, and no
+// source file builds a /nullifiers/<value> path. The one nullifier request left is the paged set.
+test('no frontend source can ask the explorer about one nullifier', () => {
+  const walk = (d) => readdirSync(d).flatMap((f) => (statSync(join(d, f)).isDirectory() ? walk(join(d, f)) : [join(d, f)]));
+  const files = walk(src).filter((f) => /\.(ts|tsx)$/.test(f));
+  assert.ok(files.length > 20, 'the walk found the sources');
+  let pagedCalls = 0;
+  for (const f of files) {
+    const text = readFileSync(f, 'utf8');
+    assert.ok(!/\bgetNullifier\b(?!Page)/.test(text.replace(/\/\/.*$/gm, '')), `${f} has a single-nullifier lookup`);
+    // any request path that continues past /nullifiers with a slash or an interpolation
+    assert.ok(!/[`'"]\/nullifiers(\/|\$\{(?!buildQuery))/.test(text), `${f} builds a /nullifiers/<value> path`);
+    pagedCalls += (text.match(/\/nullifiers\$\{buildQuery\(/g) ?? []).length;
+  }
+  assert.equal(pagedCalls, 1, 'exactly one nullifier request exists: the paged public set');
+  const api = readFileSync(join(src, 'lib/api.ts'), 'utf8');
+  const page = api.slice(api.indexOf('export function getNullifierPage'));
+  const body = page.slice(0, page.indexOf('\n}') + 2);
+  // its only inputs are the server's cursor and a constant page size
+  assert.match(body, /buildQuery\(\{ after: after \?\? undefined, limit: 5000 \}\)/);
+});
+
+test('the history page reads spent state only through matchSpent over the paged set', () => {
+  const text = readFileSync(join(src, 'app/[lang]/viewing/page.tsx'), 'utf8');
+  assert.ok(/matchSpent\(.*, api\.getNullifierPage\);/.test(text), 'the page does not match spent state locally');
+  const apiCalls = [...text.matchAll(/\bapi\.(\w+)/g)].map((m) => m[1]);
+  assert.deepEqual([...new Set(apiCalls)].sort(), ['getEnvelopePage', 'getNullifierPage'], 'the scan makes only the two uniform downloads');
+});

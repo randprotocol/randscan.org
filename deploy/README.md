@@ -27,3 +27,26 @@ validator e. Do not re-enable it until all of these hold:
    `chain-activity.sh call` without it is refused. `PROVE=` (empty) would prove locally too.
 
 Then: `systemctl daemon-reload && systemctl enable --now randscan-activity.timer`.
+
+## SCAN-2: the history page never sends a nullifier (randprotocol/monorepo#16)
+
+Since 66bc1a7 the history page downloads the public nullifier set (`GET /api/v1/nullifiers`, pages
+of 5,000) and matches the wallet's own nullifiers in the browser; `POST /api/v1/nullifiers/lookup`
+is removed and the frontend has no single-nullifier request (`frontend/tests/spent.test.mjs` fails
+the build if one comes back). Two scripts make the owner's remaining steps checkable:
+
+1. **After a deploy**, from any machine (read-only, three kinds of HTTP request):
+
+       deploy/scan2-verify.sh --record https://randscan.org
+
+   It passes only when the lookup route answers 404/405, the paged set is served, and no
+   JavaScript chunk the served history page references contains a nullifier lookup. Paste the
+   `SCAN-2 deploy check: … passed …` line into the issue as the deploy record.
+2. **On the explorer host**, as root: `deploy/scan2-log-audit.sh` (a dry run: counts per source,
+   never prints a matching line), then `deploy/scan2-log-audit.sh --purge --before <deploy day>`
+   if it found any. `--purge` drops the whole journal older than that day (journald cannot delete
+   single lines) and the matching lines of the plain log files. The units ship with
+   `tower_http=warn` and the Caddyfile has no `log` directive, so a host that always ran this
+   configuration should report zero; the script is how that is shown rather than assumed.
+
+Both are tested offline: `bash deploy/tests/scan2-verify.test.sh`, `bash deploy/tests/scan2-log-audit.test.sh`.

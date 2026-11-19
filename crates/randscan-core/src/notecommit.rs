@@ -178,16 +178,16 @@ mod tests {
     use super::*;
 
     /// The shared fixture `crates/randscan-viewing/tests/vectors.json`'s `note`/`cm` fields,
-    /// produced by the fullnode itself: `Note { pk: pk_b, from: pk_a, amount: 1500000000,
-    /// asset: 0, time: 66, r: aa..22 }`. Cross-checks this crate's hash against the same
+    /// produced by the fullnode itself (constraint set 11, fullnode 60a7d03): `Note { pk: pk_b,
+    /// from: pk_a, amount: 1500000000, asset: 0, time: 66, r: aa..22 }`. Cross-checks this crate's hash against the same
     /// vector `randscan-viewing`'s own tests open, so a drift in either copy is caught.
     #[test]
     fn note_commitment_matches_the_shared_test_vector() {
         let note = Note {
-            pk: word8_from_hex("53f57f874e8fee7ad3a5e5be820a12ab7836d5b642631c974ed0b5057f9c60aa")
+            pk: word8_from_hex("e4ed010b677dee856638ef991244116666da47248986444ddcbc86045472f64c")
                 .unwrap(),
             from: word8_from_hex(
-                "c37ed965c936aa116c7184b4ae1d285c0a1882813e375a00456ea35df1feb955",
+                "6a9958fe0337649400adab0f9ce3b95bb472353c0b0e103b9fd353a2678f68b1",
             )
             .unwrap(),
             amount: 1_500_000_000,
@@ -198,7 +198,7 @@ mod tests {
         };
         assert_eq!(
             word8_to_hex(&note.commitment()),
-            "7c73c93ede9ed2995ee876578ea30cdbcc941f952e5fff9d1515ca21e757342d"
+            "f8514c636114a0bcf79f11f94c0ad0c7e104dbaea54c9ca36fa19c7be5fc4767"
         );
     }
 
@@ -220,8 +220,9 @@ mod tests {
     }
 
     /// The fullnode's and circuits' known-answer vectors for the width-8 permutation
-    /// (`poseidon2_constants::tests::the_permutation_answers_its_known_vectors`, captured on
-    /// circuits `573ef2e`, the seeded draw), run through the permutation this crate hashes with.
+    /// (`poseidon2_constants::tests::the_permutation_answers_its_known_vectors`, constraint set 11's
+    /// Grain table at fullnode 60a7d03; the seeded draw of sets ≤ 10 answered `0x1e4b2c9e…` for
+    /// zero), run through the permutation this crate hashes with.
     #[test]
     fn the_permutation_answers_the_fullnode_known_vectors() {
         use p3_symmetric::Permutation;
@@ -229,40 +230,40 @@ mod tests {
             (
                 [0; 8],
                 [
-                    0x1e4b2c9eebb442b0,
-                    0x2fbb0154ab9d22da,
-                    0x9c397e8d1b856b3d,
-                    0x3900699f4fe93a6e,
-                    0xcb37891674d3ad6b,
-                    0x9b530f7ac1ef1f56,
-                    0x0510bc15edfecf33,
-                    0xf9caffe23a93cd28,
+                    0x4411ec57c44145f5,
+                    0x5ff55b96baa2f47b,
+                    0xdee0e2ae35662802,
+                    0x023c96b32c07981d,
+                    0x777e4afeaaf2e6a1,
+                    0x606c248e5ef427da,
+                    0x862e82242b2c5001,
+                    0x61ea532cc4c908c7,
                 ],
             ),
             (
                 [0, 1, 2, 3, 4, 5, 6, 7],
                 [
-                    0x682c703ce406cd60,
-                    0x35fe4cacd5147b44,
-                    0xf0b819068ae2838e,
-                    0xde5f0a9ba791a8f4,
-                    0xcf8ee9826729b322,
-                    0x38e89ce1e7fcb535,
-                    0xf58f43c0801e00db,
-                    0x694ec48edbb331fa,
+                    0x020cf04a1b214d14,
+                    0x84e14aaaeacaed25,
+                    0x1ae0f640e81c7457,
+                    0xa4d204cbaeb0d8a5,
+                    0x0cf637b627b3a7ff,
+                    0x788d304d948b486b,
+                    0x7327133ea1949af4,
+                    0xf415abb924da395b,
                 ],
             ),
             (
                 [0xffff_ffff_0000_0000; 8],
                 [
-                    0xdfebf956a8205183,
-                    0xbacca056a5ba1b75,
-                    0xdc24d665e3f9864b,
-                    0x1ad86aab4b3e131a,
-                    0xc68f628d6f8833e6,
-                    0x0b913e0aa0757959,
-                    0x248d88435c62b658,
-                    0x7bc6fc5500a81dbc,
+                    0x5a986ad1feb0d7b1,
+                    0x76379c3befced08d,
+                    0xcebc0f4e8ae21d67,
+                    0x8f9cc577b6f2cd12,
+                    0xe0e58584b289c1dd,
+                    0xf1400ffbb6875b78,
+                    0x2014ea6e78f1bd58,
+                    0xbaa54d6e51fd54f1,
                 ],
             ),
         ];
@@ -275,25 +276,26 @@ mod tests {
         }
     }
 
-    /// Two alloc notes of the chain-15 genesis (fullnode `deploy/genesis-chain15.json`), whose
-    /// commitments every node recomputes from their openings at `rand-node init` (`from` the zero
-    /// word): a RAND note (asset 0) and the carried-over zUSD note (asset 1).
+    /// The openings of two alloc notes of the chain-15 genesis (fullnode `deploy/genesis-chain15.json`,
+    /// `from` the zero word): a RAND note (asset 0) and the carried-over zUSD note (asset 1). The
+    /// commitments are constraint set 11's, computed by the fullnode crate at 60a7d03 — under set 11
+    /// that file no longer builds (its set-9 commitments were `be14787d…` and `d75053df…`).
     #[test]
-    fn note_commitments_match_the_chain_15_genesis() {
+    fn note_commitments_of_the_chain_15_openings_match_the_fullnode() {
         let cases = [
             (
                 "47bd82b0401f3bc5b33e043fc7d076cca4d88f3233698ead959fa6009f284d36",
                 1_000_000_000_000u64,
                 0u32,
                 "21764e9e43246765ae9464120b7bc134a80d62d680c613b649e6d0468fb632f2",
-                "be14787d4e34115e2b6752b77c51b5de61c1805edfc8133af39cb47ad24f9322",
+                "579c82febccbda9641690171c3672267e8cea24142e17d77cad8021e4299749b",
             ),
             (
                 "f4a2c7c39a812c47e569cad909a5074076a8530785b1f7c10a4b6ffdcf3c7c96",
                 1_000_000_000,
                 1,
                 "32f0d22777439fa85cd3fd04c3afa03295848c08b1eadd805844f3fa81752ab2",
-                "d75053df4bac3290830cc0eb0f8ce1c461d1583e6c23a2ec01f2dfcd66f882e6",
+                "5c0d78d1a2005d339c7098bfa148695eac8780bad6d416fc6f66a4d4ece585ae",
             ),
         ];
         for (pk, amount, asset, r, cm) in cases {
@@ -309,8 +311,8 @@ mod tests {
         }
     }
 
-    /// The 86 round constants are circuits' committed table (`research/src/poseidon2_constants.rs`
-    /// at 224960c): SHA-256 over INITIAL (4×8), INTERNAL (22), TERMINAL (4×8), each value
+    /// The 86 round constants are constraint set 11's Grain table (fullnode
+    /// `crates/randprotocol-zkvm/src/poseidon2_constants.rs` at 60a7d03): SHA-256 over INITIAL (4×8), INTERNAL (22), TERMINAL (4×8), each value
     /// little-endian, computed from that file, not from this crate's copy.
     #[test]
     fn the_constants_are_the_circuits_table() {
@@ -330,7 +332,7 @@ mod tests {
         }
         assert_eq!(
             hex::encode(h.finalize()),
-            "e551d3944d88218c8c4cacb6cb6d8ae4bc2034adc155a6139b0ac77fcc5c24ac"
+            "a0289c4f0bccd6f759f818fe2e9e245aa1617a9a248cf3460496e2a18a002f82"
         );
     }
 

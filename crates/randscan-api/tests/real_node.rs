@@ -216,8 +216,9 @@ async fn start_node(bin: &PathBuf, cli: &PathBuf) -> (Node, String, String) {
                 "100",
                 "--byte-price",
                 "800",
-                "--bundle-gas-limit",
-                "20479",
+                // No `--bundle-gas-limit`: the node writes its own bundle guest's ceiling, the one
+                // value its genesis accepts — 20 479 under constraint set 9 (v0.8.0–v0.8.6, chain
+                // 21), 22 527 under set 11 (v0.8.7, chain 22) — so one test runs on either build.
                 "--gas-dynamic",
                 "10485760,262144,1250",
             ]
@@ -576,7 +577,13 @@ async fn explorer_agrees_with_a_real_shielded_node() {
     if node_limits["gas_metering"] == "circuit" {
         let l = &stats["limits"];
         assert_eq!(l["gas_metering"], "circuit", "{l}");
-        assert_eq!(l["bundle_gas_limit"], 20479);
+        // The build's own pin (set 9: 20 479, chain 21; set 11: 22 527, chain 22), as the node
+        // serves it.
+        assert_eq!(l["bundle_gas_limit"], node_limits["bundle_gas_limit"], "{l}");
+        assert!(
+            l["bundle_gas_limit"] == 20479 || l["bundle_gas_limit"] == 22527,
+            "{l}"
+        );
         assert_eq!(l["adjust_bps"], 1250);
         assert_eq!(l["envelope_bytes"], 1860);
         assert_eq!(l["hardening_v6"], true);

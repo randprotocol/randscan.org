@@ -1,47 +1,47 @@
 {
- "_source": "chain 20 (genesis 6210cf07), block 1664, tx 4f6e6c54...1a64: rand_getTransaction action, rand_getBridgeState.fees, rand_getCommitments [19,2] (cm, envelope presence) - public data read from node E 2026-10-01",
- "action": {
-  "amount": "100000000",
-  "asset": 1,
-  "asset_index": 1,
-  "attestation_len": 586,
-  "commitment": "d8f146fd390c839e5cc084a2c560c42f1901968864b834062e8aa28972ace5e2",
-  "deposit_amount": "99900000",
-  "fee_note": {
-   "amount": "100000",
-   "asset": 1,
-   "commitment": "47c3ad478fa92b55348204ac0d9884500466aba53d19875b782ada67d2ca6ee4",
-   "r": "ecee001c9a2a03505fe2d1cb35b040f52ed6e3dbb5409a4ba716f00ac6811d63",
-   "time": 1599
+  "_source": "chain 20 (genesis 6210cf07), block 1664, tx 4f6e6c54...1a64: rand_getTransaction action, rand_getBridgeState.fees, rand_getCommitments [19,2] (cm, envelope presence) - public data read from node E 2026-10-01. Constraint set 11 (fullnode 60a7d03, chain 22) re-commits the same public openings under its Grain Poseidon2 constants: the cm values here (leaves[].cm, action.commitment, fee_note.commitment) are the set-11 commitments of those openings, computed by the fullnode crate, not chain 20's set-9 leaves (d8f146fd..., 47c3ad47...)",
+  "action": {
+    "amount": "100000000",
+    "asset": 1,
+    "asset_index": 1,
+    "attestation_len": 586,
+    "commitment": "508b42d221b93724d70e584796344a3bbcfd999e9ae82142b611e0265eeb155d",
+    "deposit_amount": "99900000",
+    "fee_note": {
+      "amount": "100000",
+      "asset": 1,
+      "commitment": "1f55fce62ffb2b108f78c548bf169cf596f21378b4534264fa3c1eb44bf34f2e",
+      "r": "ecee001c9a2a03505fe2d1cb35b040f52ed6e3dbb5409a4ba716f00ac6811d63",
+      "time": 1599
+    },
+    "kind": "bridge_attest",
+    "pq_signers": [
+      0,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "r": "63a44e149332d851011f20ac2c2622e814297177c8b18f7447fe9a0484edb7a0",
+    "recipient": "rand1DoRgCizWrqBBvgzRbYvu64QQjccEQWHQ8iysTNQAL6pBJH42HHHVWrPWDQ4UMTHvyAfxiHaxZr44vWNU54zkLyNmFSjXRx2Ro1RMwmi7bvp2t287hw5NecaXpwQPQpoqvuNnhtyTknNjSLWMeXgFeDoYy6M5UfWKF7XCRszifXQjMfy72shbt6XXVq7NTLRWFriLSKCJvBoqRufWNr8r5XT4b31xwDccn4Hb8sNcHLQ122F8whPp2U886Lt8AnsRLWy3CypqaYD5PPwRDX8SrRVWydJGpG5WK6Yde95n48cNFSXCxQnuRuC1UiHef4qEP5N4TYqR1GndYbdVQc1nVM3NoscSfuWV8H1RkpenvkegHRZmUxT7W2Ff2jB3i6yt7RHssQvVfeFy3dJ2EVEo8RfAzriBiorsujsCLRwokwJ8t18ijFBhLYxQzW8RtqUHuFPNrQPsRnJ1mpmfCbYp3S8ES3yK7k686skUKJbkGamAjpgC6pM2oK4ztzWv9jJgA8RcTBhE5qktiHm1L4Geh8Dg5TQoZq5BuS7CaKki36eFoBurtbjxEWJwvpAhVihM4wM8TDsRQJ9mTUbQYj5xRAd3t9CSt27SSZKPZon9ZSsPwtkwQyr1JeWhS7aj8a5RMA7c4gJwrjMjcfoGXftrSn3k9p8reCk4Ka28CSpgw1pYG59UYFrZ3JWn4bpw29NRxeD1FRtW4pYEVH2PeN6ebZZvtQE58TKNRPjKsiz8MEx4toALBaK1jhDJfDgvB5d4j6SoFmFnzdjNJXPa7ftAtCJWGrTjKLpxsT6L7mbDnGWg4E6e27aog3W4cMvkxQNTizor645xMpjZF4T1jZV37aXEsdjSCBSkSHxdBPvzxpfLTNTPzf9XtrU2EpLxPsRqHKMAKNyqovPmCvktM9Gde3zBPBPTRwEJ9sbHLcjeCt7xMWVSRm9mBUwKhUBN3Jj31gb5QoE6p4s9w6Far1bQeyw93bMAM5eoy497TGbQXkphZdTrwvLL2di9g8qPW8VjV1cKxUCz1U6isV6PTKW1qduqSziJR4Jtzbb5sUMsAwecu7kGXxtxDr4og8EJz1SZZVBLorUDKGRdmjBEAdzKubfLnHazLCUL6eBW3N2fbSx9Hc7wKVkRD83Mp5Wy1kkBnqZyBzKB7fnaqjf5hhNk1Lh2AYspm63safAnyFFD8S38Bddxnq5m4hqM9Yid5cxWbZTWcbXkXjQyxbAXhppWT9yi3Ed6bdakDD4EyzHoCrC3WTg1ugd6Hatuosnn4MTiTtWKKRUokCNxtEyZonjJmAjKWR3xDr8dycMndQex6Qve9Nch3uEV4qa9QsVnAjhMhsicMDnbpwPUCDrGBc2dAnNa9mBCp8vm1w66hUHa7SKHa2BD1SJDpjc2kM2zieP7YopdtHv3ZPhNwBWszuiTm5WKStGLVe6oXxQT2NsDVp9u6Ga7PeqMdCkQKF79vNq7Vm6dKEadhEq3EQ5cvtHLRPrYcdeSkThEAEeDrqoGcMs8xCZunYvU93vedt878avNA2xcS4HgNeCycEigCX5nRhJAJmjsMJMi8HpUbErH3yRJA5BpxUuzmWuiZfKBNRsQE12tPGT4jnynpwUKqE8Q3wwJ1VR1JngGFN5Rn1seSTtZ5h52zgsYQGqDhyMfb",
+    "time": 1599
   },
-  "kind": "bridge_attest",
-  "pq_signers": [
-   0,
-   3,
-   4,
-   5,
-   6,
-   7
-  ],
-  "r": "63a44e149332d851011f20ac2c2622e814297177c8b18f7447fe9a0484edb7a0",
-  "recipient": "rand1DoRgCizWrqBBvgzRbYvu64QQjccEQWHQ8iysTNQAL6pBJH42HHHVWrPWDQ4UMTHvyAfxiHaxZr44vWNU54zkLyNmFSjXRx2Ro1RMwmi7bvp2t287hw5NecaXpwQPQpoqvuNnhtyTknNjSLWMeXgFeDoYy6M5UfWKF7XCRszifXQjMfy72shbt6XXVq7NTLRWFriLSKCJvBoqRufWNr8r5XT4b31xwDccn4Hb8sNcHLQ122F8whPp2U886Lt8AnsRLWy3CypqaYD5PPwRDX8SrRVWydJGpG5WK6Yde95n48cNFSXCxQnuRuC1UiHef4qEP5N4TYqR1GndYbdVQc1nVM3NoscSfuWV8H1RkpenvkegHRZmUxT7W2Ff2jB3i6yt7RHssQvVfeFy3dJ2EVEo8RfAzriBiorsujsCLRwokwJ8t18ijFBhLYxQzW8RtqUHuFPNrQPsRnJ1mpmfCbYp3S8ES3yK7k686skUKJbkGamAjpgC6pM2oK4ztzWv9jJgA8RcTBhE5qktiHm1L4Geh8Dg5TQoZq5BuS7CaKki36eFoBurtbjxEWJwvpAhVihM4wM8TDsRQJ9mTUbQYj5xRAd3t9CSt27SSZKPZon9ZSsPwtkwQyr1JeWhS7aj8a5RMA7c4gJwrjMjcfoGXftrSn3k9p8reCk4Ka28CSpgw1pYG59UYFrZ3JWn4bpw29NRxeD1FRtW4pYEVH2PeN6ebZZvtQE58TKNRPjKsiz8MEx4toALBaK1jhDJfDgvB5d4j6SoFmFnzdjNJXPa7ftAtCJWGrTjKLpxsT6L7mbDnGWg4E6e27aog3W4cMvkxQNTizor645xMpjZF4T1jZV37aXEsdjSCBSkSHxdBPvzxpfLTNTPzf9XtrU2EpLxPsRqHKMAKNyqovPmCvktM9Gde3zBPBPTRwEJ9sbHLcjeCt7xMWVSRm9mBUwKhUBN3Jj31gb5QoE6p4s9w6Far1bQeyw93bMAM5eoy497TGbQXkphZdTrwvLL2di9g8qPW8VjV1cKxUCz1U6isV6PTKW1qduqSziJR4Jtzbb5sUMsAwecu7kGXxtxDr4og8EJz1SZZVBLorUDKGRdmjBEAdzKubfLnHazLCUL6eBW3N2fbSx9Hc7wKVkRD83Mp5Wy1kkBnqZyBzKB7fnaqjf5hhNk1Lh2AYspm63safAnyFFD8S38Bddxnq5m4hqM9Yid5cxWbZTWcbXkXjQyxbAXhppWT9yi3Ed6bdakDD4EyzHoCrC3WTg1ugd6Hatuosnn4MTiTtWKKRUokCNxtEyZonjJmAjKWR3xDr8dycMndQex6Qve9Nch3uEV4qa9QsVnAjhMhsicMDnbpwPUCDrGBc2dAnNa9mBCp8vm1w66hUHa7SKHa2BD1SJDpjc2kM2zieP7YopdtHv3ZPhNwBWszuiTm5WKStGLVe6oXxQT2NsDVp9u6Ga7PeqMdCkQKF79vNq7Vm6dKEadhEq3EQ5cvtHLRPrYcdeSkThEAEeDrqoGcMs8xCZunYvU93vedt878avNA2xcS4HgNeCycEigCX5nRhJAJmjsMJMi8HpUbErH3yRJA5BpxUuzmWuiZfKBNRsQE12tPGT4jnynpwUKqE8Q3wwJ1VR1JngGFN5Rn1seSTtZ5h52zgsYQGqDhyMfb",
-  "time": 1599
- },
- "fees": {
-  "burn_bps": 10,
-  "mint_bps": 10,
-  "recipient": "rand13V5UGHeprJyDzRtYFbv5bc4rEFGYyuU2zbNj4zsYfPBvEHwD26rggh9VyJVWXFNwKQLbGPYkC4iNYzwrjiA97eufs6ija1UyVUx69rK3aKVxxba7XMtAT9KyE98Nynek7kPCFTV5iZ5VgG5VEVPgCSkqSu7nmmNYNFZAo1YT4Ehf1PmMsPg516kffCkfQWTbk7WuyCYAuGBTmiRxA9o5L9wFhFyhoYh8n2kEGKEFNCkKhqbiLuoDHtFHaTWkgAckULXAYMxjMugQzwR2JV1ApnkchJEk37P4PaRMKZ1noeDB4oCkxD7ececouRc8M3kedc9Tg6BSj6EpYrH3uJLoCTCxh6SD91DZ6LMBGTqFBQiiXLnpLBwCig3zNvcq8DAD8bksaQpuU2hn3cxLaKPpq7Y8TUGMdV2Yw2hcir32AcqKHMVoMrrhJZYCkQyCHMAN2ZKt38psW6NmeKnLHhqx5zAwEYhb9qaQ2BZ2rDedch5dtstJsGDUv4GqFxncamcCKtEnwGNAgWuhFGBwpjHVbYziBqpc3gQukY4xhGtY1t4crrS9anbbMqQy9ARfj4Cx7yBM7HCAg3szCZgBUPo4JuSifj3gG4JZ2J6SXk189hzNLfzXTsMLtFD3wPjdA24v2GLPAdsZuESoMGZE6kMMcpBXfFg1ShBWAYupxtViu6eWK5MEtJXAcAmPVHZ7dPg544jPcawqbduesg2zaU1GH45ipm73nB8P6pkxRp69d2vKKMKg8uiC32E6G5kLwhziCFe9vb7eQA8dE8wP1ejVTheZ4N3NgdbTs3bpxYQ4oEDLUi8NReJQsm1sotedGih8pwsu5zU8KGv3XoqkAPtym1a8Dodw5icsAdrG9o1ZS5t4sVYFpCE4whoVhWeUx1faQCPoBm7Cc2AeMThq2LSvyJ2NLXJv6LSqBF7vCr8pySPRaxjZi2JG6iLBRxhZBaKUaA733bhCyKYkSwwJfeZiFRVUPDZoNcZbjh5z5G9Sahm45moDNYP4BFt8YncVk6gHjtijhLyxLHDpcvtwnKCSd3SWg4n2NmeVk2Rk792pC4UxXqmr2DRmsPDJATfe7dnZErehV78X5QaYQRinASpgxouL2unV2PdrYaxzpguueYVhZDPKfKcBiReFXQQUAjFUhxkxNunu1mCrC34UxxLYjkUatW2zh4eyvx6FKk62wZU84A95gLXqoKchpRXiJh3jKp2z8TQcCFUoBBh7SqPaEfpNQSvHweiQF87bYXGTViB5hWAg3QsaM578ZfCnxPesUaLa1MNvL6piEQHn8Tctxsar8Xw3yZLFxHPhNWKFagkXB6NWhKNr794mNNADaRPbAcL4bhHbLyeEkhVrUo1W65WbxiCUfvhajb4eKQF7WeMVMdgw7QFUCa3G3F4Fj4SswEPyZCoFQsZzMzGooUUg3sKVwqChXRU6J8BsGk4131rwoPBVu9uKUNqNtBSYNnoa1Z8zqubUtEbDZUkPjGp4jyEMQUpcD9GVd4VdaC4YuFy9WHGr2gg5XdFc5hPNk5jzns5hGHQhKnCkAZVMhg3MGJf54zZM81uKUqb5ZVTZBs22c5KsD3jQFG7bbZeLFX3Sv6JMa7dtiw7rC7KAJ1voWseEcWx4fYYthaJWbc1UgnRThdZrDfRD64SToyaiA"
- },
- "leaves": [
-  {
-   "index": 19,
-   "cm": "d8f146fd390c839e5cc084a2c560c42f1901968864b834062e8aa28972ace5e2",
-   "has_envelope": true
+  "fees": {
+    "burn_bps": 10,
+    "mint_bps": 10,
+    "recipient": "rand13V5UGHeprJyDzRtYFbv5bc4rEFGYyuU2zbNj4zsYfPBvEHwD26rggh9VyJVWXFNwKQLbGPYkC4iNYzwrjiA97eufs6ija1UyVUx69rK3aKVxxba7XMtAT9KyE98Nynek7kPCFTV5iZ5VgG5VEVPgCSkqSu7nmmNYNFZAo1YT4Ehf1PmMsPg516kffCkfQWTbk7WuyCYAuGBTmiRxA9o5L9wFhFyhoYh8n2kEGKEFNCkKhqbiLuoDHtFHaTWkgAckULXAYMxjMugQzwR2JV1ApnkchJEk37P4PaRMKZ1noeDB4oCkxD7ececouRc8M3kedc9Tg6BSj6EpYrH3uJLoCTCxh6SD91DZ6LMBGTqFBQiiXLnpLBwCig3zNvcq8DAD8bksaQpuU2hn3cxLaKPpq7Y8TUGMdV2Yw2hcir32AcqKHMVoMrrhJZYCkQyCHMAN2ZKt38psW6NmeKnLHhqx5zAwEYhb9qaQ2BZ2rDedch5dtstJsGDUv4GqFxncamcCKtEnwGNAgWuhFGBwpjHVbYziBqpc3gQukY4xhGtY1t4crrS9anbbMqQy9ARfj4Cx7yBM7HCAg3szCZgBUPo4JuSifj3gG4JZ2J6SXk189hzNLfzXTsMLtFD3wPjdA24v2GLPAdsZuESoMGZE6kMMcpBXfFg1ShBWAYupxtViu6eWK5MEtJXAcAmPVHZ7dPg544jPcawqbduesg2zaU1GH45ipm73nB8P6pkxRp69d2vKKMKg8uiC32E6G5kLwhziCFe9vb7eQA8dE8wP1ejVTheZ4N3NgdbTs3bpxYQ4oEDLUi8NReJQsm1sotedGih8pwsu5zU8KGv3XoqkAPtym1a8Dodw5icsAdrG9o1ZS5t4sVYFpCE4whoVhWeUx1faQCPoBm7Cc2AeMThq2LSvyJ2NLXJv6LSqBF7vCr8pySPRaxjZi2JG6iLBRxhZBaKUaA733bhCyKYkSwwJfeZiFRVUPDZoNcZbjh5z5G9Sahm45moDNYP4BFt8YncVk6gHjtijhLyxLHDpcvtwnKCSd3SWg4n2NmeVk2Rk792pC4UxXqmr2DRmsPDJATfe7dnZErehV78X5QaYQRinASpgxouL2unV2PdrYaxzpguueYVhZDPKfKcBiReFXQQUAjFUhxkxNunu1mCrC34UxxLYjkUatW2zh4eyvx6FKk62wZU84A95gLXqoKchpRXiJh3jKp2z8TQcCFUoBBh7SqPaEfpNQSvHweiQF87bYXGTViB5hWAg3QsaM578ZfCnxPesUaLa1MNvL6piEQHn8Tctxsar8Xw3yZLFxHPhNWKFagkXB6NWhKNr794mNNADaRPbAcL4bhHbLyeEkhVrUo1W65WbxiCUfvhajb4eKQF7WeMVMdgw7QFUCa3G3F4Fj4SswEPyZCoFQsZzMzGooUUg3sKVwqChXRU6J8BsGk4131rwoPBVu9uKUNqNtBSYNnoa1Z8zqubUtEbDZUkPjGp4jyEMQUpcD9GVd4VdaC4YuFy9WHGr2gg5XdFc5hPNk5jzns5hGHQhKnCkAZVMhg3MGJf54zZM81uKUqb5ZVTZBs22c5KsD3jQFG7bbZeLFX3Sv6JMa7dtiw7rC7KAJ1voWseEcWx4fYYthaJWbc1UgnRThdZrDfRD64SToyaiA"
   },
-  {
-   "index": 20,
-   "cm": "47c3ad478fa92b55348204ac0d9884500466aba53d19875b782ada67d2ca6ee4",
-   "has_envelope": false
-  }
- ]
+  "leaves": [
+    {
+      "index": 19,
+      "cm": "508b42d221b93724d70e584796344a3bbcfd999e9ae82142b611e0265eeb155d",
+      "has_envelope": true
+    },
+    {
+      "index": 20,
+      "cm": "1f55fce62ffb2b108f78c548bf169cf596f21378b4534264fa3c1eb44bf34f2e",
+      "has_envelope": false
+    }
+  ]
 }

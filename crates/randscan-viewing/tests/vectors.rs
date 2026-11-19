@@ -1,7 +1,8 @@
 //! Opens envelopes sealed by the fullnode's own crate (`tests/vectors.json`, produced with
-//! `randprotocol-zkvm` at commit d40fb94 — v0.6.6, the chain-18 / constraint-set-8 build, whose
-//! `src/` is unchanged at 86941a1 = v0.6.7, chain 19's build too; first produced at e2aae20,
-//! and every deterministic value has been the same since): the only thing
+//! `randprotocol-zkvm` at fullnode `feat/cs11-revendor` 60a7d03 — constraint set 11, chain 22,
+//! from the same keys, note, salt and inputs as before; set 11's Grain constants moved every
+//! Poseidon2 value in it — the sponge, nk/pk/ovk, the address, the commitment, the nullifier and
+//! H_IN. Through set 10 it was produced at d40fb94 (v0.6.6) and first at e2aae20): the only thing
 //! that pins this re-implementation to the wire format the chain uses.
 
 use randscan_viewing::*;

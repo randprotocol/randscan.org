@@ -6,10 +6,9 @@ sent anywhere.
 
 It re-implements, byte for byte, what the fullnode's vendored zkVM does when a wallet opens an
 envelope (`crates/randprotocol-zkvm/src/{hash,notes,viewing,call_envelope}.rs`, last checked at
-commit `d40fb94` = v0.6.6, the chain-18 / constraint-set-8 build; the crate's whole `src/` tree
-and its `Cargo.toml` are the same git objects at `86941a1` = v0.6.7, the release chain 18 runs
-and chain 19 is cut and run with, so chain 19 needs no rebuild):
-the Poseidon2 sponge with the node's seeded round constants, `nk -> pk / ovk / ML-KEM seed`,
+fullnode `feat/cs11-revendor` `60a7d03`, the constraint-set-11 build for chain 22, whose Grain
+round constants replaced the seeded draw chains 14–21 hashed with; before it `d40fb94` = v0.6.6):
+the Poseidon2 sponge with the node's committed round constants, `nk -> pk / ovk / ML-KEM seed`,
 the note layout and commitment, ChaCha20-Poly1305 with the commitment as associated data, and
 the three openings (receiver through ML-KEM-768, sender through `ovk`, or the transaction key),
 plus a call's sealed input transcript checked against the receipt's `H_IN`, and (fullnode

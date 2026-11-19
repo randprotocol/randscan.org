@@ -2,7 +2,10 @@
 //! `wallet::rebuilt_notes_with`), checked against chain 20's first fee-split deposit: block 1664's
 //! `bridge_attest` minted the depositor's net note (leaf 19, 0.999 zUSD) and the treasury's fee
 //! note (leaf 20, 0.001 zUSD, no envelope). The fixture is public chain data only; the owners'
-//! `pk`s are read out of their public addresses (`rand1` + base58(pk ‖ ML-KEM key)).
+//! `pk`s are read out of their public addresses (`rand1` + base58(pk ‖ ML-KEM key)). Since
+//! constraint set 11 (chain 22) the leaves are those same openings re-committed under the Grain
+//! constants by the fullnode crate (60a7d03), not chain 20's set-9 leaves — see the fixture's
+//! `_source`.
 
 use randscan_viewing::{rebuild, word8_from_hex, Note, PublicNote, ViewingKey, Word8, DEPOSIT_FROM, MINT_FROM, PROGRAM_FROM};
 

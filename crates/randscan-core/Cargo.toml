@@ -17,9 +17,9 @@ uuid = { workspace = true }
 # not publish directly (unlike a `bridge_attest`'s deposit, whose `commitment` field the node
 # already serves) and link that leaf to its transaction. Pinned to the *exact* versions
 # `crates/randscan-viewing` uses (fullnode's vendored zkVM, checked at d40fb94 = v0.6.6, chain 18; unchanged at 86941a1 = v0.6.7, chains 18 and 19). The Poseidon2 round
-# constants are circuits' committed table (`src/poseidon2_constants.rs`, audit ZKV-2), no longer a
-# seeded `rand` `StdRng` draw, so `rand` is only a dev-dependency now: the table's own test re-runs
-# the old draw to prove the two equal. Deliberately not a dependency on `crates/randscan-viewing`
+# constants are the committed table (`src/poseidon2_constants.rs`, audit ZKV-2) — since constraint
+# set 11 (fullnode 60a7d03, chain 22) the Grain table p3-goldilocks 0.7.0 ships — so `rand` is only
+# a dev-dependency: the table's own tests sample with it. Deliberately not a dependency on `crates/randscan-viewing`
 # itself, which is wasm32-only (`getrandom`'s `wasm_js` backend) and excluded from this workspace.
 p3-goldilocks = "=0.7.0"
 p3-poseidon2 = "=0.7.0"

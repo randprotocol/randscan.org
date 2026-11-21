@@ -579,7 +579,10 @@ async fn explorer_agrees_with_a_real_shielded_node() {
         assert_eq!(l["gas_metering"], "circuit", "{l}");
         // The build's own pin (set 9: 20 479, chain 21; set 11: 22 527, chain 22), as the node
         // serves it.
-        assert_eq!(l["bundle_gas_limit"], node_limits["bundle_gas_limit"], "{l}");
+        assert_eq!(
+            l["bundle_gas_limit"], node_limits["bundle_gas_limit"],
+            "{l}"
+        );
         assert!(
             l["bundle_gas_limit"] == 20479 || l["bundle_gas_limit"] == 22527,
             "{l}"

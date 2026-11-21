@@ -11,8 +11,8 @@ export interface ChainPin {
 
 /** Chain 21, cut 2026-10-12. */
 export const EXPECTED_CHAIN: ChainPin = {
-  chain_id: 21,
-  genesis_hash: 'ca76c2766ed6090ac6ba5dad86b724dd5d2b80c0edfaed287cd8b129e663ca9a',
+  chain_id: 22,
+  genesis_hash: '29d67542941f2eb6f2c1bb68c759926f5d814c9e2c7a934292806a2d98b7e9c0',
 };
 
 /** The <meta> tags that carry the pin in every page's <head>. */

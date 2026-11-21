@@ -15,11 +15,11 @@ pub const STALL_MS: i64 = 60_000;
 /// An indexer more than this many blocks behind its node is behind.
 pub const MAX_LAG: i64 = 10;
 
-/// The chain a deployment expects when nothing configures another: chain 21, cut 2026-10-12.
+/// The chain a deployment expects when nothing configures another: chain 22, cut 2026-11-21.
 /// Every pin moves at a chain cut; the monorepo's site-sync cron fails while one is left behind.
-pub const DEFAULT_EXPECTED_CHAIN_ID: i64 = 21;
+pub const DEFAULT_EXPECTED_CHAIN_ID: i64 = 22;
 pub const DEFAULT_EXPECTED_GENESIS: &str =
-    "ca76c2766ed6090ac6ba5dad86b724dd5d2b80c0edfaed287cd8b129e663ca9a";
+    "29d67542941f2eb6f2c1bb68c759926f5d814c9e2c7a934292806a2d98b7e9c0";
 
 /// Lowercase hex without a `0x` prefix, so two spellings of one hash compare equal.
 pub fn normalize_hash(h: &str) -> String {
@@ -241,13 +241,13 @@ mod tests {
 
     fn live_view() -> ChainView {
         ChainView {
-            chain_id: 21,
+            chain_id: 22,
             genesis_hash: Some(G.into()),
             head_height: 495_700,
             head_timestamp_ms: Some(NOW - 2_500),
             node_height: Some(495_700),
             lag: Some(0),
-            node_chain_id: Some(21),
+            node_chain_id: Some(22),
             node_genesis_hash: Some(G.into()),
         }
     }
@@ -330,7 +330,7 @@ mod tests {
         assert_eq!(c.state, ChainState::WrongChain);
         assert!(c.detail.contains("indexing stopped"), "{}", c.detail);
         let mut v = live_view();
-        v.node_chain_id = Some(22);
+        v.node_chain_id = Some(23);
         assert_eq!(state(Some(&v)), ChainState::WrongChain);
     }
 
@@ -371,9 +371,9 @@ mod tests {
     }
 
     #[test]
-    fn the_default_pin_is_chain_21() {
+    fn the_default_pin_is_chain_22() {
         let p = ChainPin::default();
-        assert_eq!(p.chain_id, 21);
+        assert_eq!(p.chain_id, 22);
         assert_eq!(p.genesis_hash, G);
     }
 }

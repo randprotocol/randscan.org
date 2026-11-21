@@ -5,6 +5,8 @@
 pub mod amount;
 pub mod error;
 pub mod notecommit;
+// Byte-identical to fullnode's copy (see its header), whose rows rustfmt would rewrap.
+#[rustfmt::skip]
 pub mod poseidon2_constants;
 pub mod types;
 

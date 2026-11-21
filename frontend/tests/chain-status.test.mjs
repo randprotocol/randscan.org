@@ -36,16 +36,16 @@ if (supported) {
   server = await import('react-dom/server');
 }
 
-const G = 'ca76c2766ed6090ac6ba5dad86b724dd5d2b80c0edfaed287cd8b129e663ca9a';
+const G = '29d67542941f2eb6f2c1bb68c759926f5d814c9e2c7a934292806a2d98b7e9c0';
 const NOW = 1_800_000_000_000;
 const view = (over = {}) => ({
-  chain_id: 21,
+  chain_id: 22,
   genesis_hash: G,
   head_height: 495_700,
   head_timestamp_ms: NOW - 2_500,
   node_height: 495_700,
   lag: 0,
-  node_chain_id: 21,
+  node_chain_id: 22,
   node_genesis_hash: G,
   halted: false,
   node_connected: true,
@@ -55,7 +55,7 @@ const state = (v) => cs.classify(v, pin.EXPECTED_CHAIN, NOW).state;
 const reason = (v) => cs.classify(v, pin.EXPECTED_CHAIN, NOW).reason;
 
 test('the pin is chain 21 and the thresholds are the spec\'s', { skip }, () => {
-  assert.deepEqual(pin.EXPECTED_CHAIN, { chain_id: 21, genesis_hash: G });
+  assert.deepEqual(pin.EXPECTED_CHAIN, { chain_id: 22, genesis_hash: G });
   assert.equal(cs.STALL_MS, 60_000);
   assert.equal(cs.MAX_LAG, 10);
   assert.equal(cs.POLL_MS, 15_000);
@@ -107,7 +107,7 @@ test('a node that moved to another chain under the indexer is the wrong chain', 
   const v = view({ node_genesis_hash: 'cd'.repeat(32), halted: true, node_height: null, lag: null });
   assert.equal(state(v), 'wrong_chain');
   assert.equal(reason(v), 'halted');
-  assert.equal(state(view({ node_chain_id: 22 })), 'wrong_chain');
+  assert.equal(state(view({ node_chain_id: 23 })), 'wrong_chain');
 });
 
 test('an explorer cut off from its node is unreachable until the head goes stale', { skip }, () => {
@@ -134,7 +134,7 @@ test('pill tone per state', { skip }, () => {
 
 test('every page\'s <head> carries the pin as rand-genesis / rand-chain-id meta tags', { skip }, () => {
   const html = server.renderToStaticMarkup(React.createElement(meta.ChainMeta));
-  assert.equal(html, `<meta name="rand-genesis" content="${G}"/><meta name="rand-chain-id" content="21"/>`);
+  assert.equal(html, `<meta name="rand-genesis" content="${G}"/><meta name="rand-chain-id" content="22"/>`);
   const other = server.renderToStaticMarkup(
     React.createElement(meta.ChainMeta, { pin: { chain_id: 22, genesis_hash: 'ef'.repeat(32) } }),
   );

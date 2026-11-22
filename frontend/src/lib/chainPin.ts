@@ -9,7 +9,7 @@ export interface ChainPin {
   genesis_hash: string;
 }
 
-/** Chain 21, cut 2026-10-12. */
+/** Chain 22, cut 2026-11-21 03:15 UTC on fullnode v0.8.7. */
 export const EXPECTED_CHAIN: ChainPin = {
   chain_id: 22,
   genesis_hash: '29d67542941f2eb6f2c1bb68c759926f5d814c9e2c7a934292806a2d98b7e9c0',

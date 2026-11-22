@@ -113,7 +113,7 @@ pub struct ChainLimits {
     /// differently), `None` with neither.
     #[serde(default)]
     pub gas_metering: Option<String>,
-    /// The bundle guest's flat declared gas every bundle proof must publish (`20479` on chain 18,
+    /// The bundle guest's flat declared gas every bundle proof must publish (`22527` on chain 22, `20479` on chains 18–21,
     /// the tier-14 hash-free ceiling); `None` without a `gas` section.
     #[serde(default)]
     pub bundle_gas_limit: Option<u64>,
@@ -181,7 +181,7 @@ pub struct MultisigLimits {
 /// The `perps` group of `rand_getLimits` (RPL-3).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PerpsLimits {
-    /// The asset a deposit burns and a payout pays (0 is RAND; zUSD's index on chain 21).
+    /// The asset a deposit burns and a payout pays (0 is RAND; zUSD's index, 1, on chains 21 and 22).
     pub collateral_asset: u32,
     pub max_tier: u32,
     pub max_window_blocks: u64,
@@ -386,7 +386,7 @@ pub struct Supply {
     #[serde(default, deserialize_with = "crate::amount::amount_opt")]
     pub multisig_rand_held: Option<String>,
     /// RPL-3 perps: RAND state proofs paid out of the exchange as notes, and what it still holds.
-    /// `"0"` without the section and on a chain whose collateral is a token (chain 21's zUSD:
+    /// `"0"` without the section and on a chain whose collateral is a token (chain 21's and 22's zUSD:
     /// a token collateral's supply does not move), `None` on a node predating them.
     #[serde(default, deserialize_with = "crate::amount::amount_opt")]
     pub perps_rand_out: Option<String>,

@@ -170,7 +170,7 @@ unreachable. Check `indexer.lag` before trusting "latest" data during an outage.
               "max_call_envelope_bytes": 65536, "max_program_public_words": 32768,
               "envelope_bytes": 1860, "hardening_v6": true, "hc_auth": "60af…3fce",
               "gas_price": "100", "byte_price": "800", "gas_metering": "circuit",
-              "bundle_gas_limit": 20479, "adjust_bps": 1250 },
+              "bundle_gas_limit": 22527, "adjust_bps": 1250 },
   "hc_auth": "60af…3fce",
   "gas_prices": { "gas_price": "112", "byte_price": "900" },
   "updated_at": "2026-09-12T05:20:38.591804+00:00"
@@ -211,7 +211,7 @@ chain without the setting and on a node too old to report it:
   the proof, and the prices are consensus state every node reports alike), `"header"` while only
   the explorer's node prices `gas_max` of a proof's header as its own admission policy (two nodes
   may answer differently), `null` with neither. Prices are RAND units, decimal strings.
-- `bundle_gas_limit` — the flat gas every bundle proof must declare (`20479` on chain 18);
+- `bundle_gas_limit` — the flat gas every bundle proof must declare (`22527` on chain 22, constraint set 11; `20479` on chains 18–21);
   `adjust_bps` — the dynamic controller's per-block step in basis points (`1250` = 12.5%), `null`
   when the prices never move. Both `null` without a `gas` section.
 - `program_state` — RPL-2 (fullnode v0.6.8): `{ "cell_fee": "10000000", "max_reads": 8,
@@ -243,7 +243,7 @@ the proof, not a field of the receipt), so the explorer cannot show it per trans
 Fullnode v0.8.0's counters: `base_fees_burned` (bundle bases burned under `fees.burn_base`), the
 five `multisig_*` (what genesis seeded accounts with, RAND creates and deposits put in, RAND paid
 out as notes, bases paid to proposers, what the accounts hold) and `perps_rand_out` /
-`perps_rand_held` (RAND only; `"0"` on a chain whose collateral is a token, as chain 21's zUSD
+`perps_rand_held` (RAND only; `"0"` on a chain whose collateral is a token, as chain 21's and chain 22's zUSD
 is). Each is `"0"` on a chain without its section and `null` from a node predating it.
 
 `program_rand_out` and `program_rand_held` are RPL-2: RAND that invokes have paid out of program

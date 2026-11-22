@@ -25,7 +25,7 @@ use serde::{Deserialize, Serialize};
 /// possession-carrying twins `rotate_pq_guardians_v2` / `rotate_pause_key_v2` (30/31) — and
 /// `cancel_rotation` (32).
 ///
-/// Fullnode v0.8.0 (each genesis-gated, refused on chain 20; chain 21 carries them): RPL-3 perps
+/// Fullnode v0.8.0 (each genesis-gated, refused on chain 20; chains 21 and 22 carry them): RPL-3 perps
 /// (`perp_deposit` 34, `perp_order` 35, `perp_cancel` 36, `perp_withdraw` 37, `perp_oracle` 38,
 /// `perp_state_proof` 39), multisig accounts (`create_multisig` 40, `multisig_deposit` 41,
 /// `multisig_pay` 42, `multisig_rotate` 43) and the validator set's RAND/USD price vote
@@ -488,7 +488,7 @@ pub struct PerpPayout {
 
 /// RPL-3 perps (fullnode v0.8.0, genesis `perps`; tags 34–39). Public by design: the exchange's
 /// inputs are what its prover replays. Collateral amounts are in the genesis
-/// `perps.collateral_asset`'s units (zUSD on chain 21), not RAND's. Field for field the node's
+/// `perps.collateral_asset`'s units (zUSD on chains 21 and 22), not RAND's. Field for field the node's
 /// `tx_json` (`crates/randprotocol-node/src/rpc.rs`).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]

@@ -280,7 +280,7 @@ export interface PerpOrderBody {
 }
 
 /** RPL-3 perps (fullnode v0.8.0, genesis `perps`). Amounts are in the collateral asset's units
- * (`limits.perps.collateral_asset`; zUSD on chain 21), not RAND's. */
+ * (`limits.perps.collateral_asset`; zUSD on chains 21 and 22), not RAND's. */
 export type PerpAction =
   | { kind: 'perp_deposit'; trading_key: string; account: string }
   | { kind: 'perp_order'; account: string; body: PerpOrderBody }
@@ -964,7 +964,7 @@ export interface ChainLimits {
   byte_price: string | null;
   /** `circuit` under a chain's own gas section, `header` under a node's policy, `null` with neither. */
   gas_metering: 'circuit' | 'header' | null;
-  /** The flat gas every bundle proof declares (20 479 on chain 18); `null` without a section. */
+  /** The flat gas every bundle proof declares (22 527 on chain 22; 20 479 on chains 18–21); `null` without a section. */
   bundle_gas_limit: number | null;
   /** The dynamic controller's per-block step in basis points; `null` when prices never move. */
   adjust_bps: number | null;

@@ -40,8 +40,10 @@ the build if one comes back). Two scripts make the owner's remaining steps check
        deploy/scan2-verify.sh --record https://randscan.org
 
    It passes only when the lookup route answers 404/405, the paged set is served, and no
-   JavaScript chunk the served history page references contains a nullifier lookup. Paste the
-   `SCAN-2 deploy check: … passed …` line into the issue as the deploy record.
+   JavaScript chunk the served history page references contains a nullifier lookup. The page is
+   read at `/viewing` (`/en/viewing` on builds before the i18n routing); a redirect is followed
+   only on the same origin and only to a history path. Paste the `SCAN-2 deploy check: … passed …`
+   line into the issue as the deploy record, and keep the full outputs in `deploy/records/`.
 2. **On the explorer host**, as root: `deploy/scan2-log-audit.sh` (a dry run: counts per source,
    never prints a matching line), then `deploy/scan2-log-audit.sh --purge --before <deploy day>`
    if it found any. `--purge` drops the whole journal older than that day (journald cannot delete
@@ -50,3 +52,5 @@ the build if one comes back). Two scripts make the owner's remaining steps check
    configuration should report zero; the script is how that is shown rather than assumed.
 
 Both are tested offline: `bash deploy/tests/scan2-verify.test.sh`, `bash deploy/tests/scan2-log-audit.test.sh`.
+
+Records: [`records/2026-11-25-scan2.md`](records/2026-11-25-scan2.md) (randscan.org: check passed, log audit found nothing).
